@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useProfiles } from '@/components/useProfiles';
 import type { Feedback } from '@/lib/feedback';
+import { authHeaders } from '@/lib/supabase';
 import type { RefResult } from '@/lib/references';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
 
@@ -46,7 +47,7 @@ export default function FeedbackPage() {
     setBusy(true);
     setError('');
     try {
-      const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+      const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       done(j);

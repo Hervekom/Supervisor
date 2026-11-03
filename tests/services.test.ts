@@ -176,3 +176,32 @@ describe('guided path', async () => {
     expect(P.aiLogText(p)).toContain('2026-11-04 01:00 UTC  Choose a topic you can finish: Supervisor review');
   });
 });
+
+describe('accounts', async () => {
+  const { checkUser } = await import('@/lib/auth');
+  const P = await import('@/lib/path');
+  const set = () => {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://s';
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'k';
+  };
+  it('rejects calls without a session', async () => {
+    set();
+    expect(await checkUser(new Request('http://x'))).toMatchObject({ ok: false, status: 401 });
+  });
+  it('rejects a bad token and accepts a good one', async () => {
+    set();
+    const req = new Request('http://x', { headers: { authorization: 'Bearer t' } });
+    expect((await checkUser(req, (async () => new Response('', { status: 401 })) as typeof fetch)).ok).toBe(false);
+    expect((await checkUser(req, (async () => new Response('{}')) as typeof fetch)).ok).toBe(true);
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  });
+  it('keeps the most recently edited copy', () => {
+    const a = { ...P.emptyPath(), savedAt: '2026-11-04T01:00:00Z' };
+    const b = { ...P.emptyPath(), savedAt: '2026-11-04T02:00:00Z' };
+    expect(P.newerPath(a, b)).toBe(b);
+    expect(P.newerPath(b, a)).toBe(b);
+    expect(P.newerPath(a, null)).toBe(a);
+    expect(P.newerPath(null, b)).toBe(b);
+  });
+});

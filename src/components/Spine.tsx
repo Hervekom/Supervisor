@@ -8,6 +8,7 @@ const LINKS = [
   ['/check', 'Check'],
   ['/feedback', 'Feedback'],
   ['/guides', 'Guides'],
+  ['/account', 'Account'],
 ];
 
 export function Spine() {

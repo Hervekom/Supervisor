@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { put, useProfiles } from '@/components/useProfiles';
 import { subtractWorkingDays } from '@/lib/dates';
-import { aiLogText, canComplete, emptyPath, isPathState, nextOpen, progress, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepState } from '@/lib/path';
+import { useAccount } from '@/components/useAccount';
+import { authHeaders, loadCloudPath, saveCloudPath } from '@/lib/supabase';
+import { aiLogText, canComplete, emptyPath, isPathState, newerPath, nextOpen, progress, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepState } from '@/lib/path';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
 
 const KEY = 'path:v1';
@@ -38,9 +40,46 @@ export default function PathPage() {
     } catch {}
     setLoaded(true);
   }, []);
+  const { user, ready } = useAccount();
+  const [cloudReady, setCloudReady] = useState(false);
+  const [saveState, setSaveState] = useState('');
+  const touched = useRef(false);
+
   useEffect(() => {
-    if (loaded) put(KEY, JSON.stringify(path));
-  }, [path, loaded]);
+    if (!loaded || !ready || !user) return;
+    let live = true;
+    loadCloudPath(user.id)
+      .then((cloud) => {
+        if (!live) return;
+        const best = newerPath(path, isPathState(cloud) ? cloud : null);
+        if (best && best !== path) {
+          setPath(best);
+          setSetupOpen(!best.topic);
+        }
+        setCloudReady(true);
+      })
+      .catch(() => live && setSaveState('Your account could not load. Your work is kept in this browser.'));
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, ready, user?.id]);
+
+  useEffect(() => {
+    if (!loaded) return;
+    put(KEY, JSON.stringify(path));
+    if (!user || !cloudReady || !touched.current) return;
+    const t = setTimeout(() => {
+      saveCloudPath(user.id, path)
+        .then(() => setSaveState('Saved to your account'))
+        .catch(() => setSaveState('Not saved to your account yet. Your work is kept in this browser.'));
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [path, loaded, user, cloudReady]);
+
+  // Every edit stamps the state, so the newest copy wins across devices.
+  const edit = (u: (p: PathState) => PathState) => {
+    touched.current = true;
+    setPath((p) => ({ ...u(p), savedAt: new Date().toISOString() }));
+  };
 
   const step = STEPS.find((s) => s.id === path.current) ?? STEPS[0];
   const state = stepState(path, step.id);
@@ -52,12 +91,12 @@ export default function PathPage() {
   const latest = path.defenseDate && lead ? subtractWorkingDays(new Date(`${path.defenseDate}T12:00:00`), lead) : null;
 
   const patch = (u: Partial<StepState>) =>
-    setPath((p) => ({ ...p, steps: { ...p.steps, [step.id]: { ...stepState(p, step.id), ...u, updated: new Date().toISOString() } } }));
-  const go = (id: string) => { setPath((p) => ({ ...p, current: id })); setQuestion(''); setError(''); window.scrollTo?.({ top: 0 }); };
+    edit((p) => ({ ...p, steps: { ...p.steps, [step.id]: { ...stepState(p, step.id), ...u, updated: new Date().toISOString() } } }));
+  const go = (id: string) => { edit((p) => ({ ...p, current: id })); setQuestion(''); setError(''); window.scrollTo?.({ top: 0 }); };
   const close = (status: 'done' | 'skipped') => {
     const next = { ...path, steps: { ...path.steps, [step.id]: { ...state, status } } };
     const n = nextOpen(next, step.id);
-    setPath({ ...next, current: n?.id ?? step.id });
+    edit(() => ({ ...next, current: n?.id ?? step.id }));
     setQuestion('');
     setError('');
   };
@@ -68,12 +107,12 @@ export default function PathPage() {
     try {
       const r = await fetch('/api/coach', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ stepId: step.id, degree, topic: path.topic, discipline: path.discipline, work: state.work, question, language }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
-      setPath((p) => ({
+      edit((p) => ({
         ...p,
         steps: { ...p.steps, [step.id]: { ...stepState(p, step.id), coach: j as CoachReply } },
         log: [...p.log, { at: new Date().toISOString(), step: step.id, tool: question ? 'Supervisor review with a question' : 'Supervisor review' }],
@@ -90,7 +129,7 @@ export default function PathPage() {
     try {
       const data = JSON.parse(await file.text());
       if (!isPathState(data)) throw new Error();
-      setPath(data);
+      edit(() => data);
       setError('');
     } catch {
       setError('This file is not a Supervisor progress file.');
@@ -131,7 +170,7 @@ export default function PathPage() {
           <div className="form">
             <div className="field">
               <label htmlFor="topic">Working title or topic</label>
-              <input id="topic" value={path.topic} onChange={(e) => setPath({ ...path, topic: e.target.value })} />
+              <input id="topic" value={path.topic} onChange={(e) => edit((p) => ({ ...p, topic: e.target.value }))} />
             </div>
             <div className="two">
               <div className="field">
@@ -148,11 +187,11 @@ export default function PathPage() {
               </div>
               <div className="field">
                 <label htmlFor="disc">Discipline</label>
-                <input id="disc" value={path.discipline} onChange={(e) => setPath({ ...path, discipline: e.target.value })} />
+                <input id="disc" value={path.discipline} onChange={(e) => edit((p) => ({ ...p, discipline: e.target.value }))} />
               </div>
               <div className="field">
                 <label htmlFor="def">Planned defense date</label>
-                <input id="def" type="date" value={path.defenseDate} onChange={(e) => setPath({ ...path, defenseDate: e.target.value })} />
+                <input id="def" type="date" value={path.defenseDate} onChange={(e) => edit((p) => ({ ...p, defenseDate: e.target.value }))} />
               </div>
             </div>
             {latest ? <p className="notice">Submit for review by <b>{latest.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</b> at the latest. This counts weekdays only, so public holidays can move it earlier.</p> : null}
@@ -244,7 +283,9 @@ export default function PathPage() {
           <button className="btn ghost" onClick={() => download('ai-use-record.txt', aiLogText(path), 'text/plain')}>Download AI use record</button>
           <input ref={fileRef} type="file" accept=".json" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) restore(f); e.target.value = ''; }} />
         </div>
-        <p className="hint">Your work stays in this browser until you save a backup. Text you send for review goes to the AI service.</p>
+        <p className="hint" role="status">
+          {user ? saveState || 'Your work saves to your account.' : <><Link href="/account">Sign in</Link> to keep your work on every device. Until then, it stays in this browser.</>} Text you send for review goes to the AI service.
+        </p>
       </div>
     </div>
   );

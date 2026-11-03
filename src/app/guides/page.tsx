@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useProfiles } from '@/components/useProfiles';
 import type { ImportResult } from '@/lib/profiles';
+import { authHeaders } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 
 const STATE: Record<Profile['status'], string> = {
@@ -24,7 +25,7 @@ export default function GuidesPage() {
     const f = new FormData();
     f.set('file', file);
     try {
-      const r = await fetch('/api/profiles/import', { method: 'POST', body: f });
+      const r = await fetch('/api/profiles/import', { method: 'POST', body: f, headers: await authHeaders() });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       setResult(j);
@@ -38,7 +39,7 @@ export default function GuidesPage() {
   }
   async function act(id: string, method: 'PATCH' | 'DELETE', body?: unknown) {
     setError('');
-    const r = await fetch(`/api/profiles/${id}`, { method, headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    const r = await fetch(`/api/profiles/${id}`, { method, headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: body ? JSON.stringify(body) : undefined });
     if (!r.ok) return setError((await r.json()).error);
     setResult(null);
     reload();

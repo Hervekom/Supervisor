@@ -34,10 +34,14 @@ To add a check, add a function under its key in `CHECKS`. Rules without a check 
 
 ## Before going public
 
-- Add accounts and access control. All API routes are open, including profile changes.
-- Thesis files are read in memory and are not stored. Progress stays in the browser, so add accounts and server storage before launch. Profiles are written to `data/profiles`, so a shared deployment needs a database.
+- Limit who can change shared profiles. Any signed-in user can do this today.
+- Thesis files are read in memory and are not stored. Student progress is stored in Supabase with row level security. University profiles are files in `data/profiles`, so guide import needs database storage on a read-only host.
 - Test the AI prompts with the chosen model.
 - Have the NUIST profile reviewed. Its status is `extracted`.
+
+## Database
+
+The schema is in `supabase/migrations`. The publishable key in `.env.production` is meant to be public. Never add a secret key to this repository.
 
 ## Test
 

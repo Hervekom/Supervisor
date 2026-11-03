@@ -175,6 +175,7 @@ export type PathState = {
   discipline: string;
   defenseDate: string;
   current: string;
+  savedAt?: string;
   steps: Record<string, StepState>;
   log: LogEntry[];
 };
@@ -224,4 +225,11 @@ export function aiLogText(p: PathState) {
   const title = (id: string) => STEPS.find((s) => s.id === id)?.title ?? id;
   const lines = p.log.map((l) => `${l.at.slice(0, 16).replace('T', ' ')} UTC  ${title(l.step)}: ${l.tool}`);
   return `AI use record${p.topic ? ` for: ${p.topic}` : ''}\n\n${lines.join('\n') || 'No AI use recorded.'}\n`;
+}
+
+/** Keeps the most recently edited copy when a browser and the account differ. */
+export function newerPath(local: PathState | null, cloud: PathState | null): PathState | null {
+  if (!cloud) return local;
+  if (!local) return cloud;
+  return (local.savedAt ?? '') > (cloud.savedAt ?? '') ? local : cloud;
 }

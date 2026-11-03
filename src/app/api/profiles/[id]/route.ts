@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { checkUser } from '@/lib/auth';
 import { fail, handle } from '@/lib/api';
 import { getProfile, removeProfile, saveProfile } from '@/lib/profiles';
 
@@ -6,6 +7,8 @@ type Ctx = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, { params }: Ctx) {
   try {
+    const auth = await checkUser(req);
+    if (!auth.ok) return fail(auth.error, auth.status);
     const p = await getProfile((await params).id);
     if (!p) return fail('This profile no longer exists.', 404);
     if (p.status === 'institution_verified') return fail('Verified profiles cannot change here.', 409);
@@ -20,8 +23,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
 }
 
-export async function DELETE(_: Request, { params }: Ctx) {
+export async function DELETE(req: Request, { params }: Ctx) {
   try {
+    const auth = await checkUser(req);
+    if (!auth.ok) return fail(auth.error, auth.status);
     return (await removeProfile((await params).id)) ? NextResponse.json({ ok: true }) : fail('This profile no longer exists.', 404);
   } catch (e) {
     return handle(e);

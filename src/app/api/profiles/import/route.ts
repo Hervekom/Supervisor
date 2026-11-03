@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
+import { checkUser } from '@/lib/auth';
 import { fail, handle, uploaded } from '@/lib/api';
 import { parseDocx } from '@/lib/docx';
 import { getProfile, importGuide, pdfPages, saveProfile } from '@/lib/profiles';
 
 export async function POST(req: Request) {
   try {
+    const auth = await checkUser(req);
+    if (!auth.ok) return fail(auth.error, auth.status);
     const u = await uploaded(await req.formData());
     if ('error' in u) return fail(u.error as string);
     const name = u.file.name.toLowerCase();

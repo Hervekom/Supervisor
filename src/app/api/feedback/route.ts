@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
+import { checkUser } from '@/lib/auth';
 import { fail, handle } from '@/lib/api';
 import { reviewChapter } from '@/lib/feedback';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
 
 export async function POST(req: Request) {
   try {
+    const auth = await checkUser(req);
+    if (!auth.ok) return fail(auth.error, auth.status);
     const b = (await req.json()) as { degree?: string; discipline?: string; title?: string; text?: string; language?: string };
     if (!b.text || b.text.trim().length < 200) return fail('Add at least 200 characters of chapter text.');
     if (!b.degree || !(b.degree in DEGREE_LABELS)) return fail('Choose a degree.');
