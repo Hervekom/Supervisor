@@ -9,8 +9,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fontsource-variable/literata": "^5.3.0",
-    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@supabase/supabase-js": "^2.118.0",
     "@xmldom/xmldom": "^0.9.12",
     "ajv": "^8.20.0",

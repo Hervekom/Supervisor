@@ -24,7 +24,6 @@ export function useProfiles() {
   const setDegree = useCallback((d: DegreeType) => {
     setDegreeState(d);
     put('degree', d);
-    document.documentElement.dataset.degree = d;
   }, []);
 
   const reload = useCallback(async () => {
