@@ -1,0 +1,1659 @@
+{
+  "schema_version": "1.0.0",
+  "profile_id": "cn-nuist-international-postgraduate-2026",
+  "profile_version": "0.1.0",
+  "status": "extracted",
+  "institution": {
+    "name": "Nanjing University of Information Science & Technology",
+    "local_name": "南京信息工程大学",
+    "country": "CN",
+    "institution_code": "10300",
+    "languages": [
+      "en",
+      "zh"
+    ]
+  },
+  "scope": {
+    "degree_types": [
+      "master_academic",
+      "master_professional",
+      "master_equivalent",
+      "doctorate_academic",
+      "doctorate_professional"
+    ],
+    "audience": "International postgraduate students in English-taught programs",
+    "not_covered": [
+      "Bachelor theses",
+      "College-specific rules stricter than university rules",
+      "Papers for journals or conferences"
+    ]
+  },
+  "sources": [
+    {
+      "id": "guide",
+      "title": "Guidelines for Writing Graduate Degree Theses",
+      "kind": "writing_guide",
+      "language": "en",
+      "year": 2026,
+      "file": "南京信息工程大学国际研究生学位论文撰写规范 Thesis Writing Guidance.pdf"
+    },
+    {
+      "id": "measures",
+      "title": "Administrative Measures for the Submission and Review of Graduate Degree Theses (bilingual file)",
+      "kind": "regulation",
+      "language": "en",
+      "file": "（双语版）南京信息工程大学学位论文送审管理办法.pdf",
+      "note": "English translation. The Chinese original should be checked."
+    },
+    {
+      "id": "notice",
+      "title": "Notice on Re-Blind Review for International Master Students",
+      "kind": "notice",
+      "language": "en",
+      "file": "硕士留学生论文复审相关通知Notice on Re-Blind Review for International Master Students.docx",
+      "note": "Partly superseded by the measures."
+    },
+    {
+      "id": "rereview_header",
+      "title": "Re-review response header",
+      "kind": "form",
+      "language": "en",
+      "file": "2. 复审题头-请加在复审论文前面 PDF保存.docx"
+    },
+    {
+      "id": "template_master",
+      "title": "Academic Master's Degree Thesis Template",
+      "kind": "template",
+      "language": "en",
+      "file": "英文授 - 学术学位硕士学位论文 Accademic Master's Degree Thesis Template.docx"
+    },
+    {
+      "id": "sample",
+      "title": "Sample Thesis Format",
+      "kind": "sample",
+      "language": "en",
+      "file": "学位论文样版 (Sample) Thesis Format.docx"
+    },
+    {
+      "id": "appendices",
+      "title": "Writing Guidance Appendices",
+      "kind": "template",
+      "language": "en",
+      "file": "Appendices.docx"
+    },
+    {
+      "id": "archive_master",
+      "title": "Master's Degree File Materials List",
+      "kind": "form",
+      "language": "en",
+      "file": "硕士学位档案材料目录 Master's Degree Archive.docx"
+    },
+    {
+      "id": "blind_format",
+      "title": "Thesis Blind Review Format and Cover",
+      "kind": "form",
+      "language": "en",
+      "file": "学位论文盲审格式及封面 Blind Review Format & Cover.doc"
+    }
+  ],
+  "rules": [
+    {
+      "id": "structure.order",
+      "key": "structure.parts_order",
+      "category": "structure",
+      "applies_to": [],
+      "value": [
+        "cover",
+        "originality_and_authorization",
+        "abstracts",
+        "table_of_contents",
+        "lists_of_figures_tables_symbols?",
+        "main_body",
+        "references",
+        "appendices?",
+        "index?",
+        "research_outputs",
+        "acknowledgments"
+      ],
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "A degree thesis generally consists of the following eleven parts",
+        "section": "§I",
+        "page": 2
+      },
+      "note": "Items ending in ? are optional. The order of the two abstracts is a listed conflict."
+    },
+    {
+      "id": "structure.chapter_new_page",
+      "key": "structure.chapter_starts_new_page",
+      "category": "structure",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "each chapter shall begin on a new page",
+        "section": "§3.6.1",
+        "page": 11
+      }
+    },
+    {
+      "id": "structure.chapter_summary",
+      "key": "structure.chapter_summary_required",
+      "category": "structure",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "assisted",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Each chapter of the main text shall conclude with a \"Chapter Summary\" section",
+        "section": "§3.6.3",
+        "page": 13
+      }
+    },
+    {
+      "id": "structure.conclusion",
+      "key": "structure.conclusion_unnumbered",
+      "category": "structure",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "shall be written as a separate chapter, but without a chapter number",
+        "section": "§3.6.4",
+        "page": 13
+      }
+    },
+    {
+      "id": "structure.heading_levels",
+      "key": "structure.recommended_heading_levels",
+      "category": "structure",
+      "applies_to": [],
+      "value": 3,
+      "enforcement": "automatic",
+      "severity": "info",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "three levels are recommended",
+        "section": "§3.6.1",
+        "page": 11
+      }
+    },
+    {
+      "id": "length.doctorate",
+      "key": "length.main_text.min_words",
+      "category": "length",
+      "applies_to": [
+        "doctorate_academic",
+        "doctorate_professional"
+      ],
+      "value": 45000,
+      "enforcement": "automatic",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Doctoral dissertations: no fewer than 45,000 English words",
+        "section": "§3.6.3",
+        "page": 12
+      },
+      "unit": "words"
+    },
+    {
+      "id": "length.master_academic",
+      "key": "length.main_text.min_words",
+      "category": "length",
+      "applies_to": [
+        "master_academic"
+      ],
+      "value": 25000,
+      "enforcement": "automatic",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Academic master's theses: no fewer than 25,000 English words",
+        "section": "§3.6.3",
+        "page": 12
+      },
+      "unit": "words"
+    },
+    {
+      "id": "length.master_professional",
+      "key": "length.main_text.min_words",
+      "category": "length",
+      "applies_to": [
+        "master_professional"
+      ],
+      "value": 20000,
+      "enforcement": "automatic",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Professional master's theses: no fewer than 20,000 English words",
+        "section": "§3.6.3",
+        "page": 12
+      },
+      "unit": "words"
+    },
+    {
+      "id": "length.abstract_cn_doc",
+      "key": "length.abstract_local.characters",
+      "category": "length",
+      "applies_to": [
+        "doctorate_academic",
+        "doctorate_professional"
+      ],
+      "value": {
+        "min": 800,
+        "max": 1000
+      },
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "the Chinese abstract generally consists of 800–1,000",
+        "section": "§3.3",
+        "page": 10
+      },
+      "unit": "chinese_characters"
+    },
+    {
+      "id": "length.abstract_cn_master",
+      "key": "length.abstract_local.characters",
+      "category": "length",
+      "applies_to": [
+        "master_academic",
+        "master_professional",
+        "master_equivalent"
+      ],
+      "value": {
+        "min": 400,
+        "max": 600
+      },
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "the Chinese abstract generally consists of 400–600 Chinese",
+        "section": "§3.3",
+        "page": 10
+      },
+      "unit": "chinese_characters"
+    },
+    {
+      "id": "length.keywords",
+      "key": "abstract.keywords_count",
+      "category": "length",
+      "applies_to": [],
+      "value": {
+        "min": 3,
+        "max": 5
+      },
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "three to five (3–5) keywords shall be",
+        "section": "§3.3",
+        "page": 10
+      },
+      "unit": "keywords"
+    },
+    {
+      "id": "length.chapter_title",
+      "key": "heading.chapter_title.max_words",
+      "category": "length",
+      "applies_to": [],
+      "value": 15,
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "generally no more than 15 words",
+        "section": "§3.6.1",
+        "page": 11
+      },
+      "unit": "words"
+    },
+    {
+      "id": "language.abstracts",
+      "key": "language.abstract",
+      "category": "language",
+      "applies_to": [],
+      "value": [
+        "zh",
+        "en"
+      ],
+      "enforcement": "automatic",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The abstract shall be presented in both Chinese and English",
+        "section": "§2.1.1",
+        "page": 3
+      }
+    },
+    {
+      "id": "language.cover",
+      "key": "language.front_matter",
+      "category": "language",
+      "applies_to": [],
+      "value": [
+        "zh"
+      ],
+      "enforcement": "manual",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "the cover page, the Statement of Originality, and the",
+        "section": "§2.1.1",
+        "page": 3
+      },
+      "note": "Applies to international students. The templates also provide English pages."
+    },
+    {
+      "id": "format.page",
+      "key": "format.page_size",
+      "category": "formatting",
+      "applies_to": [],
+      "value": "A4",
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "standard A4-sized (21 cm × 29.7 cm) white paper",
+        "section": "§2.1.2",
+        "page": 3
+      }
+    },
+    {
+      "id": "format.title",
+      "key": "format.thesis_title",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "font": "Times New Roman",
+        "size_pt": 18,
+        "bold": true,
+        "align": "center"
+      },
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The thesis title shall be set in 18 pt Times New Roman, bold, and centered",
+        "section": "§2.1.3",
+        "page": 3
+      }
+    },
+    {
+      "id": "format.body",
+      "key": "format.body_text",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "font": "Times New Roman",
+        "size_pt": 12,
+        "line_spacing": 1.5,
+        "first_line_indent": true
+      },
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The main text shall be set in 12 pt Times New Roman, with 1.5 line spacing",
+        "section": "§2.1.3",
+        "page": 3
+      }
+    },
+    {
+      "id": "format.h1",
+      "key": "format.heading.level1",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "font": "Times New Roman",
+        "size_pt": 15,
+        "bold": true,
+        "align": "center"
+      },
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "First-level headings (Chapters): 15 pt Times New Roman, bold, centered",
+        "section": "§2.1.3",
+        "page": 3
+      }
+    },
+    {
+      "id": "format.h2",
+      "key": "format.heading.level2",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "font": "Times New Roman",
+        "size_pt": 14,
+        "bold": true,
+        "align": "left"
+      },
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Second-level headings (Sections):14 pt Times New Roman, bold, left-aligned",
+        "section": "§2.1.3",
+        "page": 3
+      }
+    },
+    {
+      "id": "format.h3",
+      "key": "format.heading.level3",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "font": "Times New Roman",
+        "size_pt": 12,
+        "bold": true,
+        "align": "left"
+      },
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Third-level headings (Subsections):12 pt Times New Roman, bold, left-aligned",
+        "section": "§2.1.3",
+        "page": 3
+      }
+    },
+    {
+      "id": "format.table_text",
+      "key": "format.table_text",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "font": "Times New Roman",
+        "size_pt": 9
+      },
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The text within tables may be set in 9 pt Times New Roman",
+        "section": "§2.1.3",
+        "page": 3
+      }
+    },
+    {
+      "id": "format.captions",
+      "key": "format.captions",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "font": "Times New Roman",
+        "size_pt": 10.5
+      },
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Table titles and figure captions shall be set in 10.5 pt Times New Roman",
+        "section": "§2.1.3",
+        "page": 3
+      }
+    },
+    {
+      "id": "format.margins_header",
+      "key": "format.margins_cm.with_header",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "top": 2.1,
+        "bottom": 2.5,
+        "left": 2.5,
+        "right": 2.5
+      },
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "When a header is used, the top margin shall be 2.1 cm",
+        "section": "§2.2.1",
+        "page": 4
+      },
+      "unit": "cm"
+    },
+    {
+      "id": "format.margins_noheader",
+      "key": "format.margins_cm.without_header",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "top": 2.5,
+        "bottom": 2.5,
+        "left": 2.5,
+        "right": 2.5
+      },
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "When no header is used, the top, bottom, left, and right margins shall all be 2.5",
+        "section": "§2.2.1",
+        "page": 4
+      },
+      "unit": "cm"
+    },
+    {
+      "id": "format.header_odd",
+      "key": "format.header.odd_pages",
+      "category": "formatting",
+      "applies_to": [],
+      "value": "Chapter [Roman numeral] [CHAPTER TITLE IN CAPITALS]",
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Odd-paged headers shall display the current chapter title",
+        "section": "§2.2.1",
+        "page": 4
+      }
+    },
+    {
+      "id": "format.pagenum_body",
+      "key": "format.page_numbers.main",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "style": "arabic",
+        "start": 1,
+        "size_pt": 10.5,
+        "align": "center"
+      },
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "shall use 10.5 pt Arabic numerals, numbered consecutively starting from 1",
+        "section": "§2.2.2",
+        "page": 5
+      }
+    },
+    {
+      "id": "format.pagenum_front",
+      "key": "format.page_numbers.front",
+      "category": "formatting",
+      "applies_to": [],
+      "value": {
+        "style": "upper_roman",
+        "size_pt": 10.5,
+        "align": "center"
+      },
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "shall be numbered consecutively using 10.5 pt uppercase Roman numerals",
+        "section": "§2.2.2",
+        "page": 5
+      }
+    },
+    {
+      "id": "format.equation_num",
+      "key": "format.equation_numbering",
+      "category": "formatting",
+      "applies_to": [],
+      "value": "(chapter-sequence)",
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "format \"(chapter number–equation number)\"",
+        "section": "§2.6",
+        "page": 6
+      }
+    },
+    {
+      "id": "format.figure_num",
+      "key": "format.figure_numbering",
+      "category": "formatting",
+      "applies_to": [],
+      "value": "Figure chapter-sequence",
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "For example, the third figure in Chapter 2 shall be labeled \"Figure 2-3\"",
+        "section": "§2.7.3",
+        "page": 7
+      }
+    },
+    {
+      "id": "format.figure_caption",
+      "key": "format.figure_caption_position",
+      "category": "formatting",
+      "applies_to": [],
+      "value": "below_centered",
+      "enforcement": "assisted",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The figure caption shall be centered below the figure",
+        "section": "§2.7.3",
+        "page": 7
+      }
+    },
+    {
+      "id": "format.table_style",
+      "key": "format.table_style",
+      "category": "formatting",
+      "applies_to": [],
+      "value": "three_line",
+      "enforcement": "assisted",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The use of three-line tables is recommended",
+        "section": "§2.8",
+        "page": 7
+      }
+    },
+    {
+      "id": "format.table_caption",
+      "key": "format.table_caption_position",
+      "category": "formatting",
+      "applies_to": [],
+      "value": "above",
+      "enforcement": "assisted",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The table number and title shall be placed above the table",
+        "section": "§2.8",
+        "page": 8
+      }
+    },
+    {
+      "id": "format.table_empty",
+      "key": "format.table_empty_cell",
+      "category": "formatting",
+      "applies_to": [],
+      "value": "—",
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Cells with missing data shall be filled with an em dash",
+        "section": "§2.8",
+        "page": 8
+      }
+    },
+    {
+      "id": "format.notes",
+      "key": "format.notes_allowed",
+      "category": "formatting",
+      "applies_to": [],
+      "value": [
+        "footnote",
+        "endnote"
+      ],
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "In-text notes (inline notes) are not permitted",
+        "section": "§2.9",
+        "page": 8
+      }
+    },
+    {
+      "id": "citation.standard",
+      "key": "citation.standard",
+      "category": "citation",
+      "applies_to": [],
+      "value": "GB/T 7714-2025",
+      "enforcement": "assisted",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The reference format shall comply with the national standard",
+        "section": "§3.7",
+        "page": 13
+      },
+      "note": "Citation style engines must support the 2025 edition of the standard."
+    },
+    {
+      "id": "citation.numeric",
+      "key": "citation.in_text_system",
+      "category": "citation",
+      "applies_to": [],
+      "value": "numeric_brackets",
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "A numerical citation system shall be used throughout the thesis",
+        "section": "§3.7.1",
+        "page": 15
+      }
+    },
+    {
+      "id": "citation.order",
+      "key": "citation.numbering_options",
+      "category": "citation",
+      "applies_to": [],
+      "value": [
+        "order_of_appearance",
+        "first_author_alphabetical"
+      ],
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "only one system shall be used",
+        "section": "§3.7.1",
+        "page": 15
+      }
+    },
+    {
+      "id": "citation.et_al",
+      "key": "citation.max_listed_authors",
+      "category": "citation",
+      "applies_to": [],
+      "value": 3,
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "For references with more than three authors, list the first three authors followed",
+        "section": "§3.7.2",
+        "page": 16
+      }
+    },
+    {
+      "id": "citation.no_trailing",
+      "key": "citation.entry_trailing_punctuation",
+      "category": "citation",
+      "applies_to": [],
+      "value": false,
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "No punctuation is added at the end of each reference entry",
+        "section": "§3.7.2",
+        "page": 16
+      }
+    },
+    {
+      "id": "citation.page_numbers",
+      "key": "citation.page_numbers_required",
+      "category": "citation",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "automatic",
+      "severity": "minor",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Page numbers shall not be omitted",
+        "section": "§3.7.4",
+        "page": 18
+      }
+    },
+    {
+      "id": "integrity.similarity_doc",
+      "key": "integrity.similarity.max_percent",
+      "category": "integrity",
+      "applies_to": [
+        "doctorate_academic",
+        "doctorate_professional"
+      ],
+      "value": 15,
+      "enforcement": "manual",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "must not exceed 15%",
+        "section": "Art. 7",
+        "page": 12
+      },
+      "unit": "percent",
+      "note": "The applicant's own published work is excluded. Colleges may set a stricter limit."
+    },
+    {
+      "id": "integrity.similarity_master",
+      "key": "integrity.similarity.max_percent",
+      "category": "integrity",
+      "applies_to": [
+        "master_academic",
+        "master_professional",
+        "master_equivalent"
+      ],
+      "value": 20,
+      "enforcement": "manual",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "it must not exceed 20%",
+        "section": "Art. 7",
+        "page": 13
+      },
+      "unit": "percent",
+      "note": "The applicant's own published work is excluded. Colleges may set a stricter limit."
+    },
+    {
+      "id": "integrity.misconduct",
+      "key": "integrity.prohibited_conduct",
+      "category": "integrity",
+      "applies_to": [],
+      "value": [
+        "purchasing",
+        "ghostwriting",
+        "plagiarism",
+        "data_falsification"
+      ],
+      "enforcement": "manual",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "serious academic misconduct such as purchasing, ghostwriting,",
+        "section": "Art. 16",
+        "page": 14
+      },
+      "note": "The product must support the student as author and must not produce a thesis for them."
+    },
+    {
+      "id": "integrity.originality",
+      "key": "integrity.signed_statement_required",
+      "category": "integrity",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "manual",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "Students who fail to complete the required signatures shall not be permitted to",
+        "section": "§3.2",
+        "page": 9
+      }
+    },
+    {
+      "id": "anon.cover",
+      "key": "anonymity.cover_names_removed",
+      "category": "anonymity",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "assisted",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "blind_format",
+        "quote": "Neither the author's nor the supervisor's name shall appear on the thesis cover"
+      }
+    },
+    {
+      "id": "anon.unsigned",
+      "key": "anonymity.statements_unsigned",
+      "category": "anonymity",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "assisted",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "blind_format",
+        "quote": "Do not sign the \"Statement of Originality\""
+      }
+    },
+    {
+      "id": "anon.identity",
+      "key": "anonymity.identity_clues_removed",
+      "category": "anonymity",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "assisted",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "blind_format",
+        "quote": "any other information that may reveal their identities"
+      }
+    },
+    {
+      "id": "anon.outputs",
+      "key": "anonymity.research_outputs_masked",
+      "category": "anonymity",
+      "applies_to": [],
+      "value": "***",
+      "enforcement": "assisted",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "blind_format",
+        "quote": "replace your name and your supervisor's name with \"***\""
+      }
+    },
+    {
+      "id": "anon.ack",
+      "key": "anonymity.acknowledgments_removed",
+      "category": "anonymity",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "automatic",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "blind_format",
+        "quote": "Delete the \"Acknowledgements\" section"
+      }
+    },
+    {
+      "id": "anon.classified",
+      "key": "anonymity.confidentiality_declared",
+      "category": "anonymity",
+      "applies_to": [],
+      "value": true,
+      "enforcement": "manual",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "blind_format",
+        "quote": "clearly indicate whether the thesis contains confidential or classified information"
+      }
+    },
+    {
+      "id": "review.experts_doc",
+      "key": "review.expert_count",
+      "category": "review",
+      "applies_to": [
+        "doctorate_academic",
+        "doctorate_professional"
+      ],
+      "value": 5,
+      "enforcement": "manual",
+      "severity": "info",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "sent to five external experts",
+        "section": "Art. 11",
+        "page": 13
+      }
+    },
+    {
+      "id": "review.experts_ma",
+      "key": "review.expert_count",
+      "category": "review",
+      "applies_to": [
+        "master_academic"
+      ],
+      "value": 2,
+      "enforcement": "manual",
+      "severity": "info",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "sent to two external",
+        "section": "Art. 11",
+        "page": 13
+      }
+    },
+    {
+      "id": "review.experts_me",
+      "key": "review.expert_count",
+      "category": "review",
+      "applies_to": [
+        "master_equivalent"
+      ],
+      "value": 3,
+      "enforcement": "manual",
+      "severity": "info",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "sent to three external",
+        "section": "Art. 11",
+        "page": 13
+      }
+    },
+    {
+      "id": "review.grades",
+      "key": "review.grades",
+      "category": "review",
+      "applies_to": [],
+      "value": {
+        "pass": [
+          "A",
+          "B"
+        ],
+        "fail": [
+          "C",
+          "D"
+        ]
+      },
+      "enforcement": "manual",
+      "severity": "info",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "Grades A and B indicate a \"Pass\"",
+        "section": "Art. 12",
+        "page": 13
+      }
+    },
+    {
+      "id": "review.attempts",
+      "key": "review.max_attempts",
+      "category": "review",
+      "applies_to": [],
+      "value": 3,
+      "enforcement": "manual",
+      "severity": "info",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "A total of three review opportunities are available",
+        "section": "Art. 22",
+        "page": 15
+      }
+    },
+    {
+      "id": "review.validity",
+      "key": "review.result_validity_years",
+      "category": "review",
+      "applies_to": [],
+      "value": 2,
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "valid for two",
+        "section": "Art. 15",
+        "page": 13
+      },
+      "unit": "years"
+    },
+    {
+      "id": "review.response_format",
+      "key": "review.response_to_comments_required",
+      "category": "review",
+      "applies_to": [],
+      "value": "one_row_per_comment",
+      "enforcement": "assisted",
+      "severity": "blocking",
+      "status": "confirmed",
+      "source": {
+        "source_id": "rereview_header",
+        "quote": "Made the explanation according to the comments of the reviewers one by one"
+      }
+    },
+    {
+      "id": "review.fee",
+      "key": "review.resubmission_fee",
+      "category": "review",
+      "applies_to": [
+        "master_academic",
+        "master_professional",
+        "master_equivalent"
+      ],
+      "value": {
+        "english": 285,
+        "chinese": 225,
+        "per": "expert",
+        "currency": "CNY"
+      },
+      "enforcement": "manual",
+      "severity": "info",
+      "status": "needs_confirmation",
+      "source": {
+        "source_id": "notice",
+        "quote": "285 RMB/expert of English writing thesis"
+      },
+      "note": "Taken from a notice that also contains superseded delays."
+    },
+    {
+      "id": "submission.lead_time",
+      "key": "submission.min_working_days_before_defense",
+      "category": "submission",
+      "applies_to": [],
+      "value": 45,
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "measures",
+        "quote": "at least forty-five working days",
+        "section": "Art. 13",
+        "page": 13
+      },
+      "unit": "working_days"
+    },
+    {
+      "id": "archiving.pdf",
+      "key": "archiving.electronic_file",
+      "category": "archiving",
+      "applies_to": [],
+      "value": {
+        "format": "pdf",
+        "files": 1,
+        "name": "{student_id}{student_name}"
+      },
+      "enforcement": "automatic",
+      "severity": "major",
+      "status": "confirmed",
+      "source": {
+        "source_id": "guide",
+        "quote": "The electronic thesis shall consist of a single PDF file only",
+        "section": "§5.2",
+        "page": 20
+      }
+    }
+  ],
+  "conflicts": [
+    {
+      "id": "conflict.d_grade_delay",
+      "key": "review.revision_delay_after_d",
+      "applies_to": [
+        "master_academic",
+        "master_professional",
+        "master_equivalent"
+      ],
+      "topic": "Minimum revision period after one D or two D grades",
+      "options": [
+        {
+          "value": {
+            "one_d_months": 3,
+            "two_d_months": 6
+          },
+          "source": {
+            "source_id": "measures",
+            "quote": "If one D grade is received: In principle, a revision period of at least three months",
+            "section": "Art. 18",
+            "page": 14
+          }
+        },
+        {
+          "value": {
+            "one_d_months": 6,
+            "two_d_months": 12
+          },
+          "source": {
+            "source_id": "notice",
+            "quote": "Student who gets one D will be asked to revise the thesis at least SIX months"
+          }
+        }
+      ],
+      "provisional_option": 0,
+      "provisional_reason": "Article 31 of the measures repeals the earlier blind review rules, which is the rule set the notice cites. Check against the Chinese original.",
+      "status": "open"
+    },
+    {
+      "id": "conflict.keyword_separator",
+      "key": "abstract.keyword_separator",
+      "topic": "Keyword separator",
+      "options": [
+        {
+          "value": ";",
+          "source": {
+            "source_id": "guide",
+            "quote": "Keywords shall be separated by English semicolons",
+            "section": "§3.3",
+            "page": 10
+          }
+        },
+        {
+          "value": "，",
+          "source": {
+            "source_id": "template_master",
+            "quote": "Keywords: 3-5 keywords, separated by \"，\""
+          }
+        }
+      ],
+      "provisional_option": 0,
+      "provisional_reason": "The writing guide is the governing text; the template is an illustration.",
+      "status": "open"
+    },
+    {
+      "id": "conflict.chapter_numbering",
+      "key": "heading.chapter_number_style",
+      "topic": "Chapter number style",
+      "options": [
+        {
+          "value": "Chapter 1 INTRODUCTION",
+          "source": {
+            "source_id": "guide",
+            "quote": "Chapter 1 INTRODUCTION",
+            "section": "§3.6.1",
+            "page": 11
+          }
+        },
+        {
+          "value": "Chapter I INTRODUCTION",
+          "source": {
+            "source_id": "sample",
+            "quote": "Chapter I INTRODUCTION"
+          }
+        },
+        {
+          "value": "CHAPTER TWO",
+          "source": {
+            "source_id": "template_master",
+            "quote": "CHAPTER TWO"
+          }
+        }
+      ],
+      "status": "open"
+    },
+    {
+      "id": "conflict.abstract_order",
+      "key": "structure.abstract_order",
+      "topic": "Which abstract comes first",
+      "options": [
+        {
+          "value": [
+            "zh",
+            "en"
+          ],
+          "source": {
+            "source_id": "guide",
+            "quote": "Double-sided printing shall be adopted starting from the Chinese abstract",
+            "section": "§2.1.2",
+            "page": 3
+          }
+        },
+        {
+          "value": [
+            "en",
+            "zh"
+          ],
+          "source": {
+            "source_id": "template_master",
+            "quote": "ABSTRACT 3 摘要 4"
+          }
+        }
+      ],
+      "status": "open"
+    },
+    {
+      "id": "conflict.title_length",
+      "key": "heading.thesis_title.max_words",
+      "applies_to": [
+        "master_academic",
+        "doctorate_academic",
+        "doctorate_professional"
+      ],
+      "topic": "Maximum thesis title length",
+      "options": [
+        {
+          "value": 25,
+          "source": {
+            "source_id": "guide",
+            "quote": "an English thesis title should not exceed 25 words",
+            "section": "§3.1",
+            "page": 8
+          }
+        },
+        {
+          "value": 20,
+          "source": {
+            "source_id": "blind_format",
+            "quote": "generally no more than 20 words"
+          }
+        }
+      ],
+      "status": "open"
+    },
+    {
+      "id": "conflict.level4_size",
+      "key": "format.heading.level4",
+      "topic": "Size of fourth-level headings",
+      "options": [
+        {
+          "value": {
+            "font": "Times New Roman",
+            "size_pt": 14
+          },
+          "source": {
+            "source_id": "guide",
+            "quote": "Fourth-level headings (Items):14 pt Times New Roman",
+            "section": "§2.1.3",
+            "page": 3
+          }
+        },
+        {
+          "value": {
+            "font": "Times New Roman",
+            "size_pt": 12
+          },
+          "source": {
+            "source_id": "guide",
+            "quote": "The main text shall be set in 12 pt Times New Roman",
+            "section": "§2.1.3",
+            "page": 3
+          }
+        }
+      ],
+      "status": "open"
+    },
+    {
+      "id": "conflict.even_header",
+      "key": "format.header.even_pages",
+      "topic": "Even-page header text",
+      "options": [
+        {
+          "value": "NUIST Doctoral/Master's Thesis",
+          "source": {
+            "source_id": "guide",
+            "quote": "Even-paged headers shall read:\"NUIST Doctoral/Master's Thesis\"",
+            "section": "§2.2.1",
+            "page": 4
+          }
+        },
+        {
+          "value": "NUIST Doctoral/Master's Degree Thesis",
+          "source": {
+            "source_id": "appendices",
+            "quote": "NUIST Doctoral /Master's Degree Thesis",
+            "section": "Appendix 8"
+          }
+        }
+      ],
+      "status": "open"
+    },
+    {
+      "id": "conflict.toc_position",
+      "key": "structure.toc_position",
+      "topic": "Whether the table of contents comes after the abstracts",
+      "options": [
+        {
+          "value": "after_abstracts",
+          "source": {
+            "source_id": "guide",
+            "quote": "4. Table of Contents",
+            "section": "§I",
+            "page": 2
+          }
+        },
+        {
+          "value": "before_abstracts",
+          "source": {
+            "source_id": "sample",
+            "quote": "Table of Contents V Table of Figures VII Table of Tables VIII Abstract IX"
+          }
+        }
+      ],
+      "provisional_option": 0,
+      "provisional_reason": "The writing guide is the governing text; the sample is an illustration.",
+      "status": "open"
+    },
+    {
+      "id": "conflict.conclusion_numbering",
+      "key": "structure.conclusion_numbering",
+      "topic": "Whether the conclusion has a chapter number",
+      "options": [
+        {
+          "value": "unnumbered",
+          "source": {
+            "source_id": "guide",
+            "quote": "shall be written as a separate chapter, but without a chapter number",
+            "section": "§3.6.4",
+            "page": 13
+          }
+        },
+        {
+          "value": "numbered",
+          "source": {
+            "source_id": "sample",
+            "quote": "Chapter VI CONCLUSION"
+          }
+        }
+      ],
+      "provisional_option": 0,
+      "provisional_reason": "The writing guide is the governing text; the sample is an illustration.",
+      "status": "open"
+    },
+    {
+      "id": "conflict.sample_citation_style",
+      "key": "citation.sample_style",
+      "topic": "Reference style shown in the official sample",
+      "options": [
+        {
+          "value": "GB/T 7714 numbered",
+          "source": {
+            "source_id": "guide",
+            "quote": "A numerical citation system shall be used throughout the thesis",
+            "section": "§3.7.1",
+            "page": 15
+          }
+        },
+        {
+          "value": "Author-date list",
+          "source": {
+            "source_id": "sample",
+            "quote": "3GPP. (2024). 3GPP Working Procedures"
+          }
+        }
+      ],
+      "provisional_option": 0,
+      "provisional_reason": "The writing guide is the governing text; the sample is an illustration.",
+      "status": "open"
+    }
+  ],
+  "workflow": [
+    {
+      "id": "proposal",
+      "order": 1,
+      "name": "Thesis proposal",
+      "requires": [],
+      "documents": [
+        "Proposal and implementation plan form"
+      ],
+      "source": {
+        "source_id": "archive_master",
+        "quote": "Proposal and Implementation Plan for Master Dissertation"
+      }
+    },
+    {
+      "id": "mid_term",
+      "order": 2,
+      "name": "Mid-term assessment",
+      "requires": [
+        "proposal"
+      ],
+      "documents": [
+        "Mid-term assessment form"
+      ],
+      "source": {
+        "source_id": "archive_master",
+        "quote": "Master Graduate Mid-term Assessment Form"
+      }
+    },
+    {
+      "id": "pre_defense",
+      "order": 3,
+      "name": "Pre-defense",
+      "requires": [
+        "mid_term"
+      ],
+      "documents": [
+        "Pre-defense application and record form"
+      ],
+      "source": {
+        "source_id": "measures",
+        "quote": "must pass the pre-defense before",
+        "section": "Art. 6",
+        "page": 12
+      }
+    },
+    {
+      "id": "similarity_check",
+      "order": 4,
+      "name": "Similarity check",
+      "requires": [
+        "pre_defense"
+      ],
+      "source": {
+        "source_id": "measures",
+        "quote": "must undergo a text similarity check",
+        "section": "Art. 7",
+        "page": 12
+      }
+    },
+    {
+      "id": "internal_approval",
+      "order": 5,
+      "name": "Supervisor and college approval",
+      "requires": [
+        "similarity_check"
+      ],
+      "source": {
+        "source_id": "measures",
+        "quote": "can only be submitted for review after",
+        "section": "Art. 9",
+        "page": 13
+      }
+    },
+    {
+      "id": "blind_review",
+      "order": 6,
+      "name": "External double-blind review",
+      "requires": [
+        "internal_approval"
+      ],
+      "deadline": "At least 45 working days before the intended defense",
+      "documents": [
+        "Anonymized thesis"
+      ],
+      "source": {
+        "source_id": "measures",
+        "quote": "engaging external experts for a \"double-blind\" review",
+        "section": "Art. 2",
+        "page": 12
+      }
+    },
+    {
+      "id": "re_review",
+      "order": 7,
+      "name": "Re-review after a C or D",
+      "requires": [
+        "blind_review"
+      ],
+      "documents": [
+        "Re-evaluation application form",
+        "Comment-by-comment revision table",
+        "Payment proof"
+      ],
+      "source": {
+        "source_id": "measures",
+        "quote": "Application for Re-review",
+        "section": "Art. 22",
+        "page": 15
+      }
+    },
+    {
+      "id": "defense",
+      "order": 8,
+      "name": "Degree defense",
+      "requires": [
+        "blind_review"
+      ],
+      "documents": [
+        "Defense application form",
+        "Committee list",
+        "Minutes and resolution",
+        "Ballots"
+      ],
+      "source": {
+        "source_id": "measures",
+        "quote": "after approval by the supervisor and the home college, they may proceed",
+        "section": "Art. 17",
+        "page": 14
+      }
+    },
+    {
+      "id": "archive",
+      "order": 9,
+      "name": "Final revision and archiving",
+      "requires": [
+        "defense"
+      ],
+      "documents": [
+        "Final bound copy",
+        "Single PDF",
+        "Master degree file materials"
+      ],
+      "source": {
+        "source_id": "guide",
+        "quote": "After completion of the thesis defense, students shall revise the thesis",
+        "section": "§V",
+        "page": 20
+      }
+    }
+  ],
+  "ai_policy": {
+    "status": "not_found",
+    "generative_ai_allowed": null,
+    "disclosure_required": null,
+    "ai_content_limit_percent": null,
+    "checked_sources": [
+      "guide",
+      "measures",
+      "notice",
+      "template_master",
+      "sample",
+      "appendices",
+      "blind_format"
+    ],
+    "note": "No rule on generative AI was found in the checked documents. The current university and college policy must be confirmed."
+  }
+}

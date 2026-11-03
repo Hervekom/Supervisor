@@ -1,0 +1,15 @@
+import { NextResponse } from 'next/server';
+import { fail, handle } from '@/lib/api';
+import { reviewChapter } from '@/lib/feedback';
+import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
+
+export async function POST(req: Request) {
+  try {
+    const b = (await req.json()) as { degree?: string; discipline?: string; title?: string; text?: string; language?: string };
+    if (!b.text || b.text.trim().length < 200) return fail('Add at least 200 characters of chapter text.');
+    if (!b.degree || !(b.degree in DEGREE_LABELS)) return fail('Choose a degree.');
+    return NextResponse.json(await reviewChapter({ degree: b.degree as DegreeType, discipline: b.discipline, title: b.title ?? 'Untitled chapter', text: b.text, language: b.language }));
+  } catch (e) {
+    return handle(e);
+  }
+}

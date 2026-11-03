@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://supervisor.app/schema/institution-profile/1.0.0",
+  "title": "Supervisor institution profile",
+  "description": "University-neutral description of thesis rules. Core app logic reads this profile and never hard-codes a university. Every rule keeps its source so a student can verify it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "profile_id", "profile_version", "status", "institution", "scope", "sources", "rules", "conflicts", "workflow", "ai_policy"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "profile_id": {
+      "description": "Format: country-institution-audience-year",
+      "type": "string",
+      "pattern": "^[a-z]{2}-[a-z0-9]+(-[a-z0-9]+)*$"
+    },
+    "profile_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "status": {
+      "description": "extracted: machine extraction, not reviewed. student_confirmed: confirmed by a user. institution_verified: confirmed against an official contact.",
+      "enum": ["extracted", "student_confirmed", "institution_verified"]
+    },
+    "institution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "country", "languages"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "local_name": { "type": "string" },
+        "country": { "type": "string", "pattern": "^[A-Z]{2}$" },
+        "institution_code": { "type": "string" },
+        "languages": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["degree_types", "audience", "not_covered"],
+      "properties": {
+        "degree_types": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/degree_type" } },
+        "audience": { "type": "string" },
+        "disciplines": { "type": "array", "items": { "type": "string" } },
+        "not_covered": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "kind", "language", "file"],
+        "properties": {
+          "id": { "$ref": "#/$defs/identifier" },
+          "title": { "type": "string" },
+          "kind": { "enum": ["regulation", "writing_guide", "template", "sample", "notice", "form", "external_standard", "other"] },
+          "language": { "type": "string" },
+          "year": { "type": "integer" },
+          "file": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "rules": { "type": "array", "items": { "$ref": "#/$defs/rule" } },
+    "conflicts": { "type": "array", "items": { "$ref": "#/$defs/conflict" } },
+    "workflow": { "type": "array", "items": { "$ref": "#/$defs/stage" } },
+    "ai_policy": { "$ref": "#/$defs/ai_policy" }
+  },
+  "$defs": {
+    "identifier": { "type": "string", "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*$" },
+    "degree_type": {
+      "enum": ["bachelor", "master_academic", "master_professional", "master_equivalent", "doctorate_academic", "doctorate_professional"]
+    },
+    "citation": {
+      "description": "Exact text from the source. The page is the PDF page when one exists.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_id", "quote"],
+      "properties": {
+        "source_id": { "$ref": "#/$defs/identifier" },
+        "page": { "type": "integer", "minimum": 1 },
+        "section": { "type": "string" },
+        "quote": { "type": "string", "minLength": 3 }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "key", "category", "applies_to", "value", "enforcement", "severity", "status", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "key": {
+          "description": "Stable name shared by all institutions, such as length.main_text.min_words. The core app binds its checks to this key.",
+          "$ref": "#/$defs/identifier"
+        },
+        "category": { "enum": ["structure", "formatting", "language", "length", "citation", "integrity", "anonymity", "review", "submission", "archiving"] },
+        "applies_to": {
+          "description": "Empty array means all degree types in scope.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/degree_type" }
+        },
+        "value": {},
+        "unit": { "type": "string" },
+        "enforcement": {
+          "description": "automatic: software decides. assisted: software flags and a person decides. manual: checklist only.",
+          "enum": ["automatic", "assisted", "manual"]
+        },
+        "severity": { "enum": ["blocking", "major", "minor", "info"] },
+        "status": { "enum": ["confirmed", "needs_confirmation"] },
+        "note": { "type": "string" },
+        "source": { "$ref": "#/$defs/citation" }
+      }
+    },
+    "conflict": {
+      "description": "Sources disagree. The app must show the options and must not silently choose.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "key", "topic", "options", "status"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "key": { "$ref": "#/$defs/identifier" },
+        "topic": { "type": "string" },
+        "applies_to": { "type": "array", "items": { "$ref": "#/$defs/degree_type" } },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["value", "source"],
+            "properties": { "value": {}, "source": { "$ref": "#/$defs/citation" } }
+          }
+        },
+        "provisional_option": {
+          "description": "Zero-based option index used only for a warning until the conflict is resolved.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "provisional_reason": { "type": "string" },
+        "status": { "enum": ["open", "resolved"] },
+        "resolution": { "type": "string" }
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "order", "name", "requires", "source"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "order": { "type": "integer", "minimum": 1 },
+        "name": { "type": "string" },
+        "requires": { "type": "array", "items": { "type": "string" } },
+        "deadline": { "type": "string" },
+        "documents": { "type": "array", "items": { "type": "string" } },
+        "source": { "$ref": "#/$defs/citation" }
+      }
+    },
+    "ai_policy": {
+      "description": "Null means unknown. Never read null as permitted.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "generative_ai_allowed", "disclosure_required", "ai_content_limit_percent", "checked_sources"],
+      "properties": {
+        "status": { "enum": ["not_found", "partial", "confirmed"] },
+        "generative_ai_allowed": { "type": ["boolean", "null"] },
+        "disclosure_required": { "type": ["boolean", "null"] },
+        "ai_content_limit_percent": { "type": ["number", "null"] },
+        "checked_sources": { "type": "array", "items": { "$ref": "#/$defs/identifier" } },
+        "note": { "type": "string" }
+      }
+    }
+  }
+}
