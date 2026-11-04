@@ -1,8 +1,10 @@
 'use client';
 import { useState } from 'react';
 import type { Report, Result } from '@/lib/check';
+import { MAX_UPLOAD_LABEL } from '@/lib/limits';
 import { DEGREE_LABELS, type DegreeType, type Profile } from '@/lib/types';
 import { useProfiles } from '@/components/useProfiles';
+import { errorText, fileProblem, request } from '@/lib/request';
 
 function Source({ r, profile }: { r: Result['source']; profile: Profile | null }) {
   const title = profile?.sources.find((s) => s.id === r.source_id)?.title ?? r.source_id;
@@ -130,6 +132,8 @@ export default function CheckPage() {
   async function run(e: React.FormEvent) {
     e.preventDefault();
     if (!file) return setError('Choose your thesis file first.');
+    const tooBig = fileProblem(file);
+    if (tooBig) return setError(tooBig);
     setBusy(true);
     setError('');
     const f = new FormData();
@@ -139,14 +143,10 @@ export default function CheckPage() {
     f.set('mode', mode);
     f.set('names', names);
     try {
-      const r = await fetch('/api/check', { method: 'POST', body: f });
-      if (r.status === 413) throw new Error('This file is too large to upload here. Compress its images in Word, then try again.');
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
-      setReport(j);
+      setReport(await request<Report>('/api/check', { method: 'POST', body: f }));
     } catch (x) {
       setReport(null);
-      setError(x instanceof Error ? x.message : 'The check failed. Try again.');
+      setError(errorText(x));
     } finally {
       setBusy(false);
     }
@@ -184,7 +184,7 @@ export default function CheckPage() {
         <label className={`drop${over ? ' over' : ''}`} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
           onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) { setFile(f); setError(''); } }}>
           <input type="file" accept=".docx" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setError(''); }} />
-          <span>{file ? file.name : 'Drop your .docx here, or choose a file'}</span>
+          <span>{file ? file.name : `Drop your .docx here, or choose a file (up to ${MAX_UPLOAD_LABEL})`}</span>
         </label>
         {error || loadError ? <p className="error" role="alert">{error || loadError}</p> : null}
         <button className="btn" disabled={busy}>{busy ? 'Checking…' : 'Check my thesis'}</button>

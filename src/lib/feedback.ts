@@ -1,3 +1,4 @@
+import { type Coverage, coverageOf, FEEDBACK_LIMIT, shortenedNote } from './limits';
 import { chatJson, type LlmConfig } from './llm';
 import type { DegreeType } from './types';
 
@@ -10,6 +11,7 @@ export type FeedbackItem = {
 };
 
 export type Feedback = {
+  coverage?: Coverage;
   summary: string;
   strengths: string[];
   issues: FeedbackItem[];
@@ -61,8 +63,8 @@ Reply language: ${input.language || 'English'}
 Chapter title: ${input.title}
 
 <chapter>
-${input.text.slice(0, 40000)}
-</chapter>`,
+${input.text.slice(0, FEEDBACK_LIMIT)}
+</chapter>${shortenedNote(coverageOf(input.text, FEEDBACK_LIMIT))}`,
     },
   ];
 }
@@ -91,5 +93,5 @@ export function normalizeFeedback(raw: unknown): Feedback {
 }
 
 export async function reviewChapter(input: Parameters<typeof buildMessages>[0], c?: LlmConfig) {
-  return normalizeFeedback(await chatJson(buildMessages(input), c));
+  return { ...normalizeFeedback(await chatJson(buildMessages(input), c)), coverage: coverageOf(input.text, FEEDBACK_LIMIT) };
 }

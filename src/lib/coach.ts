@@ -1,3 +1,4 @@
+import { COACH_LIMIT, coverageOf, shortenedNote } from './limits';
 import { chatJson, type LlmConfig } from './llm';
 import type { CoachReply, CriterionResult, Step, Verdict } from './path';
 import type { DegreeType } from './types';
@@ -40,8 +41,8 @@ ${(input.history ?? '').slice(0, 9000)}
 </earlier_work>
 
 <student_notes>
-${input.work.slice(0, 20000)}
-</student_notes>
+${input.work.slice(0, COACH_LIMIT)}
+</student_notes>${shortenedNote(coverageOf(input.work, COACH_LIMIT))}
 
 <student_question>
 ${(input.question ?? '').slice(0, 1000)}
@@ -85,5 +86,9 @@ export function normalizeCoach(raw: unknown, step?: Step): CoachReply {
 }
 
 export async function coach(input: Parameters<typeof coachMessages>[0], c?: LlmConfig) {
-  return normalizeCoach(await chatJson(coachMessages(input), c), input.step);
+  const reply = normalizeCoach(await chatJson(coachMessages(input), c), input.step);
+  const coverage = coverageOf(input.work, COACH_LIMIT);
+  // A step cannot be called ready on the strength of a part of it.
+  const verdict = !coverage.complete && reply.verdict === 'ready' ? 'almost' : reply.verdict;
+  return { ...reply, verdict, coverage };
 }

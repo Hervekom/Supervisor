@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useProfiles } from '@/components/useProfiles';
 import type { Feedback } from '@/lib/feedback';
 import { loadAi } from '@/lib/aiSettings';
+import { count, FEEDBACK_LIMIT, MAX_UPLOAD_LABEL } from '@/lib/limits';
+import { errorText, fileProblem, request } from '@/lib/request';
 import { authHeaders } from '@/lib/supabase';
 import type { RefResult } from '@/lib/references';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
@@ -28,32 +30,41 @@ export default function FeedbackPage() {
   const [refResults, setRefResults] = useState<RefResult[] | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadedFile, setLoadedFile] = useState('');
 
   async function load(file: File) {
+    const tooBig = fileProblem(file);
+    if (tooBig) return setError(tooBig);
     setError('');
+    setLoading(true);
     const f = new FormData();
     f.set('file', file);
-    const r = await fetch('/api/chapters', { method: 'POST', body: f });
-    const j = await r.json();
-    if (!r.ok) return setError(j.error);
-    setChapters(j.chapters);
-    setRefs(j.references.join('\n'));
-    if (j.chapters[0]) {
-      setTitle(j.chapters[0].title);
-      setText(j.chapters[0].text);
-    } else setError('No chapters were found. Paste a chapter below.');
+    try {
+      const j = await request<{ chapters: { title: string; text: string }[]; references: string[] }>('/api/chapters', { method: 'POST', body: f });
+      setChapters(j.chapters);
+      setRefs(j.references.join('\n'));
+      setLoadedFile(file.name);
+      if (j.chapters[0]) {
+        setTitle(j.chapters[0].title);
+        setText(j.chapters[0].text);
+      } else setError('No chapters were found. Paste a chapter below.');
+    } catch (x) {
+      setChapters([]);
+      setLoadedFile('');
+      setError(errorText(x));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function post<T>(url: string, body: unknown, done: (j: T) => void) {
     setBusy(true);
     setError('');
     try {
-      const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify(body) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
-      done(j);
+      done(await request<T>(url, { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify(body) }));
     } catch (x) {
-      setError(x instanceof Error ? x.message : 'The request failed. Try again.');
+      setError(errorText(x));
     } finally {
       setBusy(false);
     }
@@ -70,7 +81,10 @@ export default function FeedbackPage() {
       <div className="form">
         <div className="field">
           <label htmlFor="f">Thesis file (optional)</label>
-          <input id="f" type="file" accept=".docx" onChange={(e) => e.target.files?.[0] && load(e.target.files[0])} />
+          <input id="f" type="file" accept=".docx" disabled={loading} onChange={(e) => e.target.files?.[0] && load(e.target.files[0])} />
+          <p className="hint">Word files up to {MAX_UPLOAD_LABEL}.</p>
+          {loading ? <p className="hint" role="status">Reading your file…</p> : null}
+          {loadedFile && !loading ? <p className="hint ok" role="status">{loadedFile} is ready.</p> : null}
         </div>
         {tab === 'chapter' ? (
           <>
@@ -103,8 +117,9 @@ export default function FeedbackPage() {
             <div className="field">
               <label htmlFor="t">Chapter text</label>
               <textarea id="t" value={text} onChange={(e) => setText(e.target.value)} />
+              {text.length > FEEDBACK_LIMIT ? <p className="hint">Feedback reads the first {count(FEEDBACK_LIMIT)} of these {count(text.length)} characters.</p> : null}
             </div>
-            <div><button className="btn" disabled={busy} onClick={() => post<Feedback>('/api/feedback', { degree, discipline, title, text, language, llm: loadAi() ?? undefined }, setFeedback)}>{busy ? 'Reading…' : 'Get feedback'}</button></div>
+            <div><button className="btn" disabled={busy || loading} onClick={() => post<Feedback>('/api/feedback', { degree, discipline, title, text, language, llm: loadAi() ?? undefined }, setFeedback)}>{busy ? 'Reading…' : 'Get feedback'}</button></div>
           </>
         ) : (
           <>
@@ -112,7 +127,7 @@ export default function FeedbackPage() {
               <label htmlFor="r">References, one per line</label>
               <textarea id="r" value={refs} onChange={(e) => setRefs(e.target.value)} />
             </div>
-            <div><button className="btn" disabled={busy} onClick={() => post<{ results: RefResult[] }>('/api/references', { entries: refs.split('\n') }, (j) => setRefResults(j.results))}>{busy ? 'Checking…' : 'Check references'}</button></div>
+            <div><button className="btn" disabled={busy || loading} onClick={() => post<{ results: RefResult[] }>('/api/references', { entries: refs.split('\n') }, (j) => setRefResults(j.results))}>{busy ? 'Checking…' : 'Check references'}</button></div>
           </>
         )}
         {error ? <p className="error" role="alert">{error}</p> : null}
@@ -120,6 +135,7 @@ export default function FeedbackPage() {
       {tab === 'chapter' && feedback ? (
         <div className="sheet" style={{ marginTop: 24, maxWidth: 820 }}>
           <h2>What your supervisor would say</h2>
+          {feedback.coverage && !feedback.coverage.complete ? <p className="notice" style={{ marginTop: 8 }}>This feedback covers only the first {count(feedback.coverage.readChars)} of {count(feedback.coverage.totalChars)} characters. It says nothing about the rest.</p> : null}
           <p style={{ marginTop: 8 }}>{feedback.summary}</p>
           {feedback.strengths.length ? (
             <section className="group"><h3>What works</h3><ul>{feedback.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul></section>

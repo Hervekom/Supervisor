@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { clearAi, loadAi, saveAi } from '@/lib/aiSettings';
 import { CRITIC_NAME } from '@/lib/brand';
 import { PROVIDERS } from '@/lib/providers';
+import { errorText, request } from '@/lib/request';
 import { authHeaders } from '@/lib/supabase';
 
 export function AiSettings() {
@@ -33,12 +34,10 @@ export function AiSettings() {
     setError('');
     setMessage('');
     try {
-      const r = await fetch('/api/ai/test', { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ llm: choice() }) });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
+      await request('/api/ai/test', { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ llm: choice() }) });
       setMessage('Your AI is working.');
     } catch (x) {
-      setError(x instanceof Error ? x.message : 'The test failed.');
+      setError(errorText(x));
     } finally {
       setBusy(false);
     }

@@ -30,6 +30,8 @@ export function titleOf(entry: string) {
 
 export const doiOf = (entry: string) => entry.match(/\b10\.\d{4,9}\/[^\s,;]+/)?.[0]?.replace(/[.)]+$/, '');
 
+const CROSSREF_BUSY = 'Crossref is busy right now. Check this reference again in a minute.';
+
 async function one(entry: string, f: typeof fetch, mailto?: string): Promise<RefResult> {
   const mail = mailto ? `mailto=${encodeURIComponent(mailto)}&` : '';
   const doi = doiOf(entry);
@@ -44,10 +46,10 @@ async function one(entry: string, f: typeof fetch, mailto?: string): Promise<Ref
         if (score >= 0.6) return { entry, status: 'verified', matchedTitle: matched, doi: j.message.DOI, score };
         return { entry, status: 'possible_match', matchedTitle: matched, doi: j.message.DOI, score, note: 'This DOI exists but points to a different title.' };
       }
-      if (res.status !== 404) return { entry, status: 'unchecked', note: `Crossref returned ${res.status}.` };
+      if (res.status !== 404) return { entry, status: 'unchecked', note: CROSSREF_BUSY };
     }
     const res = await f(`https://api.crossref.org/works?${mail}rows=3&select=title,DOI&query.bibliographic=${encodeURIComponent(title.slice(0, 300))}`, { signal: AbortSignal.timeout(15000) });
-    if (!res.ok) return { entry, status: 'unchecked', note: `Crossref returned ${res.status}.` };
+    if (!res.ok) return { entry, status: 'unchecked', note: CROSSREF_BUSY };
     const j = (await res.json()) as { message: { items: { title?: string[]; DOI: string }[] } };
     let best: RefResult | null = null;
     for (const it of j.message.items) {

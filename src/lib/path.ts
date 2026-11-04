@@ -1,3 +1,4 @@
+import type { Coverage } from './limits';
 import type { DegreeType, Profile, Rule, Stage } from './types';
 
 export type Task = { do: string; how: string };
@@ -397,7 +398,8 @@ STEPS.find((s) => s.id === 'defense')!.practice = [
   'Can you explain the symbols in this equation?',
 ];
 
-export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; rounds?: number; updated?: string; guide?: StepGuide };
+export type ImportedFile = { file: string; extractedChars: number; totalChars: number };
+export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; rounds?: number; updated?: string; guide?: StepGuide; imported?: ImportedFile };
 export type StepGuide = { intro: string; tasks: string[] };
 export type LogEntry = { at: string; step: string; tool: string };
 export type PathState = {
@@ -423,6 +425,7 @@ export type CoachReply = {
   weakest: string;
   questions: string[];
   next_action: string;
+  coverage?: Coverage;
 };
 
 export const emptyPath = (): PathState => ({ topic: '', discipline: '', defenseDate: '', current: STEPS[0].id, steps: {}, log: [] });
@@ -485,7 +488,7 @@ export const SITUATIONS: Situation[] = [
 ];
 
 /** Starts the path where the student really is. Earlier steps are set aside and can be reopened. */
-export function applySituation(p: PathState, id: string, input: { title?: string; text?: string }): PathState {
+export function applySituation(p: PathState, id: string, input: { title?: string; text?: string; imported?: ImportedFile }): PathState {
   const sit = SITUATIONS.find((s) => s.id === id) ?? SITUATIONS[0];
   const startAt = STEPS.findIndex((s) => s.id === sit.start);
   const steps = { ...p.steps };
@@ -502,6 +505,7 @@ export function applySituation(p: PathState, id: string, input: { title?: string
       status: 'open',
       work: input.text.trim(),
       checks: STEPS[startAt].tasks.map((_, i) => i),
+      ...(input.imported ? { imported: input.imported } : {}),
     };
   }
   return { ...p, steps, current: sit.start, started: true, situation: sit.id, title: title || p.title, topic: p.topic || title };

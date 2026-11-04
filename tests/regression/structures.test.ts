@@ -82,7 +82,7 @@ describe('PathState', () => {
 describe('localStorage keys', () => {
   it('keeps path:v1 in the app source', () => {
     expect(fs.readFileSync('src/app/page.tsx', 'utf8')).toContain("const KEY = 'path:v1';");
-    expect(fs.readFileSync('src/app/account/page.tsx', 'utf8')).toContain("localStorage.removeItem('path:v1')");
+    expect(fs.readFileSync('src/lib/pathSync.ts', 'utf8')).toContain("export const PATH_KEY = 'path:v1';");
   });
   it('keeps the ai:v1 key and its format', () => {
     const store = fakeStorage();

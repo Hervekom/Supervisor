@@ -2,6 +2,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { chatJson, type LlmConfig } from './llm';
+import { MESSAGES } from './messages';
+import { PublicError } from './publicError';
 import type { Citation, Profile } from './types';
 
 const ROOT = process.env.SUPERVISOR_DATA_DIR ?? path.join(process.cwd(), 'data');
@@ -35,17 +37,25 @@ export async function getProfile(id: string): Promise<Profile | null> {
 }
 
 export async function saveProfile(p: Profile) {
-  if (!SAFE_ID.test(p.profile_id)) throw new Error('Invalid profile id.');
+  if (!SAFE_ID.test(p.profile_id)) throw new PublicError("We couldn't name this university's guide. Please check the file and try again.");
   const v = await validateProfile(p);
-  if (!v.ok) throw new Error(`The profile is invalid: ${v.errors.join('; ')}`);
-  await fs.writeFile(path.join(dir(), `${p.profile_id}.json`), JSON.stringify(p, null, 2));
+  if (!v.ok) throw new PublicError("We couldn't turn this guide into usable rules. Please check the file and try again.", 422);
+  try {
+    await fs.writeFile(path.join(dir(), `${p.profile_id}.json`), JSON.stringify(p, null, 2));
+  } catch {
+    throw new PublicError(MESSAGES.guideNotSaved, 503);
+  }
 }
 
 export async function removeProfile(id: string) {
   const p = await getProfile(id);
   if (!p) return false;
-  if (p.status === 'institution_verified') throw new Error('Verified profiles cannot be deleted here.');
-  await fs.unlink(path.join(dir(), `${id}.json`));
+  if (p.status === 'institution_verified') throw new PublicError('Verified profiles cannot be deleted here.', 409);
+  try {
+    await fs.unlink(path.join(dir(), `${id}.json`));
+  } catch {
+    throw new PublicError(MESSAGES.guideNotSaved, 503);
+  }
   return true;
 }
 
@@ -165,20 +175,31 @@ export function assembleProfile(raw: Raw, pages: string[], fileName: string, yea
 }
 
 export async function pdfPages(buf: Uint8Array): Promise<string[]> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const doc = await pdfjs.getDocument({ data: buf, useSystemFonts: true, disableFontFace: true }).promise;
-  const pages: string[] = [];
-  for (let i = 1; i <= doc.numPages; i++) {
-    const c = await (await doc.getPage(i)).getTextContent();
-    pages.push(c.items.map((x) => ('str' in x ? x.str : '')).join(' '));
+  let pdfjs: typeof import('pdfjs-dist/legacy/build/pdf.mjs');
+  try {
+    // Loading the worker here means pdf.js never looks for it by file path.
+    await import('pdfjs-dist/legacy/build/pdf.worker.mjs');
+    pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  } catch {
+    throw new PublicError(MESSAGES.pdfUnavailable, 503);
   }
-  return pages;
+  try {
+    const doc = await pdfjs.getDocument({ data: buf, useSystemFonts: true, disableFontFace: true }).promise;
+    const pages: string[] = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const c = await (await doc.getPage(i)).getTextContent();
+      pages.push(c.items.map((x) => ('str' in x ? x.str : '')).join(' '));
+    }
+    return pages;
+  } catch {
+    throw new PublicError(MESSAGES.pdfUnreadable, 422);
+  }
 }
 
 export async function importGuide(pages: string[], fileName: string, c?: LlmConfig) {
   const text = pages.map((p, i) => `[page ${i + 1}]\n${p}`).join('\n').slice(0, 120000);
   if (text.replace(/\[page \d+\]|\s/g, '').length < 200) {
-    throw new Error('This file has too little readable text. Scanned guides need OCR first.');
+    throw new PublicError('This file has too little readable text. Scanned guides need OCR first.', 422);
   }
   const raw = (await chatJson(
     [

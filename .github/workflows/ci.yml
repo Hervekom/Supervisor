@@ -28,6 +28,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - run: npm run check:pdf
 
   e2e:
     name: End-to-end tests
@@ -42,6 +43,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      - run: npm run test:e2e:account
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
