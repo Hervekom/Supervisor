@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useAccount } from '@/components/useAccount';
+import { loadAi } from '@/lib/aiSettings';
 import { put, useProfiles } from '@/components/useProfiles';
 import { CRITIC_NAME } from '@/lib/brand';
 import { subtractWorkingDays } from '@/lib/dates';
@@ -106,7 +107,7 @@ export default function PathPage() {
       const r = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ stepId: step.id, degree, topic: path.topic, discipline: path.discipline, work: state.work, question, language }),
+        body: JSON.stringify({ stepId: step.id, degree, topic: path.topic, discipline: path.discipline, work: state.work, question, language, llm: loadAi() ?? undefined }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
@@ -282,7 +283,7 @@ export default function PathPage() {
                 <option>English</option><option>French</option><option>Chinese</option><option>Arabic</option>
               </select>
             </div>
-            {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}</p> : null}
+            {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}</p> : null}
             {state.coach ? (
               <div className="pen">
                 <p className="verdict">

@@ -1,6 +1,6 @@
 export class LlmNotConfigured extends Error {
   constructor() {
-    super('The AI is not set up yet. The site owner needs to add its settings.');
+    super('Add your AI key in Account to use this feature.');
   }
 }
 
@@ -31,8 +31,12 @@ export async function chatJson(messages: Message[], c?: LlmConfig): Promise<unkn
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({ model, messages, temperature: 0.2 }),
+    redirect: 'error',
     signal: AbortSignal.timeout(180_000),
   });
+  if (res.status === 401 || res.status === 403) throw new Error('Your AI provider rejected this key. Check it in Account.');
+  if (res.status === 402 || res.status === 429) throw new Error('Your AI account has reached its limit or has no credit.');
+  if (res.status === 404) throw new Error('Your AI provider did not find this model. Check its name in Account.');
   if (!res.ok) throw new Error(`The AI service returned ${res.status}.`);
   const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   const content = data.choices?.[0]?.message?.content;

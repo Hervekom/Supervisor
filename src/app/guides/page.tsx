@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useProfiles } from '@/components/useProfiles';
 import type { ImportResult } from '@/lib/profiles';
+import { loadAi } from '@/lib/aiSettings';
 import { authHeaders } from '@/lib/supabase';
 import type { Profile } from '@/lib/types';
 
@@ -24,6 +25,8 @@ export default function GuidesPage() {
     setResult(null);
     const f = new FormData();
     f.set('file', file);
+    const ai = loadAi();
+    if (ai) f.set('llm', JSON.stringify(ai));
     try {
       const r = await fetch('/api/profiles/import', { method: 'POST', body: f, headers: await authHeaders() });
       const j = await r.json();

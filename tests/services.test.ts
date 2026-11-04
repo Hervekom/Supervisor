@@ -241,3 +241,47 @@ describe('step standards', async () => {
     expect(C.coachMessages({ step: d, degree: 'master_academic', work: 'x' })[1].content).toContain(d.practice![0]);
   });
 });
+
+describe('student AI keys', async () => {
+  const { resolveChoice } = await import('@/lib/aiChoice');
+  const { safeCustomUrl } = await import('@/lib/providers');
+  const key = 'sk-test-12345678';
+  it('uses the server default when no choice is sent', () => {
+    expect(resolveChoice(undefined)).toEqual({});
+  });
+  it('takes a preset address from the server, not the browser', () => {
+    const r = resolveChoice({ provider: 'deepseek', baseUrl: 'https://evil.example.com', apiKey: key, model: 'deepseek-chat' });
+    expect(r.config?.baseUrl).toBe('https://api.deepseek.com');
+  });
+  it('rejects unsafe custom addresses', () => {
+    for (const u of ['http://api.example.com', 'https://localhost/v1', 'https://127.0.0.1/v1', 'https://169.254.169.254/latest', 'https://[::1]/', 'https://user:pw@api.example.com', 'https://api.example.com:8443', 'https://db.internal/v1', 'nonsense']) {
+      expect(safeCustomUrl(u)).toBeNull();
+      expect(resolveChoice({ provider: 'custom', baseUrl: u, apiKey: key, model: 'm' }).error).toBeTruthy();
+    }
+  });
+  it('accepts a public https custom address', () => {
+    expect(resolveChoice({ provider: 'custom', baseUrl: 'https://api.example.com/v1/', apiKey: key, model: 'm-1' }).config?.baseUrl).toBe('https://api.example.com/v1');
+  });
+  it('rejects bad keys and models', () => {
+    expect(resolveChoice({ provider: 'kimi', apiKey: 'short', model: 'm' }).error).toMatch(/key/);
+    expect(resolveChoice({ provider: 'kimi', apiKey: key, model: 'a b' }).error).toMatch(/model/);
+  });
+  it('sends the student key and blocks redirects', async () => {
+    let auth = '';
+    let redirect = '';
+    const fetchImpl = (async (_: string, init: RequestInit) => {
+      auth = (init.headers as Record<string, string>).authorization;
+      redirect = String(init.redirect);
+      return jsonRes({ choices: [{ message: { content: '{"ok":true}' } }] });
+    }) as unknown as typeof fetch;
+    await chatJson([], { baseUrl: 'https://api.deepseek.com', apiKey: key, model: 'm', fetchImpl });
+    expect(auth).toBe(`Bearer ${key}`);
+    expect(redirect).toBe('error');
+  });
+  it('explains provider errors without echoing the key', async () => {
+    const fetchImpl = (async () => new Response('', { status: 401 })) as typeof fetch;
+    const err = await chatJson([], { baseUrl: 'https://x.example.com', apiKey: key, model: 'm', fetchImpl }).catch((e) => e.message);
+    expect(err).toMatch(/rejected this key/);
+    expect(err).not.toContain(key);
+  });
+});

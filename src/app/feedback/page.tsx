@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useProfiles } from '@/components/useProfiles';
 import type { Feedback } from '@/lib/feedback';
+import { loadAi } from '@/lib/aiSettings';
 import { authHeaders } from '@/lib/supabase';
 import type { RefResult } from '@/lib/references';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
@@ -103,7 +104,7 @@ export default function FeedbackPage() {
               <label htmlFor="t">Chapter text</label>
               <textarea id="t" value={text} onChange={(e) => setText(e.target.value)} />
             </div>
-            <div><button className="btn" disabled={busy} onClick={() => post<Feedback>('/api/feedback', { degree, discipline, title, text, language }, setFeedback)}>{busy ? 'Reading…' : 'Get feedback'}</button></div>
+            <div><button className="btn" disabled={busy} onClick={() => post<Feedback>('/api/feedback', { degree, discipline, title, text, language, llm: loadAi() ?? undefined }, setFeedback)}>{busy ? 'Reading…' : 'Get feedback'}</button></div>
           </>
         ) : (
           <>

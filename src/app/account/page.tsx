@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
+import { AiSettings } from '@/components/AiSettings';
 import { useAccount } from '@/components/useAccount';
+import { clearAi } from '@/lib/aiSettings';
 import { supabase } from '@/lib/supabase';
 
 export default function AccountPage() {
@@ -33,13 +35,14 @@ export default function AccountPage() {
     try {
       localStorage.removeItem('path:v1');
     } catch {}
+    clearAi();
     setMessage('Signed out. Your work is saved to your account.');
   }
 
   return (
     <>
       <h1>{user ? 'Your account' : mode === 'in' ? 'Sign in' : 'Create your account'}</h1>
-      <p className="lede">Your account keeps your thesis path on every device.</p>
+      <p className="lede">Your account keeps your thesis path on every device. Sign in to add your own AI key.</p>
       {!ready ? null : user ? (
         <div className="form" style={{ marginTop: 20 }}>
           <p>Signed in as <b>{user.email}</b></p>
@@ -64,6 +67,7 @@ export default function AccountPage() {
         </form>
       )}
       {error ? <p className="error" role="alert" style={{ marginTop: 12 }}>{error}</p> : null}
+      {user || !supabase() ? <AiSettings /> : null}
       {message ? <p className="notice" role="status" style={{ marginTop: 12 }}>{message}</p> : null}
     </>
   );
