@@ -143,9 +143,10 @@ describe('guided path', async () => {
   });
   it('needs work and all checks to finish', () => {
     const s = P.STEPS[0];
-    expect(P.canComplete(s, { work: '', checks: [0, 1, 2], status: 'open' })).toBe(false);
-    expect(P.canComplete(s, { work: 'x', checks: [0, 1], status: 'open' })).toBe(false);
-    expect(P.canComplete(s, { work: 'x', checks: [0, 1, 2], status: 'open' })).toBe(true);
+    const all = s.tasks.map((_, i) => i);
+    expect(P.canComplete(s, { work: '', checks: all, status: 'open' })).toBe(false);
+    expect(P.canComplete(s, { work: 'x', checks: all.slice(1), status: 'open' })).toBe(false);
+    expect(P.canComplete(s, { work: 'x', checks: all, status: 'open' })).toBe(true);
   });
   it('moves to the next open step and counts skips', () => {
     const p = P.emptyPath();
@@ -165,10 +166,33 @@ describe('guided path', async () => {
     expect(m[1].content).toContain('<student_notes>');
     expect(m[1].content).toContain('Reply language: French');
   });
-  it('normalizes coach replies and defaults ready to false', () => {
-    const r = C.normalizeCoach({ assessment: 'a', gaps: ['1', '2', '3', '4', '5'], ready: 'yes' });
-    expect(r.gaps.length).toBe(4);
-    expect(r.ready).toBe(false);
+  it('never lets the AI skip a standard or call weak work ready', () => {
+    const step = P.STEPS[0];
+    const r = C.normalizeCoach({ verdict: 'ready', criteria: [{ standard: step.standards![0], status: 'met', comment: 'ok' }], questions: ['1', '2', '3', '4', '5'] }, step);
+    expect(r.criteria.length).toBe(step.standards!.length);
+    expect(r.verdict).toBe('not_ready');
+    expect(r.questions.length).toBe(4);
+  });
+  it('accepts ready only when every standard is met', () => {
+    const step = P.STEPS[0];
+    const criteria = step.standards!.map((standard) => ({ standard, status: 'met', comment: 'ok' }));
+    expect(C.normalizeCoach({ verdict: 'ready', criteria }, step).verdict).toBe('ready');
+    criteria[0].status = 'partly';
+    expect(C.normalizeCoach({ verdict: 'ready', criteria }, step).verdict).toBe('almost');
+  });
+  it('matches reworded standards by position', () => {
+    const step = P.STEPS[0];
+    const criteria = step.standards!.map((_, i) => ({ standard: `Reworded ${i}`, status: 'met', comment: 'ok' }));
+    const r = C.normalizeCoach({ verdict: 'ready', criteria }, step);
+    expect(r.verdict).toBe('ready');
+    expect(r.criteria[0].standard).toBe(step.standards![0]);
+  });
+  it('gives every step detailed tasks', () => {
+    for (const s of P.STEPS) {
+      expect(s.tasks.length).toBeGreaterThanOrEqual(3);
+      expect(s.mistakes.length).toBeGreaterThan(0);
+      for (const t of s.tasks) expect(t.how.length).toBeGreaterThan(20);
+    }
   });
   it('writes the AI use record', () => {
     const p = P.emptyPath();

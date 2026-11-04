@@ -3,10 +3,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const LINKS = [
-  ['/', 'My path'],
+  ['/', 'My thesis'],
   ['/check', 'Check'],
   ['/feedback', 'Feedback'],
-  ['/guides', 'Guides'],
   ['/account', 'Account'],
 ];
 

@@ -1,6 +1,6 @@
 export class LlmNotConfigured extends Error {
   constructor() {
-    super('The AI model is not set up. Add LLM_BASE_URL, LLM_API_KEY and LLM_MODEL to the server settings.');
+    super('The AI is not set up yet. The site owner needs to add its settings.');
   }
 }
 

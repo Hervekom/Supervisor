@@ -1,12 +1,14 @@
 import type { DegreeType, Profile, Rule, Stage } from './types';
 
+export type Task = { do: string; how: string };
+
 export type Step = {
   id: string;
   phase: string;
   title: string;
   goal: string;
-  actions: string[];
-  checks: string[];
+  tasks: Task[];
+  mistakes: string[];
   workLabel: string;
   coachFocus: string;
   standards?: string[];
@@ -21,24 +23,39 @@ export const STEPS: Step[] = [
   {
     id: 'topic', phase: 'Find your question', title: 'Choose a topic you can finish',
     goal: 'Leave this step with one narrow research question that you can answer in the time you have.',
-    actions: ['List three topics you care about.', 'For each one, note the data, tools and time it would need.', 'Talk to your supervisor, then write one research question.'],
-    checks: ['My question fits in one sentence', 'I know where the data or evidence will come from', 'My supervisor has seen this question'],
+    tasks: [
+      { do: 'List three possible topics', how: 'Start from your courses, your lab, your supervisor’s projects or a real problem you have seen. Write one line on why each matters.' },
+      { do: 'Test whether each topic is possible', how: 'For each one, note the data, tools, skills and time you need. Remove any topic that depends on data you cannot get.' },
+      { do: 'Narrow one topic into a question', how: 'Limit it by population, place, method or period. A good question can be answered with evidence and fits in one sentence.' },
+      { do: 'Show the question to your supervisor', how: 'Bring your question, your data source and one risk. Write down what your supervisor changes.' },
+    ],
+    mistakes: ['Choosing a whole field instead of a question', 'Choosing a topic before checking that data exists', 'Copying a topic that has already been answered'],
     workLabel: 'Your research question and why it matters',
     coachFocus: 'scope, feasibility in the available time, clarity of the question',
   },
   {
     id: 'literature', phase: 'Find your question', title: 'Map the literature',
     goal: 'Know what has been done, where studies disagree, and which gap your work addresses.',
-    actions: ['Find the most cited and the most recent studies on your question.', 'Read them and note each method, finding and limit in your own words.', 'Group the studies by theme, then state the gap.'],
-    checks: ['I have read every source I plan to cite', 'I can name the gap in one sentence', 'My notes are in my own words'],
+    tasks: [
+      { do: 'Find the key studies', how: 'Search Google Scholar, CNKI or your library with your main terms. Keep the most cited papers and the most recent ones.' },
+      { do: 'Read and take notes in your own words', how: 'For each study, record the aim, method, data, main result and limit. Save the full reference at the same time.' },
+      { do: 'Group studies by approach', how: 'Build a table with one row per study or family. Add columns for strengths and limits, so you can compare them.' },
+      { do: 'Write your gaps', how: 'List what remains unsolved, and name the studies that show it. Then decide which gap you will address.' },
+    ],
+    mistakes: ['Summarizing one paper after another', 'Citing papers you have not read', 'Claiming a gap that no study supports'],
     workLabel: 'Your themes, the main disagreements and the gap you found',
     coachFocus: 'whether sources are compared rather than listed, and whether the gap follows from them',
   },
   {
     id: 'proposal', phase: 'Plan the work', title: 'Write and defend your proposal',
     goal: 'Get approval for the question, method and schedule.',
-    actions: ['Draft the problem, objectives, method and timeline.', 'Fill in your university’s proposal form.', 'Rehearse, then present it.'],
-    checks: ['Objectives match the research question', 'The timeline reaches the submission deadline', 'The proposal has been approved'],
+    tasks: [
+      { do: 'Draft the proposal', how: 'Move from background to gap, aim, objectives, method, expected contribution and timeline.' },
+      { do: 'Plan backward from your deadline', how: 'Start at your defense date. Add review, revision and writing time before you plan the research.' },
+      { do: 'Complete your university’s form', how: 'Use the current official form. Check the required sections before you write.' },
+      { do: 'Present and record the comments', how: 'Rehearse your talk, then write down every comment and what you will change.' },
+    ],
+    mistakes: ['Promising too much for the time you have', 'Leaving no time for review', 'Describing tools without explaining the research problem'],
     workLabel: 'Your objectives, planned method and timeline',
     coachFocus: 'alignment between objectives, method and timeline',
     workflowIds: ['proposal'],
@@ -46,32 +63,51 @@ export const STEPS: Step[] = [
   {
     id: 'method', phase: 'Plan the work', title: 'Design your method',
     goal: 'Choose a method that can really answer your question, and be able to defend it.',
-    actions: ['Explain why this method fits your question better than the alternatives.', 'Define your data, sample, variables or cases.', 'Plan how you will test validity, and check whether you need ethics approval.'],
-    checks: ['I can justify the method against one alternative', 'I know how results will be evaluated', 'Ethics and data permissions are settled'],
+    tasks: [
+      { do: 'Compare possible methods', how: 'List at least two options with their strengths and limits. Choose the one that best fits your question.' },
+      { do: 'Define your data or participants', how: 'State the source, size, selection rules and why it fits. Say what the data cannot show.' },
+      { do: 'Choose how you will judge results', how: 'Pick your measures and comparison methods before you see the results.' },
+      { do: 'Check ethics and permissions', how: 'Ask whether you need ethics approval, consent or data permission. Keep the proof.' },
+    ],
+    mistakes: ['Choosing a method because it is popular', 'Combining methods without a reason', 'Choosing success measures after seeing results'],
     workLabel: 'Your method, why you chose it, and how you will evaluate results',
     coachFocus: 'fit between question and method, validity, reproducibility',
   },
   {
     id: 'alignment', phase: 'Plan the work', title: 'Link questions to evidence',
     goal: 'Make sure every research question leads to a method, a result and a place in your thesis.',
-    actions: ['Write one main aim, then split it into a few objectives.', 'Give each objective one research question.', 'For each question, name the method, the evidence and the chapter that will answer it.'],
-    checks: ['Every objective has a research question', 'Every question has a method and evidence', 'Every question has a chapter that answers it'],
+    tasks: [
+      { do: 'Write one main aim', how: 'State what the whole thesis will achieve in one sentence.' },
+      { do: 'Split it into objectives', how: 'Use a few specific objectives that each describe something you will do.' },
+      { do: 'Give each objective one question', how: 'Each question should have an answer you can show with evidence.' },
+      { do: 'Complete the chain', how: 'For each question, name the method, the evidence and the chapter that answers it.' },
+    ],
+    mistakes: ['Writing questions your data cannot answer', 'Adding objectives that no chapter covers'],
     workLabel: 'Your table: objective, question, method, evidence, chapter',
     coachFocus: 'gaps in the chain from objective to question, method, evidence and chapter',
   },
   {
     id: 'research', phase: 'Do the research', title: 'Collect data and record results',
     goal: 'Produce results you can trace and reproduce.',
-    actions: ['Run the study as planned.', 'Keep raw data, code and settings under version control.', 'Record every change to the plan and why you made it.'],
-    checks: ['Raw data and results are backed up', 'Someone else could repeat what I did', 'Unexpected results are recorded too'],
+    tasks: [
+      { do: 'Run a small pilot', how: 'Test your process on a small sample first, then fix any problems before the full study.' },
+      { do: 'Run the full study', how: 'Follow your plan. Repeat trials or collect enough cases for your method.' },
+      { do: 'Keep a research log', how: 'Record dates, settings, versions, random seeds or sampling choices, and every change to the plan.' },
+      { do: 'Back up and analyze your results', how: 'Keep raw data, code and results in two places. Record unexpected and negative results too.' },
+    ],
+    mistakes: ['Keeping only the best run', 'Changing the plan without recording why', 'Comparing methods under different conditions'],
     workLabel: 'Your main results and what changed from the plan',
     coachFocus: 'whether results answer the question, and how they could be challenged',
   },
   {
     id: 'mid_term', phase: 'Do the research', title: 'Pass the mid-term assessment',
     goal: 'Show your progress and fix problems while there is still time.',
-    actions: ['Summarize progress against your proposal.', 'Name the remaining risks.', 'Complete the required form and meet your supervisor.'],
-    checks: ['Progress is measured against the proposal', 'Remaining work has dates', 'The assessment is complete'],
+    tasks: [
+      { do: 'Compare progress with your proposal', how: 'List what is done, what changed and what is late.' },
+      { do: 'Name your remaining risks', how: 'For each risk, write how you will reduce it and by when.' },
+      { do: 'Complete the assessment', how: 'Fill in the form, meet your supervisor and record any required changes.' },
+    ],
+    mistakes: ['Hiding delays', 'Reporting activity instead of results'],
     workLabel: 'Your progress, risks and revised plan',
     coachFocus: 'realism of the remaining plan',
     workflowIds: ['mid_term'],
@@ -79,8 +115,13 @@ export const STEPS: Step[] = [
   {
     id: 'paper', phase: 'Do the research', title: 'Publish a paper from your results',
     goal: 'Test one result with peer reviewers before it becomes a thesis chapter.',
-    actions: ['Choose one result that makes a complete contribution.', 'Check the journal’s scope, rules and reputation with your supervisor.', 'Write the paper yourself, submit it, and answer the reviewers.'],
-    checks: ['The paper covers one clear contribution', 'All authors agreed on their roles', 'I checked my university’s rules on reusing published work'],
+    tasks: [
+      { do: 'Choose one contribution', how: 'A paper should make one main point. Keep other results for another paper.' },
+      { do: 'Choose a journal with your supervisor', how: 'Check its scope, indexing, fees and reputation, and read its author rules. Avoid journals you cannot verify.' },
+      { do: 'Agree authorship', how: 'Decide who is an author and what each person contributed before you submit.' },
+      { do: 'Write, submit and answer reviewers', how: 'Write it yourself, declare any AI use the journal requires, and respond to each reviewer comment.' },
+    ],
+    mistakes: ['Submitting to a journal without checking it', 'Reusing a paper in your thesis without checking the rules'],
     workLabel: 'Your target journal and the one contribution of this paper',
     coachFocus: 'whether the contribution is focused and the journal fits',
     optional: true,
@@ -89,8 +130,13 @@ export const STEPS: Step[] = [
   {
     id: 'outline', phase: 'Write', title: 'Outline the thesis',
     goal: 'Decide what each chapter must prove, and what single idea connects them.',
-    actions: ['Download your university’s template.', 'State the one idea that connects your studies.', 'Write one sentence for what each chapter establishes.', 'If you published papers, explain what the thesis adds beyond joining them.'],
-    checks: ['Every chapter serves the research question', 'I use the official template', 'My supervisor has seen the outline'],
+    tasks: [
+      { do: 'Download the official template', how: 'Use the current template from your university, and write inside it from the start.' },
+      { do: 'State the idea that connects your work', how: 'Write one sentence that explains how your studies form one thesis.' },
+      { do: 'Write one point for each chapter', how: 'For each chapter, write what it establishes, not only its topic.' },
+      { do: 'Show your supervisor the outline', how: 'Agree the chapter order before you write long sections.' },
+    ],
+    mistakes: ['Joining papers without a connecting idea', 'Using four or more heading levels', 'Writing long chapter titles'],
     workLabel: 'Your chapter titles, each with the point it makes',
     coachFocus: 'logical order, gaps and repetition between chapters',
     ruleKeys: ['structure.parts_order', 'heading.chapter_title.max_words', 'structure.chapter_summary_required'],
@@ -98,8 +144,13 @@ export const STEPS: Step[] = [
   {
     id: 'draft', phase: 'Write', title: 'Draft each chapter yourself',
     goal: 'Finish a complete first draft, one chapter at a time.',
-    actions: ['Write the next chapter in your own words.', 'Get feedback on it here.', 'Answer the questions, revise, then move to the next chapter.'],
-    checks: ['Every chapter has a first draft', 'Every chapter has been reviewed', 'Citations are in place as I write'],
+    tasks: [
+      { do: 'Start with method and results', how: 'These are often the easiest chapters to write first because the facts are clear.' },
+      { do: 'Write the literature and introduction', how: 'Now that you know your results, keep only what supports your argument.' },
+      { do: 'Explain every result', how: 'Say what happened, why it happened and what it means. Avoid listing numbers only.' },
+      { do: 'Get a critique for each chapter', how: 'Upload each chapter in Feedback, answer the questions, revise and repeat.' },
+    ],
+    mistakes: ['Waiting until the draft is perfect', 'Adding citations at the end', 'Listing results with no explanation'],
     workLabel: 'Which chapters are done, and what you are stuck on',
     coachFocus: 'what blocks the student and which part to tackle next',
     tool: { href: '/feedback', label: 'Get feedback on a chapter' },
@@ -108,8 +159,13 @@ export const STEPS: Step[] = [
   {
     id: 'revise', phase: 'Write', title: 'Revise the whole thesis',
     goal: 'Turn the draft into one consistent argument that meets every rule.',
-    actions: ['Read the thesis from start to finish.', 'Write the abstract and conclusion last.', 'Run the check and fix every result.'],
-    checks: ['Introduction and conclusion match', 'Terms are used consistently', 'The check shows nothing left to fix'],
+    tasks: [
+      { do: 'Read it from start to finish', how: 'Check that each chapter leads to the next, and remove repeated material.' },
+      { do: 'Write the abstract and conclusion last', how: 'Open the abstract with your main idea. Answer each research question in the conclusion.' },
+      { do: 'Recheck every number', how: 'Compare the abstracts, text, tables and figures. Recalculate each percentage and equation.' },
+      { do: 'Run the check and fix each result', how: 'Upload your Word file, fix what it finds, and ask your school about any conflicting rules.' },
+    ],
+    mistakes: ['Writing different facts in the two abstracts', 'Saying percent when you mean percentage points', 'Comparing different metrics'],
     workLabel: 'Your main claims, and what you changed in this revision',
     coachFocus: 'consistency of the argument across the thesis',
     tool: { href: '/check', label: 'Check my thesis' },
@@ -118,8 +174,13 @@ export const STEPS: Step[] = [
   {
     id: 'references', phase: 'Write', title: 'Verify every reference',
     goal: 'Make sure every source exists, says what you claim, and is listed correctly.',
-    actions: ['Run the reference check.', 'Open each source marked Compare or No match.', 'Remove anything you have not read.'],
-    checks: ['Every reference is confirmed', 'Every citation is in the list, and every listed source is cited', 'The list follows the required style'],
+    tasks: [
+      { do: 'Run the reference check', how: 'Paste your list in Feedback, under References.' },
+      { do: 'Open every doubtful source', how: 'Check each result marked Compare or No match against the original.' },
+      { do: 'Match citations and the list', how: 'Every citation needs an entry, and every entry needs a citation.' },
+      { do: 'Apply the required style', how: 'Use a reference manager such as Zotero, then check the final list by eye.' },
+    ],
+    mistakes: ['Citing a source you have not read', 'Trusting references suggested by AI without checking them', 'Keeping entries you never cite'],
     workLabel: 'Sources you could not confirm, and what you did about them',
     coachFocus: 'reliability and recency of the sources',
     tool: { href: '/feedback', label: 'Check references' },
@@ -128,8 +189,12 @@ export const STEPS: Step[] = [
   {
     id: 'pre_defense', phase: 'Submit', title: 'Pass the pre-defense',
     goal: 'Hear objections early and fix them before external review.',
-    actions: ['Prepare a short presentation.', 'Record every comment from the panel.', 'Revise the thesis and note how you responded.'],
-    checks: ['The pre-defense is complete', 'Every comment has been addressed'],
+    tasks: [
+      { do: 'Prepare a short presentation', how: 'Focus on your question, method, results and contribution.' },
+      { do: 'Record every comment', how: 'Ask someone to take notes while you answer.' },
+      { do: 'Revise and note each change', how: 'Keep a table with each comment and what you changed.' },
+    ],
+    mistakes: ['Defending every comment instead of noting it', 'Making changes without recording them'],
     workLabel: 'Panel comments and how you responded',
     coachFocus: 'whether each comment was really addressed',
     workflowIds: ['pre_defense'],
@@ -137,8 +202,12 @@ export const STEPS: Step[] = [
   {
     id: 'submission', phase: 'Submit', title: 'Pass the similarity check and approvals',
     goal: 'Meet the similarity limit honestly and get internal approval.',
-    actions: ['Run the official similarity check.', 'Where text is too close to a source, rethink the passage, then quote or cite it properly.', 'Get supervisor and school approval.'],
-    checks: ['The result is within the limit', 'Sources are properly credited', 'Supervisor and school have approved'],
+    tasks: [
+      { do: 'Run the official similarity check', how: 'Use the system your university accepts, and keep the report.' },
+      { do: 'Review each flagged passage', how: 'Rethink the idea in your own analysis, then quote or cite the source properly.' },
+      { do: 'Get supervisor and school approval', how: 'Submit in the required system before the deadline.' },
+    ],
+    mistakes: ['Swapping words without changing the thinking', 'Leaving the check until the last week'],
     workLabel: 'Your similarity result and the passages you reworked',
     coachFocus: 'proper attribution and original analysis',
     workflowIds: ['similarity_check', 'internal_approval'],
@@ -147,8 +216,13 @@ export const STEPS: Step[] = [
   {
     id: 'blind_review', phase: 'Submit', title: 'Prepare the blind review copy',
     goal: 'Send a copy with nothing that reveals who you are.',
-    actions: ['Save a separate copy of the thesis.', 'Remove names, signatures and acknowledgments.', 'Run the check in Blind review mode, then submit.'],
-    checks: ['The blind review check is clear', 'The file was submitted on time'],
+    tasks: [
+      { do: 'Save a separate copy', how: 'Keep your full version safe, and work only on the review copy.' },
+      { do: 'Remove what identifies you', how: 'Remove names, signatures, acknowledgments, grant numbers, links and file properties.' },
+      { do: 'Run the blind review check', how: 'Choose Blind review in Check, and enter your name and your supervisor’s name.' },
+      { do: 'Submit on time', how: 'Check the required format and save proof of submission.' },
+    ],
+    mistakes: ['Leaving names in file properties', 'Forgetting names in the research outputs list'],
     workLabel: 'What you removed, and your submission date',
     coachFocus: 'identity clues that are easy to miss',
     tool: { href: '/check', label: 'Check the blind review copy' },
@@ -158,8 +232,12 @@ export const STEPS: Step[] = [
   {
     id: 're_review', phase: 'Submit', title: 'Respond to the reviewers',
     goal: 'Answer every reviewer comment with a real change.',
-    actions: ['Copy every comment into a table.', 'Revise the thesis for each comment.', 'Explain each change, comment by comment.'],
-    checks: ['Every comment has its own row', 'Each row names a real change', 'My supervisor has approved the revision'],
+    tasks: [
+      { do: 'Copy every comment into a table', how: 'Use one row per comment, without combining them.' },
+      { do: 'Revise the thesis', how: 'Make the real change first, with your supervisor’s guidance.' },
+      { do: 'Explain each change', how: 'Say what changed and where. If you disagree, give evidence calmly.' },
+    ],
+    mistakes: ['Writing “revised” with no detail', 'Submitting before the required revision period ends'],
     workLabel: 'Each reviewer comment and what you changed',
     coachFocus: 'whether each response addresses the comment fully',
     optional: true,
@@ -169,8 +247,13 @@ export const STEPS: Step[] = [
   {
     id: 'defense', phase: 'Finish', title: 'Prepare and pass your defense',
     goal: 'Explain and defend your own work with confidence.',
-    actions: ['Prepare slides around your question, method, results and contribution.', 'Practice answering hard questions out loud.', 'Complete the required forms, then defend.'],
-    checks: ['I have practiced aloud in the time allowed', 'I can defend my method and limits', 'The defense is complete'],
+    tasks: [
+      { do: 'Build your slides', how: 'Cover the problem, gap, method, results, contribution and limits.' },
+      { do: 'Practice out loud', how: 'Time yourself, then present to a friend who can interrupt you.' },
+      { do: 'Prepare your hard answers', how: 'Use the questions below. Keep each answer short and based on evidence.' },
+      { do: 'Complete the forms and defend', how: 'Check the required documents. Take notes on every comment.' },
+    ],
+    mistakes: ['Reading from the slides', 'Being unable to explain an equation', 'Answering a limit by arguing instead of acknowledging it'],
     workLabel: 'Your contribution in three sentences, and the question you fear most',
     coachFocus: 'hard questions a committee would ask about this work',
     workflowIds: ['defense'],
@@ -178,8 +261,13 @@ export const STEPS: Step[] = [
   {
     id: 'archive', phase: 'Finish', title: 'Submit your final thesis',
     goal: 'Make the committee’s changes and complete your degree file.',
-    actions: ['Answer each committee comment in writing, and make the change.', 'Revise the thesis under your supervisor’s guidance.', 'Sign the required statements.', 'Submit the final copies and degree file.'],
-    checks: ['Committee changes are done', 'The final file matches the printed copy', 'All degree documents are submitted'],
+    tasks: [
+      { do: 'Answer each committee comment', how: 'Write a response for each comment, and make the change.' },
+      { do: 'Run the final check', how: 'Use Final copy in Check, then get your supervisor’s approval.' },
+      { do: 'Sign the required statements', how: 'Have the author and supervisor sign where required.' },
+      { do: 'Submit all final documents', how: 'Follow your university’s list. Make sure the PDF matches the printed copy.' },
+    ],
+    mistakes: ['Submitting a file that differs from the approved version', 'Forgetting a required signature'],
     workLabel: 'What is left before your degree file is complete',
     coachFocus: 'completeness of the final submission',
     tool: { href: '/check', label: 'Check the final copy' },
@@ -223,7 +311,7 @@ STEPS.find((s) => s.id === 'defense')!.practice = [
   'Can you explain the symbols in this equation?',
 ];
 
-export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; updated?: string };
+export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; rounds?: number; updated?: string };
 export type LogEntry = { at: string; step: string; tool: string };
 export type PathState = {
   topic: string;
@@ -231,23 +319,28 @@ export type PathState = {
   defenseDate: string;
   current: string;
   savedAt?: string;
+  started?: boolean;
   steps: Record<string, StepState>;
   log: LogEntry[];
 };
 
+export type Verdict = 'not_ready' | 'almost' | 'ready';
+export type CriterionResult = { standard: string; status: 'met' | 'partly' | 'missing'; comment: string };
+
 export type CoachReply = {
-  assessment: string;
-  gaps: string[];
+  verdict: Verdict;
+  summary: string;
+  criteria: CriterionResult[];
+  weakest: string;
   questions: string[];
   next_action: string;
-  ready: boolean;
 };
 
 export const emptyPath = (): PathState => ({ topic: '', discipline: '', defenseDate: '', current: STEPS[0].id, steps: {}, log: [] });
 export const stepState = (p: PathState, id: string): StepState => p.steps[id] ?? { work: '', checks: [], status: 'open' };
 
 export function canComplete(step: Step, s: StepState) {
-  return s.work.trim().length > 0 && step.checks.every((_, i) => s.checks.includes(i));
+  return s.work.trim().length > 0 && step.tasks.every((_, i) => s.checks.includes(i));
 }
 
 export function nextOpen(p: PathState, afterId?: string) {

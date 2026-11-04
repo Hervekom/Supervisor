@@ -186,5 +186,29 @@ blockquote { margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--r
 @media (max-width: 900px) {
   .path { grid-template-columns: minmax(0, 1fr); }
   .map { position: static; max-height: none; }
-  .map section:not(:has([aria-current='step'])) ol { display: none; }
 }
+
+/* Simplified path */
+.welcome { max-width: 680px; margin: 24px auto 0; }
+.welcome h1 { font-size: 2.5rem; }
+.welcome .sheet { margin-top: 24px; max-width: none; }
+.phase { margin: 12px 0 0; font-size: 1rem; }
+.phase summary { display: flex; justify-content: space-between; align-items: center; font: 600 .98rem var(--serif); color: var(--ink); padding: 4px 8px; list-style: none; }
+.phase summary::-webkit-details-marker { display: none; }
+.phase summary span { font: 500 .78rem var(--sans); color: var(--ink-soft); }
+.num { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--pen); color: #fff; font: 600 .82rem var(--serif); margin-right: 9px; }
+.group > h3 { font-size: 1.15rem; display: flex; align-items: center; }
+.task { border-top: 1px solid var(--rule); padding: 5px 0; }
+.group > h3 + .task { margin-top: 10px; }
+.task .hint { display: inline-block; margin-top: 2px; }
+.verdict { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.badge { padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: .85rem; background: #fff; }
+.badge.not_ready { color: var(--stop); }
+.badge.almost { color: var(--pen); }
+.badge.ready { color: #fff; background: var(--good); }
+.pen ul.criteria { list-style: none; padding: 0; margin: 12px 0; }
+.criteria li { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; padding: 7px 0; border-top: 1px solid var(--rule); }
+.mark { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: .75rem; font-weight: 700; }
+.mark.met { background: var(--good); }
+.mark.partly { background: #9a6a12; }
+.mark.missing { background: var(--stop); }

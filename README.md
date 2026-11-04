@@ -25,7 +25,8 @@ My path and Check work without any AI model. Supervisor reviews, Feedback and gu
 - `src/lib/docx.ts`: Word file reader
 - `src/lib/check.ts`: rule checks, bound to profile keys
 - `src/lib/path.ts`: the guided steps, from topic to final submission
-- `src/lib/coach.ts`: step coaching, which never writes for the student
+- `src/lib/coach.ts`: AI critique of each step, which never writes for the student
+- `src/lib/brand.ts`: the public name of the AI reviewer
 - `src/lib/feedback.ts`: supervisor feedback, which never writes for the student
 - `src/lib/references.ts`: Crossref lookup
 - `src/lib/profiles.ts`: profile storage and guide import
