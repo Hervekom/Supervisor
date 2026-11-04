@@ -56,6 +56,7 @@ describe.skipIf(!hasFixtures)('engine on real files', () => {
       const r = checkDocument(await load(f), profile, { degree: 'master_academic', mode: 'final' });
       expect(r.results.length).toBeGreaterThan(30);
       expect(r.conflicts.length).toBe(10);
+      expect(r.audit.length).toBeGreaterThan(1);
       const len = r.results.find((x) => x.key === 'length.main_text.min_words');
       expect(['fail', 'skipped']).toContain(len?.status);
     }

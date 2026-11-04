@@ -1,3 +1,4 @@
+import { auditThesis, type AuditItem } from './audit';
 import type { Doc, Para } from './docx';
 import type { Citation, Conflict, DegreeType, Profile, Rule } from './types';
 
@@ -32,6 +33,7 @@ export type Report = {
   stats: { mainWords: number; paragraphs: number; tables: number; references: number };
   results: Result[];
   conflicts: ConflictResult[];
+  audit: AuditItem[];
   aiPolicy: Profile['ai_policy'];
 };
 
@@ -512,6 +514,20 @@ export function checkDocument(doc: Doc, profile: Profile, opts: Options): Report
       provisionalReason: c.provisional_reason ?? null,
       options: c.options.map((o) => ({ value: show(o.value), source: o.source })),
     }));
+  const concl = layout.parts.get('conclusion');
+  const mainText = layout.main.filter((p) => p.tableIndex === null).map((p) => p.text);
+  const lastChapter = layout.chapters[layout.chapters.length - 1];
+  const closingFrom = concl ?? lastChapter?.start ?? doc.paragraphs.length;
+  const refStart = layout.parts.get('references') ?? doc.paragraphs.length;
+  const closing = doc.paragraphs.slice(closingFrom, refStart).map((p) => p.text).join(' ');
+  const discussion = layout.main.filter((p) => /discussion|limitations?/i.test(p.text) && p.level > 0).length ? mainText.join(' ').slice(-20000) : '';
+  const audit = auditThesis({
+    abstractEn: layout.abstractEn.map((p) => p.text).join(' '),
+    abstractOther: layout.abstractZh.map((p) => p.text).join(' '),
+    body: mainText.join(' '),
+    closing: `${discussion} ${closing}`,
+    references: layout.references.map((p) => p.text),
+  });
   return {
     profileId: profile.profile_id,
     degree: opts.degree,
@@ -524,6 +540,7 @@ export function checkDocument(doc: Doc, profile: Profile, opts: Options): Report
     },
     results,
     conflicts,
+    audit,
     aiPolicy: profile.ai_policy,
   };
 }

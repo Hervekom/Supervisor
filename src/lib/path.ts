@@ -9,6 +9,7 @@ export type Step = {
   checks: string[];
   workLabel: string;
   coachFocus: string;
+  standards?: string[];
   optional?: boolean;
   tool?: { href: string; label: string };
   workflowIds?: string[];
@@ -50,6 +51,14 @@ export const STEPS: Step[] = [
     coachFocus: 'fit between question and method, validity, reproducibility',
   },
   {
+    id: 'alignment', phase: 'Plan the work', title: 'Link questions to evidence',
+    goal: 'Make sure every research question leads to a method, a result and a place in your thesis.',
+    actions: ['Write one main aim, then split it into a few objectives.', 'Give each objective one research question.', 'For each question, name the method, the evidence and the chapter that will answer it.'],
+    checks: ['Every objective has a research question', 'Every question has a method and evidence', 'Every question has a chapter that answers it'],
+    workLabel: 'Your table: objective, question, method, evidence, chapter',
+    coachFocus: 'gaps in the chain from objective to question, method, evidence and chapter',
+  },
+  {
     id: 'research', phase: 'Do the research', title: 'Collect data and record results',
     goal: 'Produce results you can trace and reproduce.',
     actions: ['Run the study as planned.', 'Keep raw data, code and settings under version control.', 'Record every change to the plan and why you made it.'],
@@ -67,9 +76,19 @@ export const STEPS: Step[] = [
     workflowIds: ['mid_term'],
   },
   {
+    id: 'paper', phase: 'Do the research', title: 'Publish a paper from your results',
+    goal: 'Test one result with peer reviewers before it becomes a thesis chapter.',
+    actions: ['Choose one result that makes a complete contribution.', 'Check the journal’s scope, rules and reputation with your supervisor.', 'Write the paper yourself, submit it, and answer the reviewers.'],
+    checks: ['The paper covers one clear contribution', 'All authors agreed on their roles', 'I checked my university’s rules on reusing published work'],
+    workLabel: 'Your target journal and the one contribution of this paper',
+    coachFocus: 'whether the contribution is focused and the journal fits',
+    optional: true,
+    ruleKeys: ['integrity.similarity.max_percent'],
+  },
+  {
     id: 'outline', phase: 'Write', title: 'Outline the thesis',
-    goal: 'Decide what each chapter must prove before you write it.',
-    actions: ['Download your university’s template.', 'Write one sentence for what each chapter establishes.', 'Check that the chapters lead to your conclusion.'],
+    goal: 'Decide what each chapter must prove, and what single idea connects them.',
+    actions: ['Download your university’s template.', 'State the one idea that connects your studies.', 'Write one sentence for what each chapter establishes.', 'If you published papers, explain what the thesis adds beyond joining them.'],
     checks: ['Every chapter serves the research question', 'I use the official template', 'My supervisor has seen the outline'],
     workLabel: 'Your chapter titles, each with the point it makes',
     coachFocus: 'logical order, gaps and repetition between chapters',
@@ -167,6 +186,28 @@ export const STEPS: Step[] = [
     ruleKeys: ['archiving.electronic_file'],
   },
 ];
+
+const STANDARDS: Record<string, string[]> = {
+  topic: ['States a specific problem, not a broad field', 'Shows who is affected and why it matters now', 'Sets a scope you can finish, and says what is left out'],
+  literature: ['Groups studies by approach, not one summary after another', 'Compares strengths and limits across studies', 'Lists numbered gaps, each backed by the studies reviewed', 'Each gap leads to a design choice in your work'],
+  proposal: ['Moves from context to gap, aim, questions and contribution', 'Separates what already exists from what you will add', 'Sets out what success will look like'],
+  method: ['Names the alternatives and explains why this one fits best', 'Describes each part clearly enough to rebuild it', 'Compares with fair baselines under the same conditions', 'Defines how each claim will be tested before seeing results'],
+  alignment: ['Each objective has one clear question', 'Each question can be answered with your evidence', 'The conclusion will be able to answer each question by name'],
+  research: ['Records settings, seeds or sampling, and versions', 'Runs repeated trials or a sound sample', 'Removes one part at a time to show what each adds, when it applies', 'Tests beyond the first dataset or setting, when possible'],
+  mid_term: ['Reports progress against the original objectives', 'Explains any change of plan'],
+  paper: ['Makes one contribution, stated early', 'Reports results the reader can verify', 'Discloses data availability, author roles and any AI use the journal requires'],
+  outline: ['A single idea connects all chapters', 'Each study chapter runs from aim to method, results, discussion and summary', 'Published work is extended, not only joined together'],
+  draft: ['Your claims come first, and sources support them', 'Every figure and table makes a point in the text', 'Each chapter ends with what it established'],
+  revise: ['Every figure matches across abstracts, chapters and tables', 'Comparisons use the same metric and conditions', 'Gaps state whether they are points or percent', 'The conclusion answers each research question'],
+  references: ['You read every source you cite', 'Key claims cite the original study', 'Sources include foundational and recent work'],
+  pre_defense: ['Each comment gets a specific response'],
+  submission: ['Reused published work is declared', 'Similarity is resolved through your own analysis and proper credit'],
+  blind_review: ['No name, grant or personal link can identify you'],
+  re_review: ['Each response names what changed and where', 'If you disagree, you give evidence calmly'],
+  defense: ['You can explain each result and how you would repeat it', 'You state limits before the committee does', 'You separate what your data shows from what you hope it shows'],
+  archive: ['The final file matches what was approved'],
+};
+for (const s of STEPS) s.standards = STANDARDS[s.id];
 
 export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; updated?: string };
 export type LogEntry = { at: string; step: string; tool: string };

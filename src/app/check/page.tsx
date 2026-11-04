@@ -54,6 +54,19 @@ function ReportView({ report, profile }: { report: Report; profile: Profile | nu
           {reviews.map((r) => <Item key={r.ruleId} r={r} profile={profile} />)}
         </section>
       ) : null}
+      {report.audit.length ? (
+        <section className="group">
+          <h2>Would your argument survive a reviewer?</h2>
+          <p>These checks apply to any university. They flag what to verify, and they do not judge your research.</p>
+          {report.audit.map((a) => (
+            <div className="item" key={a.id}>
+              <h3>{a.title}<span className={a.ok ? 'tag ok' : 'tag'}>{a.ok ? 'Looks fine' : 'Check this'}</span></h3>
+              <p>{a.detail}</p>
+              {a.examples.length ? <ul className="ex">{a.examples.map((e, i) => <li key={i}>{e}</li>)}</ul> : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
       {report.conflicts.length ? (
         <section className="group">
           <h2>Ask your graduate school</h2>

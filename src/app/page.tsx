@@ -209,6 +209,13 @@ export default function PathPage() {
             {step.tool ? <p style={{ marginTop: 10 }}><Link className="btn ghost linkbtn" href={step.tool.href}>{step.tool.label}</Link></p> : null}
           </section>
 
+          {step.standards?.length ? (
+            <section className="group">
+              <h3>What strong work shows</h3>
+              <ul className="todo">{step.standards.map((x) => <li key={x}>{x}</li>)}</ul>
+            </section>
+          ) : null}
+
           {stages.length || rules.length ? (
             <section className="group">
               <h3>What your university requires</h3>

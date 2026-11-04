@@ -205,3 +205,13 @@ describe('accounts', async () => {
     expect(P.newerPath(null, b)).toBe(b);
   });
 });
+
+describe('step standards', async () => {
+  const P = await import('@/lib/path');
+  const C = await import('@/lib/coach');
+  it('gives every step standards and sends them to the coach', () => {
+    for (const s of P.STEPS) expect(s.standards?.length).toBeGreaterThan(0);
+    const m = C.coachMessages({ step: P.STEPS[0], degree: 'master_academic', work: 'x' });
+    expect(m[1].content).toContain(P.STEPS[0].standards![0]);
+  });
+});
