@@ -44,6 +44,9 @@ Check these points when they apply:
 - Statistical claims name the test, the sample size or number of runs, and an effect or interval.
 - A discussion explains why results occurred, answers counterarguments and states limits.
 - Claims are no stronger than the evidence.
+- The student's own contribution stands apart from reused work.
+- Comparisons include recent published methods, not only simple baselines.
+- Each combination of methods has a stated reason.
 Reply with JSON only, in this shape:
 {"summary":"","strengths":[""],"issues":[{"severity":"major|moderate|minor","location":"","problem":"","why_it_matters":"","guiding_question":""}],"next_steps":[""]}`;
 

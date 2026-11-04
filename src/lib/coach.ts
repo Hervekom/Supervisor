@@ -28,7 +28,7 @@ Goal: ${input.step.goal}
 Focus on: ${input.step.coachFocus}
 Strong work at this step:
 ${(input.step.standards ?? []).map((x) => `- ${x}`).join('\n')}
-Degree: ${input.degree}
+${input.step.practice ? `Ask the student practice questions like these, applied to their work:\n${input.step.practice.map((x) => `- ${x}`).join('\n')}\n` : ''}Degree: ${input.degree}
 Discipline: ${input.discipline || 'not stated'}
 Thesis topic: ${input.topic || 'not stated'}
 Reply language: ${input.language || 'English'}

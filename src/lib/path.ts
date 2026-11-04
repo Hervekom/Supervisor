@@ -10,6 +10,7 @@ export type Step = {
   workLabel: string;
   coachFocus: string;
   standards?: string[];
+  practice?: string[];
   optional?: boolean;
   tool?: { href: string; label: string };
   workflowIds?: string[];
@@ -177,7 +178,7 @@ export const STEPS: Step[] = [
   {
     id: 'archive', phase: 'Finish', title: 'Submit your final thesis',
     goal: 'Make the committee’s changes and complete your degree file.',
-    actions: ['Revise the thesis under your supervisor’s guidance.', 'Sign the required statements.', 'Submit the final copies and degree file.'],
+    actions: ['Answer each committee comment in writing, and make the change.', 'Revise the thesis under your supervisor’s guidance.', 'Sign the required statements.', 'Submit the final copies and degree file.'],
     checks: ['Committee changes are done', 'The final file matches the printed copy', 'All degree documents are submitted'],
     workLabel: 'What is left before your degree file is complete',
     coachFocus: 'completeness of the final submission',
@@ -191,23 +192,36 @@ const STANDARDS: Record<string, string[]> = {
   topic: ['States a specific problem, not a broad field', 'Shows who is affected and why it matters now', 'Sets a scope you can finish, and says what is left out'],
   literature: ['Groups studies by approach, not one summary after another', 'Compares strengths and limits across studies', 'Lists numbered gaps, each backed by the studies reviewed', 'Each gap leads to a design choice in your work'],
   proposal: ['Moves from context to gap, aim, questions and contribution', 'Separates what already exists from what you will add', 'Sets out what success will look like'],
-  method: ['Names the alternatives and explains why this one fits best', 'Describes each part clearly enough to rebuild it', 'Compares with fair baselines under the same conditions', 'Defines how each claim will be tested before seeing results'],
+  method: ['Names the alternatives and explains why this one fits best', 'Justifies any combination of methods with theory and evidence', 'Uses data a sceptical reader would accept, including public or real data when possible', 'Describes each part clearly enough to rebuild it', 'Compares with simple baselines and recent published methods under the same conditions', 'Defines how each claim will be tested before seeing results'],
   alignment: ['Each objective has one clear question', 'Each question can be answered with your evidence', 'The conclusion will be able to answer each question by name'],
   research: ['Records settings, seeds or sampling, and versions', 'Runs repeated trials or a sound sample', 'Removes one part at a time to show what each adds, when it applies', 'Tests beyond the first dataset or setting, when possible'],
   mid_term: ['Reports progress against the original objectives', 'Explains any change of plan'],
   paper: ['Makes one contribution, stated early', 'Reports results the reader can verify', 'Discloses data availability, author roles and any AI use the journal requires'],
   outline: ['A single idea connects all chapters', 'Each study chapter runs from aim to method, results, discussion and summary', 'Published work is extended, not only joined together'],
-  draft: ['Your claims come first, and sources support them', 'Every figure and table makes a point in the text', 'Each chapter ends with what it established'],
-  revise: ['Every figure matches across abstracts, chapters and tables', 'Comparisons use the same metric and conditions', 'Gaps state whether they are points or percent', 'The conclusion answers each research question'],
-  references: ['You read every source you cite', 'Key claims cite the original study', 'Sources include foundational and recent work'],
+  draft: ['Your claims come first, and sources support them', 'Results explain why they occurred, not only what they were', 'Every figure and table makes a point in the text', 'Each paragraph connects to the one before it', 'Each chapter ends with what it established'],
+  revise: ['The abstract opens with your core idea and stays separate from experiment detail', 'Both abstracts say the same thing', 'Headings stop at three levels, and chapter titles are short', 'Every equation is checked and its symbols are explained', 'Figures have clear legends', 'Every figure matches across abstracts, chapters and tables', 'Comparisons use the same metric and conditions', 'Gaps state whether they are points or percent', 'The conclusion answers each research question'],
+  references: ['You read every source you cite', 'Every listed source is cited, and every citation is listed', 'Key claims cite the original study', 'Sources include foundational and recent work'],
   pre_defense: ['Each comment gets a specific response'],
   submission: ['Reused published work is declared', 'Similarity is resolved through your own analysis and proper credit'],
   blind_review: ['No name, grant or personal link can identify you'],
   re_review: ['Each response names what changed and where', 'If you disagree, you give evidence calmly'],
   defense: ['You can explain each result and how you would repeat it', 'You state limits before the committee does', 'You separate what your data shows from what you hope it shows'],
-  archive: ['The final file matches what was approved'],
+  archive: ['Each committee comment has a written response', 'The final file matches what was approved'],
 };
 for (const s of STEPS) s.standards = STANDARDS[s.id];
+
+// Question types seen in real master's defense minutes, in computer science.
+STEPS.find((s) => s.id === 'defense')!.practice = [
+  'What is new in your work compared with what already exists?',
+  'Why did you combine these methods instead of using one?',
+  'What theory or evidence supports that design?',
+  'How do you compare with recent published methods, not only baselines?',
+  'Why this dataset? Would your results hold on real or public data?',
+  'Why does your method perform better? What explains the difference?',
+  'What are the strengths and limits of your approach?',
+  'Is your sample large enough? How did you handle that limit?',
+  'Can you explain the symbols in this equation?',
+];
 
 export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; updated?: string };
 export type LogEntry = { at: string; step: string; tool: string };

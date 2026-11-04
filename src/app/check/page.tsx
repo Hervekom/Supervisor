@@ -17,7 +17,7 @@ function Source({ r, profile }: { r: Result['source']; profile: Profile | null }
 
 const Item = ({ r, profile }: { r: Result; profile: Profile | null }) => (
   <div className="item">
-    <h3>{r.title}{r.severity === 'blocking' && r.status === 'fail' ? <span className="tag blocking">Blocks submission</span> : null}</h3>
+    <h3>{r.title}{r.severity === 'blocking' && r.status === 'fail' ? <span className="tag blocking">Required</span> : null}</h3>
     <p>{r.detail}</p>
     {r.examples.length ? <ul className="ex">{r.examples.map((e, i) => <li key={i}>{e}</li>)}</ul> : null}
     <Source r={r.source} profile={profile} />

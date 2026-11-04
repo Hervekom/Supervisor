@@ -213,5 +213,7 @@ describe('step standards', async () => {
     for (const s of P.STEPS) expect(s.standards?.length).toBeGreaterThan(0);
     const m = C.coachMessages({ step: P.STEPS[0], degree: 'master_academic', work: 'x' });
     expect(m[1].content).toContain(P.STEPS[0].standards![0]);
+    const d = P.STEPS.find((x) => x.id === 'defense')!;
+    expect(C.coachMessages({ step: d, degree: 'master_academic', work: 'x' })[1].content).toContain(d.practice![0]);
   });
 });

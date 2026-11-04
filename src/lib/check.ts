@@ -527,6 +527,7 @@ export function checkDocument(doc: Doc, profile: Profile, opts: Options): Report
     body: mainText.join(' '),
     closing: `${discussion} ${closing}`,
     references: layout.references.map((p) => p.text),
+    paragraphs: doc.paragraphs.filter((p) => !p.isToc).map((p) => p.text),
   });
   return {
     profileId: profile.profile_id,

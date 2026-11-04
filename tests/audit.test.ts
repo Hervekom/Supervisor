@@ -41,7 +41,7 @@ describe('thesis audit', () => {
   it('needs limitations and flags absolute claims', () => {
     expect(get({ ...base, closing: 'All went well.' }, 'limits')?.ok).toBe(false);
     expect(get({ ...base, closing: 'One limitation is scale.' }, 'limits')?.ok).toBe(true);
-    expect(get({ ...base, body: 'This proves the method works everywhere. Another sentence follows.' }, 'overclaims')?.ok).toBe(false);
+    expect(get({ ...base, body: 'This study proves the method works everywhere. Another sentence follows.' }, 'overclaims')?.ok).toBe(false);
   });
   it('checks reproducibility only for empirical work', () => {
     expect(get({ ...base, body: 'A dataset was used.' }, 'reproducible')?.ok).toBe(false);
@@ -50,5 +50,34 @@ describe('thesis audit', () => {
   it('reports source recency', () => {
     const refs = ['A 2025', 'B 2024', 'C 2023', 'D 2010', 'E 2022'];
     expect(get({ ...base, references: refs }, 'sources')?.detail).toMatch(/80%/);
+  });
+  it('ignores ordinary words before numbers in abstracts', () => {
+    expect(get({ ...base, abstractEn: 'ACROSS 400 records and Article 17 apply.', abstractOther: '记录。' }, 'abstracts_match')?.ok).toBe(true);
+  });
+  it('flags abstracts that hide the main idea', () => {
+    const t = 'Weather affects many sectors around the world every day. Forecasting has a long history in many countries. Data grows quickly in many networks today. '.repeat(3);
+    expect(get({ ...base, abstractEn: t }, 'abstract_focus')?.ok).toBe(false);
+  });
+  it('flags missing comparison and missing reasons', () => {
+    expect(get({ ...base, body: 'The experiments report accuracy for the system.' }, 'baselines')?.ok).toBe(false);
+    expect(get({ ...base, body: 'The experiments ran on one dataset. '.repeat(50) }, 'design_reasons')?.ok).toBe(false);
+  });
+  it('flags simulated data with no public data', () => {
+    expect(get({ ...base, body: 'The dataset is simulated.' }, 'data_realism')?.ok).toBe(false);
+    expect(get({ ...base, body: 'The simulated dataset is checked on a public benchmark.' }, 'data_realism')?.ok).toBe(true);
+  });
+  it('checks figure labels', () => {
+    const paragraphs = ['Figure 1-1. Model', 'Figure 1-2. Unused', 'Figure 1-3. Unused too', 'As shown in Figure 1-1 and Table 9-9, it works.'];
+    const r = get({ ...base, paragraphs }, 'labels');
+    expect(r?.examples).toContain('Table 9-9');
+  });
+  it('matches citations to the reference list', () => {
+    const references = Array.from({ length: 6 }, (_, i) => `[${i + 1}] A`);
+    const r = get({ ...base, body: 'Work [1,2] and [3-4] and [9].', references }, 'citations');
+    expect(r?.examples).toEqual(expect.arrayContaining(['Cited, not listed: [9]', 'Listed, not cited: [5]']));
+  });
+  it('flags old reference lists', () => {
+    const refs = ['A 2005', 'B 2006', 'C 2007', 'D 2008', 'E 2024'];
+    expect(get({ ...base, references: refs }, 'sources')?.ok).toBe(false);
   });
 });

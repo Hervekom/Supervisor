@@ -216,6 +216,13 @@ export default function PathPage() {
             </section>
           ) : null}
 
+          {step.practice?.length ? (
+            <section className="group">
+              <h3>Questions committees ask</h3>
+              <ul className="todo">{step.practice.map((x) => <li key={x}>{x}</li>)}</ul>
+            </section>
+          ) : null}
+
           {stages.length || rules.length ? (
             <section className="group">
               <h3>What your university requires</h3>
