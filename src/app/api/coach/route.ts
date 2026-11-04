@@ -10,14 +10,14 @@ export async function POST(req: Request) {
   try {
     const auth = await checkUser(req);
     if (!auth.ok) return fail(auth.error, auth.status);
-    const b = (await req.json()) as { stepId?: string; degree?: string; topic?: string; discipline?: string; work?: string; question?: string; language?: string; llm?: unknown };
+    const b = (await req.json()) as { stepId?: string; degree?: string; topic?: string; discipline?: string; work?: string; question?: string; language?: string; llm?: unknown; history?: string };
     const step = STEPS.find((s) => s.id === b.stepId);
     if (!step) return fail('This step no longer exists.');
     if (!b.degree || !(b.degree in DEGREE_LABELS)) return fail('Choose a degree.');
     if (!b.work || b.work.trim().length < 20) return fail('Write a few lines of your own work first, so your supervisor has something to respond to.');
     const { config, error } = resolveChoice(b.llm);
     if (error) return fail(error);
-    return NextResponse.json(await coach({ step, degree: b.degree as DegreeType, topic: b.topic, discipline: b.discipline, work: b.work, question: b.question, language: b.language }, config));
+    return NextResponse.json(await coach({ step, degree: b.degree as DegreeType, topic: b.topic, discipline: b.discipline, work: b.work, question: b.question, language: b.language, history: b.history }, config));
   } catch (e) {
     return handle(e);
   }

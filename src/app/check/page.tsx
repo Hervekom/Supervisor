@@ -140,6 +140,7 @@ export default function CheckPage() {
     f.set('names', names);
     try {
       const r = await fetch('/api/check', { method: 'POST', body: f });
+      if (r.status === 413) throw new Error('This file is too large to upload here. Compress its images in Word, then try again.');
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       setReport(j);

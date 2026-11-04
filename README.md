@@ -1,6 +1,6 @@
 # Supervisor
 
-Guides a student step by step from choosing a topic to submitting the final thesis. The student writes; Supervisor explains each step, reviews the work, checks it against university rules and keeps a record of AI use.
+Starts from where a student is, then guides them step by step to the final thesis, including model training, results and writing. The student writes; Supervisor explains each step, reviews the work, checks it against university rules and keeps a record of AI use.
 
 ## Run it
 

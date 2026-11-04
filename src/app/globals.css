@@ -212,3 +212,18 @@ blockquote { margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--r
 .mark.met { background: var(--good); }
 .mark.partly { background: #9a6a12; }
 .mark.missing { background: var(--stop); }
+
+/* Guided start */
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 22px; }
+.choice { display: flex; gap: 10px; align-items: flex-start; background: var(--sheet); border: 1px solid var(--rule); border-radius: 16px; padding: 13px 15px; cursor: pointer; }
+.choice:hover { background: var(--blush); }
+.choice.on { border-color: var(--pen); box-shadow: inset 0 0 0 1px var(--pen); }
+.choice input { accent-color: var(--pen); margin-top: 4px; }
+.stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 18px; }
+.stages button { border: 0; background: var(--blush); padding: 9px; border-radius: 999px; cursor: pointer; font-weight: 500; }
+.stages button[aria-selected='true'] { background: var(--pen); color: #fff; }
+.now { background: var(--blush); border-radius: 16px; padding: 20px; margin-top: 4px; }
+.now h3 { font-size: 1.3rem; margin: 3px 0 7px; }
+.now .btn { margin-top: 14px; }
+@media (max-width: 640px) { .choices { grid-template-columns: minmax(0, 1fr); } }
+.group > .notice { max-width: none; margin-bottom: 8px; }

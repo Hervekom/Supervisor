@@ -13,6 +13,8 @@ export type Step = {
   coachFocus: string;
   standards?: string[];
   practice?: string[];
+  workTemplate?: string;
+  writingMap?: { part: string; needs: string }[];
   optional?: boolean;
   tool?: { href: string; label: string };
   workflowIds?: string[];
@@ -20,6 +22,20 @@ export type Step = {
 };
 
 export const STEPS: Step[] = [
+  {
+    id: 'title', phase: 'Find your question', title: 'Understand the title you were given',
+    goal: 'Turn your supervisor’s title into a clear research question that you understand and can answer.',
+    tasks: [
+      { do: 'Ask your supervisor what they expect', how: 'Ask what problem the title addresses, what data to use, what result they expect, and which papers to read first.' },
+      { do: 'Break the title into key terms', how: 'List each technical term in the title. Write what each one means, and what you still need to learn.' },
+      { do: 'Find the problem behind the title', how: 'Read a few recent papers on those terms. Write what is still unsolved, and why it matters.' },
+      { do: 'Write your research question', how: 'Turn the title into one question that evidence can answer. Keep the question close to your supervisor’s intent.' },
+      { do: 'Check it is possible', how: 'Confirm the data, tools and time you need. Show your question and any risks to your supervisor.' },
+    ],
+    mistakes: ['Starting experiments before you understand the title', 'Changing the title without asking your supervisor', 'Treating a title as if it were a research question'],
+    workLabel: 'Your title, what it means, and your research question',
+    coachFocus: 'whether the student understands the title and has turned it into a feasible question',
+  },
   {
     id: 'topic', phase: 'Find your question', title: 'Choose a topic you can finish',
     goal: 'Leave this step with one narrow research question that you can answer in the time you have.',
@@ -100,6 +116,64 @@ export const STEPS: Step[] = [
     coachFocus: 'whether results answer the question, and how they could be challenged',
   },
   {
+    id: 'experiments', phase: 'Do the research', title: 'Train your models',
+    goal: 'Train and evaluate your models in a way you can defend, repeat and write about.',
+    tasks: [
+      { do: 'Prepare your data', how: 'Clean it, then split it into training, validation and test sets. Split before any scaling or balancing, so test data cannot leak into training.' },
+      { do: 'Train a simple baseline first', how: 'Start with a standard method. This gives you a number to beat and shows that your pipeline works.' },
+      { do: 'Set up a repeatable run', how: 'Use version control and one configuration file. Record the random seed, library versions, hardware and every setting.' },
+      { do: 'Run a small test', how: 'Train on a tiny sample until the model fits it. If it cannot, fix the code before you spend time on a full run.' },
+      { do: 'Tune using validation data only', how: 'Choose settings on the validation set. Record each trial, including the ones that failed.' },
+      { do: 'Train your final model several times', how: 'Use different seeds, then report the mean and standard deviation. A single run can be luck.' },
+      { do: 'Compare fairly', how: 'Test your model and the comparison methods on the same data and metrics. Include recent published methods when you can.' },
+      { do: 'Remove one part at a time', how: 'If your model has several parts, run a test without each one to show what it adds.' },
+      { do: 'Evaluate on the test set once', how: 'Use it only at the end, then save the outputs, logs and model weights.' },
+    ],
+    mistakes: ['Tuning on the test set', 'Reporting only the best run', 'Comparing models on different data', 'Scaling or balancing data before the split'],
+    workLabel: 'Your model, data split, settings and what you ran',
+    coachFocus: 'data leakage, fair comparison, repeat runs, and whether the plan can answer the research question',
+    optional: true,
+  },
+  {
+    id: 'evidence', phase: 'Do the research', title: 'Bring your results for writing',
+    goal: 'Collect everything you need, so you can write from evidence and not from memory.',
+    tasks: [
+      { do: 'Fill in your results sheet', how: 'Complete each heading in the Write tab. Enter what you actually have, and write “Missing” for anything you do not have.' },
+      { do: 'Gather tables and figures', how: 'Keep the source data for each one, so that you can correct it later.' },
+      { do: 'Link each result to a research question', how: 'Name the question each result answers. If a question has no result, go back and collect it.' },
+      { do: 'Show the sheet to your supervisor', how: 'Agree what is enough before you write the results chapter.' },
+    ],
+    mistakes: ['Writing results from memory', 'Keeping a figure without its source data', 'Hiding a result that went badly'],
+    workLabel: 'Your results sheet',
+    coachFocus: 'which evidence is missing before the student can write, and whether results answer each research question',
+    workTemplate: `Research questions:
+
+Data (source, size, how it was split or sampled):
+
+Method or model (and why you chose it):
+
+Main settings (parameters, seeds, software, hardware):
+
+Comparison methods:
+
+Measures used:
+
+Main results (with mean and spread if repeated):
+
+Effect of removing each part, if tested:
+
+Statistical tests, if used:
+
+Time and resource costs:
+
+What failed or surprised you:
+
+Limits of these results:
+
+Tables and figures you have:
+`,
+  },
+  {
     id: 'mid_term', phase: 'Do the research', title: 'Pass the mid-term assessment',
     goal: 'Show your progress and fix problems while there is still time.',
     tasks: [
@@ -155,6 +229,15 @@ export const STEPS: Step[] = [
     coachFocus: 'what blocks the student and which part to tackle next',
     tool: { href: '/feedback', label: 'Get feedback on a chapter' },
     ruleKeys: ['length.main_text.min_words', 'citation.in_text_system'],
+    writingMap: [
+      { part: 'Introduction', needs: 'Your problem, gap, objectives, research questions and contribution.' },
+      { part: 'Literature review', needs: 'Your comparison table of earlier work, and your numbered gaps.' },
+      { part: 'Method', needs: 'Your data, split or sampling, model design, settings and reasons for each choice.' },
+      { part: 'Results', needs: 'Your tables and figures, repeat-run results, comparisons and part-removal tests.' },
+      { part: 'Discussion', needs: 'Why results occurred, what surprised you, how they answer each question, and their limits.' },
+      { part: 'Conclusion', needs: 'A direct answer to each question, your contribution, limits and future work.' },
+      { part: 'Paper', needs: 'One contribution, its method, the results that prove it, and data availability.' },
+    ],
   },
   {
     id: 'revise', phase: 'Write', title: 'Revise the whole thesis',
@@ -277,12 +360,15 @@ export const STEPS: Step[] = [
 ];
 
 const STANDARDS: Record<string, string[]> = {
+  title: ['Explains each key term in the title', 'States the problem behind the title', 'Turns the title into one question evidence can answer', 'Shows the work is possible with available data and time'],
   topic: ['States a specific problem, not a broad field', 'Shows who is affected and why it matters now', 'Sets a scope you can finish, and says what is left out'],
   literature: ['Groups studies by approach, not one summary after another', 'Compares strengths and limits across studies', 'Lists numbered gaps, each backed by the studies reviewed', 'Each gap leads to a design choice in your work'],
   proposal: ['Moves from context to gap, aim, questions and contribution', 'Separates what already exists from what you will add', 'Sets out what success will look like'],
   method: ['Names the alternatives and explains why this one fits best', 'Justifies any combination of methods with theory and evidence', 'Uses data a sceptical reader would accept, including public or real data when possible', 'Describes each part clearly enough to rebuild it', 'Compares with simple baselines and recent published methods under the same conditions', 'Defines how each claim will be tested before seeing results'],
   alignment: ['Each objective has one clear question', 'Each question can be answered with your evidence', 'The conclusion will be able to answer each question by name'],
   research: ['Records settings, seeds or sampling, and versions', 'Runs repeated trials or a sound sample', 'Removes one part at a time to show what each adds, when it applies', 'Tests beyond the first dataset or setting, when possible'],
+  experiments: ['Keeps test data separate from training and tuning', 'Compares methods on the same data and metrics', 'Repeats runs and reports the spread', 'Records settings well enough for someone to repeat the work', 'Shows what each model part adds, when it applies'],
+  evidence: ['Each research question has its evidence', 'Each number has a source file or log', 'Data, method and settings are complete', 'Failed runs and limits are recorded', 'Missing evidence is named, not hidden'],
   mid_term: ['Reports progress against the original objectives', 'Explains any change of plan'],
   paper: ['Makes one contribution, stated early', 'Reports results the reader can verify', 'Discloses data availability, author roles and any AI use the journal requires'],
   outline: ['A single idea connects all chapters', 'Each study chapter runs from aim to method, results, discussion and summary', 'Published work is extended, not only joined together'],
@@ -311,7 +397,8 @@ STEPS.find((s) => s.id === 'defense')!.practice = [
   'Can you explain the symbols in this equation?',
 ];
 
-export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; rounds?: number; updated?: string };
+export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; rounds?: number; updated?: string; guide?: StepGuide };
+export type StepGuide = { intro: string; tasks: string[] };
 export type LogEntry = { at: string; step: string; tool: string };
 export type PathState = {
   topic: string;
@@ -320,6 +407,8 @@ export type PathState = {
   current: string;
   savedAt?: string;
   started?: boolean;
+  situation?: string;
+  title?: string;
   steps: Record<string, StepState>;
   log: LogEntry[];
 };
@@ -340,7 +429,7 @@ export const emptyPath = (): PathState => ({ topic: '', discipline: '', defenseD
 export const stepState = (p: PathState, id: string): StepState => p.steps[id] ?? { work: '', checks: [], status: 'open' };
 
 export function canComplete(step: Step, s: StepState) {
-  return s.work.trim().length > 0 && step.tasks.every((_, i) => s.checks.includes(i));
+  return s.work.trim().length > 0 && s.work.trim() !== (step.workTemplate ?? '').trim() && step.tasks.every((_, i) => s.checks.includes(i));
 }
 
 export function nextOpen(p: PathState, afterId?: string) {
@@ -380,4 +469,50 @@ export function newerPath(local: PathState | null, cloud: PathState | null): Pat
   if (!cloud) return local;
   if (!local) return cloud;
   return (local.savedAt ?? '') > (cloud.savedAt ?? '') ? local : cloud;
+}
+
+export type Situation = { id: string; label: string; hint: string; start: string; field?: string; upload?: string };
+
+export const SITUATIONS: Situation[] = [
+  { id: 'nothing', label: 'I have no topic yet', hint: 'Start from the beginning.', start: 'topic' },
+  { id: 'title', label: 'My supervisor gave me a title', hint: 'Understand it and turn it into a research question.', start: 'title', field: 'Your thesis title' },
+  { id: 'proposal', label: 'I already have a proposal', hint: 'Check it, then plan the research.', start: 'proposal', field: 'Your thesis title', upload: 'Your proposal' },
+  { id: 'research', label: 'I am doing my research', hint: 'Check your results and keep going.', start: 'research', field: 'Your thesis title', upload: 'Your results or notes' },
+  { id: 'draft', label: 'I have written some chapters', hint: 'Continue the draft with feedback.', start: 'draft', field: 'Your thesis title', upload: 'Your draft' },
+  { id: 'full', label: 'I have a full draft', hint: 'Revise it and prepare to submit.', start: 'revise', field: 'Your thesis title', upload: 'Your full draft' },
+  { id: 'reviewers', label: 'I received reviewer comments', hint: 'Answer each comment.', start: 're_review', field: 'Your thesis title', upload: 'The comments you received' },
+  { id: 'defense', label: 'I am preparing my defense', hint: 'Practice the hard questions.', start: 'defense', field: 'Your thesis title', upload: 'Your thesis or slides' },
+];
+
+/** Starts the path where the student really is. Earlier steps are set aside and can be reopened. */
+export function applySituation(p: PathState, id: string, input: { title?: string; text?: string }): PathState {
+  const sit = SITUATIONS.find((s) => s.id === id) ?? SITUATIONS[0];
+  const startAt = STEPS.findIndex((s) => s.id === sit.start);
+  const steps = { ...p.steps };
+  STEPS.forEach((s, i) => {
+    const earlier = i < startAt;
+    const alternative = (sit.start === 'title' && s.id === 'topic') || (sit.start === 'topic' && s.id === 'title');
+    if (earlier || alternative) steps[s.id] = { ...stepState(p, s.id), status: 'skipped' };
+  });
+  const title = input.title?.trim() ?? '';
+  if (sit.start === 'title' && title) steps.title = { ...stepState({ ...p, steps }, 'title'), status: 'open', work: `Title: ${title}\n\n` };
+  if (input.text?.trim()) {
+    steps[sit.start] = {
+      ...stepState({ ...p, steps }, sit.start),
+      status: 'open',
+      work: input.text.trim(),
+      checks: STEPS[startAt].tasks.map((_, i) => i),
+    };
+  }
+  return { ...p, steps, current: sit.start, started: true, situation: sit.id, title: title || p.title, topic: p.topic || title };
+}
+
+/** Earlier work, so advice builds on what the student has already done. */
+export function historyOf(p: PathState, stepId: string, limit = 9000) {
+  const at = STEPS.findIndex((s) => s.id === stepId);
+  const parts = STEPS.slice(0, at)
+    .map((s) => ({ s, w: stepState(p, s.id).work.trim() }))
+    .filter((x) => x.w)
+    .map((x) => `${x.s.title}: ${x.w.slice(0, x.s.id === 'evidence' ? 4000 : 1200)}`);
+  return parts.join('\n\n').slice(-limit);
 }

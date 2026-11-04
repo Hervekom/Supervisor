@@ -6,7 +6,7 @@ import { loadAi } from '@/lib/aiSettings';
 import { put, useProfiles } from '@/components/useProfiles';
 import { CRITIC_NAME } from '@/lib/brand';
 import { subtractWorkingDays } from '@/lib/dates';
-import { aiLogText, canComplete, emptyPath, isPathState, newerPath, nextOpen, progress, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepState } from '@/lib/path';
+import { aiLogText, applySituation, canComplete, emptyPath, historyOf, isPathState, newerPath, nextOpen, progress, SITUATIONS, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepGuide, type StepState } from '@/lib/path';
 import { authHeaders, loadCloudPath, saveCloudPath } from '@/lib/supabase';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
 
@@ -35,6 +35,14 @@ export default function PathPage() {
   const [language, setLanguage] = useState('English');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [panel, setPanel] = useState<'do' | 'write' | 'critique'>('do');
+  const [situation, setSituation] = useState('');
+  const [startTitle, setStartTitle] = useState('');
+  const [startText, setStartText] = useState('');
+  const [startFile, setStartFile] = useState('');
+  const [startError, setStartError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [tailoring, setTailoring] = useState(false);
   const touched = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -88,8 +96,14 @@ export default function PathPage() {
   const lead = profile?.rules.find((r) => r.key === 'submission.min_working_days_before_defense')?.value as number | undefined;
   const latest = path.defenseDate && lead ? subtractWorkingDays(new Date(`${path.defenseDate}T12:00:00`), lead) : null;
   const left = step.tasks.length - state.checks.filter((i) => i < step.tasks.length).length;
+  const current = step.tasks.findIndex((_, i) => !state.checks.includes(i));
 
   const patch = (u: Partial<StepState>) => edit((p) => ({ ...p, steps: { ...p.steps, [step.id]: { ...stepState(p, step.id), ...u, updated: new Date().toISOString() } } }));
+  const doneTask = () => {
+    const next = [...state.checks, current];
+    patch({ checks: next });
+    if (next.filter((i) => i < step.tasks.length).length >= step.tasks.length) setPanel('write');
+  };
   const go = (id: string) => { edit((p) => ({ ...p, current: id })); setQuestion(''); setError(''); window.scrollTo?.({ top: 0 }); };
   const close = (status: 'done' | 'skipped') => {
     const next = { ...path, steps: { ...path.steps, [step.id]: { ...state, status } } };
@@ -100,6 +114,73 @@ export default function PathPage() {
     window.scrollTo?.({ top: 0 });
   };
 
+  const panelFor = (id: string): 'do' | 'write' | 'critique' => {
+    const st = STEPS.find((x) => x.id === id) ?? STEPS[0];
+    const c = stepState(path, id);
+    if (c.checks.filter((i) => i < st.tasks.length).length < st.tasks.length) return 'do';
+    return c.work.trim() ? 'critique' : 'write';
+  };
+
+  useEffect(() => {
+    if (loaded && path.started) setPanel(panelFor(path.current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path.current, loaded, path.started]);
+
+  useEffect(() => {
+    if (panel === 'write' && step.workTemplate && !state.work.trim()) patch({ work: step.workTemplate });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel, path.current]);
+
+  // With an AI available, each step is tailored once to this student's project.
+  useEffect(() => {
+    if (!loaded || !path.started || state.guide || state.status !== 'open' || !loadAi()) return;
+    tailor();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path.current, loaded, path.started]);
+
+  async function tailor() {
+    setTailoring(true);
+    const id = step.id;
+    try {
+      const r = await fetch('/api/guide', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({ stepId: id, degree, title: path.title, topic: path.topic, discipline: path.discipline, history: historyOf(path, id), language, llm: loadAi() ?? undefined }),
+      });
+      if (!r.ok) return;
+      const guide = (await r.json()) as StepGuide;
+      edit((p) => ({ ...p, steps: { ...p.steps, [id]: { ...stepState(p, id), guide } } }));
+    } catch {
+      // The standard guidance remains.
+    } finally {
+      setTailoring(false);
+    }
+  }
+
+  async function uploadStart(file: File) {
+    setUploading(true);
+    setStartError('');
+    const f = new FormData();
+    f.set('file', file);
+    try {
+      const r = await fetch('/api/extract', { method: 'POST', body: f });
+      if (r.status === 413) throw new Error('This file is too large. Paste the important part below instead.');
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      setStartText(j.text);
+      setStartFile(file.name);
+    } catch (x) {
+      setStartError(x instanceof Error ? x.message : 'This file could not be read. Paste the text below instead.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  function begin() {
+    edit((p) => applySituation(p, situation, { title: startTitle, text: startText }));
+    setStartText('');
+  }
+
   async function askCritic() {
     setBusy(true);
     setError('');
@@ -107,7 +188,7 @@ export default function PathPage() {
       const r = await fetch('/api/coach', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(await authHeaders()) },
-        body: JSON.stringify({ stepId: step.id, degree, topic: path.topic, discipline: path.discipline, work: state.work, question, language, llm: loadAi() ?? undefined }),
+        body: JSON.stringify({ stepId: step.id, degree, topic: path.topic, discipline: path.discipline, work: state.work, question, language, history: historyOf(path, step.id), llm: loadAi() ?? undefined }),
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
@@ -140,12 +221,8 @@ export default function PathPage() {
 
   if (!loaded) return null;
 
-  const details = (
+  const setupFields = (
     <>
-      <div className="field">
-        <label htmlFor="topic">What is your thesis about?</label>
-        <input id="topic" value={path.topic} placeholder="A rough topic is fine" onChange={(e) => edit((p) => ({ ...p, topic: e.target.value }))} />
-      </div>
       <div className="two">
         <div className="field">
           <label htmlFor="uni">University</label>
@@ -172,15 +249,55 @@ export default function PathPage() {
     </>
   );
 
+  const details = (
+    <>
+      <div className="field">
+        <label htmlFor="topic">Topic or title</label>
+        <input id="topic" value={path.topic} onChange={(e) => edit((p) => ({ ...p, topic: e.target.value }))} />
+      </div>
+      {setupFields}
+    </>
+  );
+
   if (!path.started) {
+    const sit = SITUATIONS.find((x) => x.id === situation);
     return (
       <div className="welcome">
-        <h1>Your thesis, one step at a time</h1>
-        <p className="lede">Supervisor shows you what to do next, explains how, and critiques your work before you move on. You do the writing.</p>
-        <div className="sheet form">
-          {details}
-          <div><button className="btn" onClick={() => edit((p) => ({ ...p, started: true }))}>Start my thesis</button></div>
+        <h1>Where are you with your thesis?</h1>
+        <p className="lede">Supervisor will start from where you are and guide you to the end. You do the writing.</p>
+        <div className="choices" role="radiogroup" aria-label="Where you are now">
+          {SITUATIONS.map((x) => (
+            <label key={x.id} className={`choice${situation === x.id ? ' on' : ''}`}>
+              <input type="radio" name="situation" checked={situation === x.id} onChange={() => setSituation(x.id)} />
+              <span><b>{x.label}</b><br /><span className="hint">{x.hint}</span></span>
+            </label>
+          ))}
         </div>
+        {sit ? (
+          <div className="sheet form" style={{ marginTop: 18 }}>
+            {sit.field ? (
+              <div className="field">
+                <label htmlFor="start-title">{sit.field}</label>
+                <input id="start-title" value={startTitle} onChange={(e) => setStartTitle(e.target.value)} />
+              </div>
+            ) : null}
+            {sit.upload ? (
+              <div className="field">
+                <label htmlFor="start-file">{sit.upload} (optional)</label>
+                <input id="start-file" type="file" accept=".docx,.pdf,.txt" disabled={uploading} onChange={(e) => e.target.files?.[0] && uploadStart(e.target.files[0])} />
+                {uploading ? <p className="hint" role="status">Reading your file…</p> : null}
+                {startFile && !uploading ? <p className="hint ok" role="status">{startFile} is ready.</p> : null}
+                {startError ? <p className="error" role="alert">{startError}</p> : null}
+                <details><summary>Paste text instead</summary><textarea aria-label="Paste your text" value={startText} onChange={(e) => setStartText(e.target.value)} style={{ marginTop: 6 }} /></details>
+              </div>
+            ) : null}
+            <details>
+              <summary>University and degree</summary>
+              <div style={{ marginTop: 10 }}>{setupFields}</div>
+            </details>
+            <div><button className="btn" disabled={uploading} onClick={begin}>Continue</button></div>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -223,104 +340,130 @@ export default function PathPage() {
           <h2 className="steptitle">{step.title}</h2>
           <p className="lede">{step.goal}</p>
 
-          <section className="group">
-            <h3><span className="num">1</span>Do the work</h3>
-            {step.tasks.map((t, i) => (
-              <div className="task" key={t.do}>
-                <label className="tick">
-                  <input type="checkbox" checked={state.checks.includes(i)} onChange={() => patch({ checks: state.checks.includes(i) ? state.checks.filter((x) => x !== i) : [...state.checks, i] })} />
-                  <span><b>{t.do}</b><br /><span className="hint">{t.how}</span></span>
-                </label>
-              </div>
+          <div className="stages" role="tablist" aria-label="This step">
+            {(['do', 'write', 'critique'] as const).map((k, n) => (
+              <button key={k} role="tab" aria-selected={panel === k} onClick={() => setPanel(k)}>{n + 1}. {k === 'do' ? 'Do' : k === 'write' ? 'Write' : 'Critique'}</button>
             ))}
-            {step.tool ? <p style={{ marginTop: 10 }}><Link className="btn ghost linkbtn" href={step.tool.href}>{step.tool.label}</Link></p> : null}
-            <details>
-              <summary>Common mistakes</summary>
-              <ul className="todo">{step.mistakes.map((m) => <li key={m}>{m}</li>)}</ul>
-            </details>
-            {step.practice?.length ? (
+          </div>
+
+          {panel === 'do' ? (
+            <section className="group">
+              {state.guide?.intro ? <p className="notice">{state.guide.intro}</p> : tailoring ? <p className="hint" role="status">Adapting this step to your project…</p> : null}
+              {current >= 0 ? (
+                <div className="now">
+                  <p className="hint">Task {current + 1} of {step.tasks.length}</p>
+                  <h3>{step.tasks[current].do}</h3>
+                  <p>{state.guide?.tasks[current] ?? step.tasks[current].how}</p>
+                  <button className="btn" onClick={doneTask}>Done, next</button>
+                </div>
+              ) : (
+                <div className="now">
+                  <h3>All tasks are done</h3>
+                  <p>Now write down what you found.</p>
+                  <button className="btn" onClick={() => setPanel('write')}>Continue</button>
+                </div>
+              )}
+              {step.tool ? <p style={{ marginTop: 10 }}><Link className="btn ghost linkbtn" href={step.tool.href}>{step.tool.label}</Link></p> : null}
               <details>
-                <summary>Questions committees ask</summary>
-                <ul className="todo">{step.practice.map((x) => <li key={x}>{x}</li>)}</ul>
-              </details>
-            ) : null}
-            {stages.some((s) => s.deadline || s.documents?.length) || rules.length ? (
-              <details>
-                <summary>What your university requires</summary>
-                {stages.map((s) => s.deadline || s.documents?.length ? <p key={s.id}>{s.name}{s.deadline ? `: ${s.deadline}` : ''}{s.documents?.length ? `. Documents: ${s.documents.join(', ')}` : ''}</p> : null)}
-                {rules.map((r) => (
-                  <div key={r.id} style={{ marginTop: 6 }}>
-                    <p>{r.key.split('.').slice(-2).join(' ').replaceAll('_', ' ')}: {show(r.value)}{r.unit ? ` ${r.unit.replaceAll('_', ' ')}` : ''}</p>
-                    <blockquote>{r.source.quote}</blockquote>
+                <summary>All tasks</summary>
+                {step.tasks.map((t, i) => (
+                  <div className="task" key={t.do}>
+                    <label className="tick">
+                      <input type="checkbox" checked={state.checks.includes(i)} onChange={() => patch({ checks: state.checks.includes(i) ? state.checks.filter((x) => x !== i) : [...state.checks, i] })} />
+                      <span>{t.do}</span>
+                    </label>
                   </div>
                 ))}
               </details>
-            ) : null}
-          </section>
-
-          <section className="group">
-            <h3><span className="num">2</span>Write it down</h3>
-            <div className="field" style={{ marginTop: 8 }}>
-              <label htmlFor="work">{step.workLabel}</label>
-              <textarea id="work" value={state.work} onChange={(e) => patch({ work: e.target.value })} placeholder="Use your own words. This saves automatically." />
-            </div>
-          </section>
-
-          <section className="group">
-            <h3><span className="num">3</span>Get a critique from {CRITIC_NAME}</h3>
-            <p className="hint">{CRITIC_NAME} judges your work against the standards below. It will not write for you.</p>
-            <details>
-              <summary>What {CRITIC_NAME} looks for</summary>
-              <ul className="todo">{step.standards?.map((x) => <li key={x}>{x}</li>)}</ul>
-            </details>
-            <div className="field" style={{ marginTop: 10 }}>
-              <label htmlFor="q">Anything you want to ask? (optional)</label>
-              <input id="q" value={question} onChange={(e) => setQuestion(e.target.value)} />
-            </div>
-            <div className="ask">
-              <button className="btn" disabled={busy} onClick={askCritic}>{busy ? 'Reading your work…' : state.coach ? 'Critique my new version' : 'Critique my work'}</button>
-              <select aria-label="Reply language" value={language} onChange={(e) => setLanguage(e.target.value)}>
-                <option>English</option><option>French</option><option>Chinese</option><option>Arabic</option>
-              </select>
-            </div>
-            {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}</p> : null}
-            {state.coach ? (
-              <div className="pen">
-                <p className="verdict">
-                  <span className={`badge ${state.coach.verdict}`}>{VERDICT[state.coach.verdict]}</span>
-                  <span className="hint">Critique {state.rounds ?? 1}</span>
-                </p>
-                <p>{state.coach.summary}</p>
-                {state.coach.weakest ? <p><b>Biggest weakness:</b> {state.coach.weakest}</p> : null}
-                <ul className="criteria">
-                  {state.coach.criteria.map((c) => (
-                    <li key={c.standard}>
-                      <span className={`mark ${c.status}`} role="img" aria-label={MARK_LABEL[c.status]}>{MARK[c.status]}</span>
-                      <span><b>{c.standard}</b>{c.comment ? <><br />{c.comment}</> : null}</span>
-                    </li>
+              {step.writingMap ? (
+                <details open>
+                  <summary>What each part needs from your results</summary>
+                  <ul className="todo">{step.writingMap.map((x) => <li key={x.part}><b>{x.part}:</b> {x.needs}</li>)}</ul>
+                </details>
+              ) : null}
+              <details>
+                <summary>Common mistakes</summary>
+                <ul className="todo">{step.mistakes.map((m) => <li key={m}>{m}</li>)}</ul>
+              </details>
+              {step.practice?.length ? (
+                <details>
+                  <summary>Questions committees ask</summary>
+                  <ul className="todo">{step.practice.map((x) => <li key={x}>{x}</li>)}</ul>
+                </details>
+              ) : null}
+              {stages.some((x) => x.deadline || x.documents?.length) || rules.length ? (
+                <details>
+                  <summary>What your university requires</summary>
+                  {stages.map((x) => x.deadline || x.documents?.length ? <p key={x.id}>{x.name}{x.deadline ? `: ${x.deadline}` : ''}{x.documents?.length ? `. Documents: ${x.documents.join(', ')}` : ''}</p> : null)}
+                  {rules.map((r) => (
+                    <div key={r.id} style={{ marginTop: 6 }}>
+                      <p>{r.key.split('.').slice(-2).join(' ').replaceAll('_', ' ')}: {show(r.value)}{r.unit ? ` ${r.unit.replaceAll('_', ' ')}` : ''}</p>
+                      <blockquote>{r.source.quote}</blockquote>
+                    </div>
                   ))}
-                </ul>
-                {state.coach.questions.length ? <><h3>An examiner would ask</h3><ul>{state.coach.questions.map((g) => <li key={g}>{g}</li>)}</ul></> : null}
-                {state.coach.next_action ? <p><b>Do this next:</b> {state.coach.next_action}</p> : null}
-                <p className="hint">Your real supervisor has the final say.</p>
-              </div>
-            ) : null}
-          </section>
+                </details>
+              ) : null}
+            </section>
+          ) : null}
 
-          <section className="group">
-            <h3><span className="num">4</span>Move on</h3>
-            <div className="ask">
-              {state.status === 'open' ? (
-                <>
-                  <button className="btn" disabled={!canComplete(step, state)} onClick={() => close('done')}>Finish this step</button>
-                  {step.optional ? <button className="btn ghost" onClick={() => close('skipped')}>Skip this step</button> : null}
-                  {!state.work.trim() ? <span className="hint">Write your work first.</span> : left > 0 ? <span className="hint">{left} {left === 1 ? 'task' : 'tasks'} left.</span> : !state.coach ? <span className="hint">Get a critique before you move on.</span> : null}
-                </>
-              ) : (
-                <button className="btn ghost" onClick={() => patch({ status: 'open' })}>Reopen this step</button>
-              )}
-            </div>
-          </section>
+          {panel === 'write' ? (
+            <section className="group">
+              <div className="field">
+                <label htmlFor="work">{step.workLabel}</label>
+                <textarea id="work" value={state.work} onChange={(e) => patch({ work: e.target.value })} placeholder="Use your own words. This saves automatically." />
+              </div>
+              <div className="ask">
+                <button className="btn" disabled={busy || !state.work.trim()} onClick={() => { setPanel('critique'); askCritic(); }}>{busy ? 'Reading your work…' : 'Get my critique'}</button>
+              </div>
+            </section>
+          ) : null}
+
+          {panel === 'critique' ? (
+            <section className="group">
+              {!state.coach && !busy && !error ? (
+                <div className="now">
+                  <h3>{state.work.trim() ? `Ask ${CRITIC_NAME} to read your work` : 'Write your work first'}</h3>
+                  <p className="hint">{CRITIC_NAME} judges your work against the standards for this step. It will not write for you.</p>
+                </div>
+              ) : null}
+              {busy ? <p role="status">Reading your work…</p> : null}
+              {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}</p> : null}
+              {state.coach && !busy ? (
+                <div className="pen">
+                  <p className="verdict">
+                    <span className={`badge ${state.coach.verdict}`}>{VERDICT[state.coach.verdict]}</span>
+                    <span className="hint">Critique {state.rounds ?? 1}</span>
+                  </p>
+                  <p>{state.coach.summary}</p>
+                  {state.coach.weakest ? <p><b>Biggest weakness:</b> {state.coach.weakest}</p> : null}
+                  {state.coach.next_action ? <p><b>Do this next:</b> {state.coach.next_action}</p> : null}
+                  <details>
+                    <summary>See each standard</summary>
+                    <ul className="criteria">
+                      {state.coach.criteria.map((c) => (
+                        <li key={c.standard}>
+                          <span className={`mark ${c.status}`} role="img" aria-label={MARK_LABEL[c.status]}>{MARK[c.status]}</span>
+                          <span><b>{c.standard}</b>{c.comment ? <><br />{c.comment}</> : null}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                  {state.coach.questions.length ? <><h3>An examiner would ask</h3><ul>{state.coach.questions.map((g) => <li key={g}>{g}</li>)}</ul></> : null}
+                  <p className="hint">Your real supervisor has the final say.</p>
+                </div>
+              ) : null}
+              <div className="ask">
+                {state.work.trim() ? <button className={state.coach ? 'btn ghost' : 'btn'} disabled={busy} onClick={state.coach ? () => setPanel('write') : askCritic}>{state.coach ? 'Improve my work' : 'Critique my work'}</button> : <button className="btn" onClick={() => setPanel('write')}>Write my work</button>}
+                {state.status === 'open' && canComplete(step, state) ? <button className={state.coach ? 'btn' : 'btn ghost'} disabled={busy} onClick={() => close('done')}>Finish, go to the next step</button> : null}
+                {state.status === 'open' && step.optional ? <button className="btn ghost" onClick={() => close('skipped')}>Skip this step</button> : null}
+                {state.status !== 'open' ? <button className="btn ghost" onClick={() => patch({ status: 'open' })}>Reopen this step</button> : null}
+                <select aria-label="Reply language" value={language} onChange={(e) => setLanguage(e.target.value)}>
+                  <option>English</option><option>French</option><option>Chinese</option><option>Arabic</option>
+                </select>
+              </div>
+              {state.status === 'open' && !canComplete(step, state) && left > 0 ? <p className="hint" style={{ marginTop: 8 }}>{left} {left === 1 ? 'task' : 'tasks'} left in Do.</p> : null}
+            </section>
+          ) : null}
         </article>
 
         <details className="setup">

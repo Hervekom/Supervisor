@@ -285,3 +285,63 @@ describe('student AI keys', async () => {
     expect(err).not.toContain(key);
   });
 });
+
+describe('starting from where the student is', async () => {
+  const P = await import('@/lib/path');
+  const G = await import('@/lib/guide');
+  it('starts a student with a title at the title step', () => {
+    const p = P.applySituation(P.emptyPath(), 'title', { title: 'Solar forecasting' });
+    expect(p.current).toBe('title');
+    expect(P.stepState(p, 'topic').status).toBe('skipped');
+    expect(P.stepState(p, 'title').work).toContain('Solar forecasting');
+    expect(P.nextOpen({ ...p, steps: { ...p.steps, title: { ...P.stepState(p, 'title'), status: 'done' } } }, 'title')?.id).toBe('literature');
+  });
+  it('starts from an existing proposal, ready for critique', () => {
+    const p = P.applySituation(P.emptyPath(), 'proposal', { title: 'T', text: 'My proposal text' });
+    expect(p.current).toBe('proposal');
+    const s = P.stepState(p, 'proposal');
+    expect(s.work).toBe('My proposal text');
+    expect(P.canComplete(P.STEPS.find((x) => x.id === 'proposal')!, s)).toBe(true);
+    expect(P.stepState(p, 'literature').status).toBe('skipped');
+    expect(P.stepState(p, 'method').status).toBe('open');
+  });
+  it('covers each situation', () => {
+    for (const s of P.SITUATIONS) expect(P.applySituation(P.emptyPath(), s.id, {}).current).toBe(s.start);
+  });
+  it('carries earlier work forward', () => {
+    let p = P.applySituation(P.emptyPath(), 'proposal', { text: 'Proposal notes' });
+    p = { ...p, current: 'method' };
+    expect(P.historyOf(p, 'method')).toContain('Proposal notes');
+    expect(P.historyOf(p, 'topic')).toBe('');
+  });
+  it('tailors tasks but keeps the standard text as a fallback', () => {
+    const step = P.STEPS[0];
+    const g = G.normalizeGuide({ intro: 'Why', tasks: ['Specific'] }, step);
+    expect(g.tasks[0]).toBe('Specific');
+    expect(g.tasks[1]).toBe(step.tasks[1].how);
+    expect(G.GUIDE_SYSTEM).toMatch(/Never write any part/);
+  });
+});
+
+describe('training and results', async () => {
+  const P = await import('@/lib/path');
+  const step = (id: string) => P.STEPS.find((s) => s.id === id)!;
+  it('orders training before the results sheet and writing', () => {
+    const at = (id: string) => P.STEPS.findIndex((s) => s.id === id);
+    expect(at('research')).toBeLessThan(at('experiments'));
+    expect(at('experiments')).toBeLessThan(at('evidence'));
+    expect(at('evidence')).toBeLessThan(at('draft'));
+    expect(step('experiments').optional).toBe(true);
+  });
+  it('does not accept the empty results sheet as work', () => {
+    const s = step('evidence');
+    const checks = s.tasks.map((_, i) => i);
+    expect(P.canComplete(s, { work: s.workTemplate!, checks, status: 'open' })).toBe(false);
+    expect(P.canComplete(s, { work: `${s.workTemplate}Accuracy 0.9`, checks, status: 'open' })).toBe(true);
+  });
+  it('passes the results sheet to later steps', () => {
+    const p = P.emptyPath();
+    p.steps.evidence = { work: 'R'.repeat(3000), checks: [], status: 'done' };
+    expect(P.historyOf(p, 'draft').length).toBeGreaterThan(2900);
+  });
+});
