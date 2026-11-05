@@ -5,7 +5,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 const noSideScroll = (page: import('@playwright/test').Page) =>
   expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 
-for (const url of ['/', '/check', '/feedback', '/account', '/guides', '/journey']) {
+for (const url of ['/', '/document', '/check', '/feedback', '/account', '/guides', '/journey']) {
   test(`no side scrolling at 390px on ${url}`, async ({ page }) => {
     await page.goto(url);
     await noSideScroll(page);

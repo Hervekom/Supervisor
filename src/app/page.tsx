@@ -8,7 +8,8 @@ import { loadAi } from '@/lib/aiSettings';
 import { put, useProfiles } from '@/components/useProfiles';
 import { CRITIC_NAME } from '@/lib/brand';
 import { subtractWorkingDays } from '@/lib/dates';
-import type { ImportedFile } from '@/lib/path';
+import type { ImportedFile, StructureId } from '@/lib/path';
+import { partsOfStep, STRUCTURES } from '@/lib/structures';
 import { addOpenQuestion, aiLogText, applySituation, canComplete, emptyPath, historyOf, isPathState, nextOpen, progress, SITUATIONS, STUCK_DEFAULT, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepGuide, type StepState } from '@/lib/path';
 import { COACH_LIMIT, count, MAX_UPLOAD_LABEL } from '@/lib/limits';
 import { readLocalPath } from '@/lib/pathSync';
@@ -54,6 +55,7 @@ export default function PathPage() {
   const [startText, setStartText] = useState('');
   const [startFile, setStartFile] = useState('');
   const [stuckOn, setStuckOn] = useState<number | null>(null);
+  const [startStructure, setStartStructure] = useState<StructureId>('classic');
   const [drafting, setDrafting] = useState(false);
   const [openNote, setOpenNote] = useState('');
   const [startImport, setStartImport] = useState<ImportedFile | null>(null);
@@ -197,7 +199,7 @@ export default function PathPage() {
   }
 
   function begin() {
-    edit((p) => applySituation(p, situation, { title: startTitle, text: startText, imported: startImport ?? undefined }));
+    edit((p) => ({ ...applySituation(p, situation, { title: startTitle, text: startText, imported: startImport ?? undefined }), structure: startStructure }));
     setStartText('');
   }
 
@@ -325,6 +327,13 @@ export default function PathPage() {
                 <details><summary>Paste text instead</summary><textarea aria-label="Paste your text" value={startText} onChange={(e) => setStartText(e.target.value)} style={{ marginTop: 6 }} /></details>
               </div>
             ) : null}
+            <div className="field">
+              <label htmlFor="start-structure">Thesis structure</label>
+              <select id="start-structure" value={startStructure} onChange={(e) => setStartStructure(e.target.value as StructureId)}>
+                {STRUCTURES.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+              </select>
+              <p className="hint">{STRUCTURES.find((x) => x.id === startStructure)?.bestFor} You can change it later.</p>
+            </div>
             <details>
               <summary>University and degree</summary>
               <div style={{ marginTop: 10 }}>{setupFields}</div>
@@ -374,6 +383,7 @@ export default function PathPage() {
           <p className="hint">Step {index + 1} of {STEPS.length}{step.optional ? ', only if you need it' : ''}</p>
           <h2 className="steptitle">{step.title}</h2>
           <p className="lede">{step.goal}</p>
+          {partsOfStep(path, step.id).length ? <p className="hint">This step feeds: <Link href="/document">{partsOfStep(path, step.id).map((x) => x.title).join(', ')}</Link></p> : null}
 
           {state.imported && state.imported.extractedChars < state.imported.totalChars ? (
             <p className="notice" style={{ margin: '12px 0' }}>Your work here comes from {state.imported.file}, but only its first {count(state.imported.extractedChars)} of {count(state.imported.totalChars)} characters were read. The rest is not in Supervisor.</p>

@@ -398,6 +398,7 @@ STEPS.find((s) => s.id === 'defense')!.practice = [
   'Can you explain the symbols in this equation?',
 ];
 
+export type StructureId = 'classic' | 'studies' | 'system';
 export type ImportedFile = { file: string; extractedChars: number; totalChars: number };
 export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; rounds?: number; updated?: string; guide?: StepGuide; imported?: ImportedFile };
 export type StepGuide = { intro: string; tasks: string[] };
@@ -413,6 +414,8 @@ export type PathState = {
   title?: string;
   steps: Record<string, StepState>;
   log: LogEntry[];
+  structure?: StructureId;
+  parts?: Record<string, string>;
 };
 
 export type Verdict = 'not_ready' | 'almost' | 'ready';

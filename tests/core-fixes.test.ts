@@ -359,3 +359,33 @@ describe('guided writing cannot become written text', () => {
     expect(STARTERS.every((s) => s.endsWith('…'))).toBe(true);
   });
 });
+
+describe('thesis structures', () => {
+  it('uses only real steps, and each structure has an abstract, conclusion and references', async () => {
+    const { STRUCTURES } = await import('@/lib/structures');
+    const ids = new Set(STEPS.map((s) => s.id));
+    expect(STRUCTURES.map((s) => s.id)).toEqual(['classic', 'studies', 'system']);
+    for (const s of STRUCTURES) {
+      for (const p of s.parts) for (const g of p.ingredients) expect(ids.has(g.step), g.step).toBe(true);
+      for (const part of ['abstract', 'conclusion', 'references']) expect(s.parts.some((p) => p.id === part)).toBe(true);
+    }
+  });
+  it('reports ingredient status', async () => {
+    const { ingredientStatus } = await import('@/lib/structures');
+    const p = { ...emptyPath(), steps: { title: { work: 'x', checks: [], status: 'open' as const }, topic: { work: '', checks: [], status: 'skipped' as const }, method: { work: 'x', checks: [], status: 'done' as const } } };
+    expect(['title', 'topic', 'method', 'research'].map((s) => ingredientStatus(p, s))).toEqual(['started', 'set_aside', 'ready', 'missing']);
+  });
+  it('turns usual shares into word targets', async () => {
+    const { partViews } = await import('@/lib/structures');
+    const v = partViews({ ...emptyPath(), parts: { introduction: 'a b' } }, 25000);
+    const intro = v.find((x) => x.id === 'introduction')!;
+    expect(intro.target).toEqual([2000, 4000]);
+    expect(intro.state).toBe('writing');
+    expect(v.find((x) => x.id === 'abstract')!.target).toBeNull();
+  });
+  it('defaults old saved work to the classic structure', async () => {
+    const { structureOf } = await import('@/lib/structures');
+    expect(structureOf(emptyPath()).id).toBe('classic');
+    expect(emptyPath()).not.toHaveProperty('parts');
+  });
+});
