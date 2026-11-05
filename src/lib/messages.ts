@@ -11,6 +11,8 @@ export const MESSAGES = {
   aiNotConfigured: "AI feedback isn't set up yet. Add your AI key in Account to get a critique. You can keep working in Do and Write.",
   aiUnreachable: "We couldn't reach your AI service. Your work is safe. Try again in a few minutes, or check your details in Account.",
   aiUnreadable: 'The AI sent a reply we could not read. Your work is safe. Please try again.',
+  aiMinuteLimit: 'You are sending requests quickly. Please wait a minute, then try again. Your work is safe.',
+  aiDailyLimit: 'You have reached today\'s free AI limit. It resets tomorrow. Your work is safe, and you can keep working in Do and Write, or add your own AI key in Account.',
   guideNotSaved: "University guides can't be saved on this server yet. Your university's rules were not added.",
 } as const;
 

@@ -1,4 +1,4 @@
-export type AuthCheck = { ok: true } | { ok: false; status: number; error: string };
+export type AuthCheck = { ok: true; userId?: string } | { ok: false; status: number; error: string };
 
 /** Verifies the caller's session with Supabase. Open when Supabase is not configured, as in tests. */
 export async function checkUser(req: Request, f: typeof fetch = fetch): Promise<AuthCheck> {
@@ -8,5 +8,7 @@ export async function checkUser(req: Request, f: typeof fetch = fetch): Promise<
   const header = req.headers.get('authorization');
   if (!header?.startsWith('Bearer ')) return { ok: false, status: 401, error: 'Sign in to use this feature.' };
   const res = await f(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: header } });
-  return res.ok ? { ok: true } : { ok: false, status: 401, error: 'Your session has ended. Sign in again.' };
+  if (!res.ok) return { ok: false, status: 401, error: 'Your session has ended. Sign in again.' };
+  const user = (await res.json().catch(() => null)) as { id?: string } | null;
+  return { ok: true, userId: user?.id };
 }

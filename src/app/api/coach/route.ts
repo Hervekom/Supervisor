@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { limitSiteAi } from '@/lib/aiLimit';
 import { checkUser } from '@/lib/auth';
 import { resolveChoice } from '@/lib/aiChoice';
 import { fail, handle } from '@/lib/api';
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
     if (!b.work || b.work.trim().length < 20) return fail('Write a few lines of your own work first, so your supervisor has something to respond to.');
     const { config, error } = resolveChoice(b.llm);
     if (error) return fail(error);
+    limitSiteAi(auth.userId, !!config);
     return NextResponse.json(await coach({ step, degree: b.degree as DegreeType, topic: b.topic, discipline: b.discipline, work: b.work, question: b.question, language: b.language, history: b.history }, config));
   } catch (e) {
     return handle(e);

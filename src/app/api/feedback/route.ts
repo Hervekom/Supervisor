@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { limitSiteAi } from '@/lib/aiLimit';
 import { checkUser } from '@/lib/auth';
 import { resolveChoice } from '@/lib/aiChoice';
 import { fail, handle } from '@/lib/api';
@@ -14,6 +15,7 @@ export async function POST(req: Request) {
     if (!b.degree || !(b.degree in DEGREE_LABELS)) return fail('Choose a degree.');
     const { config, error } = resolveChoice(b.llm);
     if (error) return fail(error);
+    limitSiteAi(auth.userId, !!config);
     return NextResponse.json(await reviewChapter({ degree: b.degree as DegreeType, discipline: b.discipline, title: b.title ?? 'Untitled chapter', text: b.text, language: b.language }, config));
   } catch (e) {
     return handle(e);
