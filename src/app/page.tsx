@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { DraftHelper } from '@/components/DraftHelper';
 import { useAccount } from '@/components/useAccount';
 import { usePathSync, type SaveStatus } from '@/components/usePathSync';
 import { loadAi } from '@/lib/aiSettings';
@@ -53,6 +54,7 @@ export default function PathPage() {
   const [startText, setStartText] = useState('');
   const [startFile, setStartFile] = useState('');
   const [stuckOn, setStuckOn] = useState<number | null>(null);
+  const [drafting, setDrafting] = useState(false);
   const [openNote, setOpenNote] = useState('');
   const [startImport, setStartImport] = useState<ImportedFile | null>(null);
   const [startError, setStartError] = useState('');
@@ -122,7 +124,7 @@ export default function PathPage() {
     setOpenNote('');
     if (next.filter((i) => i < step.tasks.length).length >= step.tasks.length) setPanel('write');
   };
-  const go = (id: string) => { edit((p) => ({ ...p, current: id })); setQuestion(''); setError(''); window.scrollTo?.({ top: 0 }); };
+  const go = (id: string) => { edit((p) => ({ ...p, current: id })); setQuestion(''); setError(''); setDrafting(false); window.scrollTo?.({ top: 0 }); };
   const close = (status: 'done' | 'skipped') => {
     const next = { ...path, steps: { ...path.steps, [step.id]: { ...state, status } } };
     const n = nextOpen(next, step.id);
@@ -462,7 +464,21 @@ export default function PathPage() {
                 <textarea id="work" value={state.work} onChange={(e) => patch({ work: e.target.value })} placeholder="Use your own words. This saves automatically." />
                 {state.work.length > COACH_LIMIT ? <p className="hint">The critique reads the first {count(COACH_LIMIT)} of your {count(state.work.length)} characters. It will not cover the rest.</p> : null}
               </div>
+              {drafting ? (
+                <DraftHelper
+                  key={step.id}
+                  stepId={step.id}
+                  degree={degree}
+                  topic={path.title || path.topic}
+                  discipline={path.discipline}
+                  history={historyOf(path, step.id)}
+                  language={language}
+                  lastParagraph={state.work.trim().split(/\n\s*\n/).pop() ?? ''}
+                  onUse={(tool) => edit((p) => ({ ...p, log: [...p.log, { at: new Date().toISOString(), step: step.id, tool }] }))}
+                />
+              ) : null}
               <div className="ask">
+                <button className="btn ghost" aria-expanded={drafting} onClick={() => setDrafting(!drafting)}>I don’t know what to write</button>
                 <button className="btn" disabled={busy || !state.work.trim()} onClick={() => { setPanel('critique'); askCritic(); }}>{busy ? 'Reading your work…' : 'Get my critique'}</button>
               </div>
             </section>

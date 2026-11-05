@@ -4,6 +4,11 @@ import http from 'node:http';
 function reply(messages) {
   const system = messages[0]?.content ?? '';
   const user = messages[1]?.content ?? '';
+  if (system.includes('writing guide')) {
+    if (user.includes('<student_paragraph>')) return { missing: ['Mock missing evidence'], question: 'Mock review question?' };
+    if (user.includes('Build a plan')) return { points: [{ point: 'Mock point from answers', evidence: 'Mock evidence' }, { point: Array(40).fill('word').join(' '), evidence: '' }] };
+    return { question: `Mock question ${(user.match(/Q: /g) ?? []).length + 1}?` };
+  }
   if (system.includes('thesis examiner')) {
     const block = user.split('Strong work at this step:')[1]?.split('Degree:')[0] ?? '';
     const standards = block.split('\n').filter((l) => l.startsWith('- ')).map((l) => l.slice(2));

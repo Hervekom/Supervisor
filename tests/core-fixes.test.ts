@@ -329,3 +329,33 @@ describe('detection requests', () => {
     expect(r.summary).toBe('Résumé.');
   });
 });
+
+describe('guided writing cannot become written text', () => {
+  it('forbids writing in its rules', async () => {
+    const { DRAFT_SYSTEM } = await import('@/lib/draftHelp');
+    expect(DRAFT_SYSTEM).toContain('Never write thesis text');
+    expect(DRAFT_SYSTEM).toContain('Never add ideas, sources, data or results');
+  });
+  it('cuts long model output down to notes', async () => {
+    const { normalizePlan, normalizeReview } = await import('@/lib/draftHelp');
+    const long = Array(60).fill('word').join(' ');
+    const plan = normalizePlan({ points: Array(9).fill({ point: long, evidence: long }) });
+    expect(plan).toHaveLength(5);
+    expect(plan[0].point.split(' ').length).toBeLessThanOrEqual(16);
+    expect(normalizeReview({ missing: [long], question: long }).missing[0].split(' ').length).toBeLessThanOrEqual(25);
+  });
+  it('caps text without spaces', async () => {
+    const { normalizePlan } = await import('@/lib/draftHelp');
+    expect(normalizePlan({ points: [{ point: '字'.repeat(500) }] })[0].point.length).toBeLessThanOrEqual(128);
+  });
+  it('ignores malformed replies', async () => {
+    const { normalizePlan, normalizeQuestion } = await import('@/lib/draftHelp');
+    expect(normalizePlan(null)).toEqual([]);
+    expect(normalizeQuestion({})).toBe('');
+  });
+  it('uses fixed examples that name no thesis topic', async () => {
+    const { FORM_EXAMPLE, STARTERS } = await import('@/lib/draftHelp');
+    expect(FORM_EXAMPLE).toContain('fictional town');
+    expect(STARTERS.every((s) => s.endsWith('…'))).toBe(true);
+  });
+});
