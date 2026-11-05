@@ -90,3 +90,28 @@ test('a student without an answer can note a question and continue', async ({ pa
   expect(saved.work).toBe(`Open question (${STEPS[0].tasks[0].do}): Which dataset my supervisor expects`);
   expect(saved.checks).toEqual([0]);
 });
+
+test('guided writing asks, plans and checks, and never fills the text', async ({ page }) => {
+  await seed(page, { 'path:v1': started({ steps: { title: { work: '', checks: [0, 1, 2, 3, 4], status: 'open' } } }) });
+  await page.goto('/');
+  await page.getByRole('tab', { name: '2. Write' }).click();
+  await page.getByRole('button', { name: 'I don’t know what to write' }).click();
+  await page.getByRole('button', { name: 'Ask me a question' }).click();
+  for (const n of [1, 2, 3]) {
+    await page.getByLabel(`Mock question ${n}?`).fill(`My rough answer ${n}`);
+    await page.getByRole('button', { name: 'Next' }).click();
+    if (n < 3) await expect(page.getByText(`Question ${n + 1} of 3`)).toBeVisible();
+  }
+  await expect(page.getByText('Mock point from answers')).toBeVisible();
+  await expect(page.getByText(/word word .*…/)).toBeVisible();
+  await expect(page.getByLabel(STEPS[0].workLabel)).toHaveValue('');
+  await expect(page.getByRole('button', { name: 'Check my last paragraph' })).toBeDisabled();
+  await page.getByLabel(STEPS[0].workLabel).fill('A paragraph I wrote myself about fictional lanterns.');
+  await page.getByRole('button', { name: 'Check my last paragraph' }).click();
+  await expect(page.getByText('Mock missing evidence')).toBeVisible();
+  expect((await stored(page, 'path:v1')).log.map((l: { tool: string }) => l.tool)).toEqual([
+    'Guided writing: questions',
+    'Guided writing: plan from the student’s answers',
+    'Guided writing: paragraph check',
+  ]);
+});
