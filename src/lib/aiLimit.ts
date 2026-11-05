@@ -1,8 +1,8 @@
 import { MESSAGES } from './messages';
 import { PublicError } from './publicError';
 
-export const AI_PER_MINUTE = 5;
-export const AI_PER_DAY = 40;
+export const AI_PER_MINUTE = 10;
+export const AI_PER_DAY = 80;
 
 type Use = { minute: number; minuteCount: number; day: number; dayCount: number };
 const uses = new Map<string, Use>();
