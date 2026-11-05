@@ -1,6 +1,9 @@
+import { aiUnavailable, MESSAGES } from './messages';
+import { PublicError } from './publicError';
+
 export class LlmNotConfigured extends Error {
   constructor() {
-    super('Add your AI key in Account to use this feature.');
+    super(MESSAGES.aiNotConfigured);
   }
 }
 
@@ -27,19 +30,28 @@ export function extractJson(text: string): unknown {
 
 export async function chatJson(messages: Message[], c?: LlmConfig): Promise<unknown> {
   const { baseUrl, apiKey, model, fetchImpl } = config(c);
-  const res = await fetchImpl(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({ model, messages, temperature: 0.2 }),
-    redirect: 'error',
-    signal: AbortSignal.timeout(180_000),
-  });
-  if (res.status === 401 || res.status === 403) throw new Error('Your AI provider rejected this key. Check it in Account.');
-  if (res.status === 402 || res.status === 429) throw new Error('Your AI account has reached its limit or has no credit.');
-  if (res.status === 404) throw new Error('Your AI provider did not find this model. Check its name in Account.');
-  if (!res.ok) throw new Error(`The AI service returned ${res.status}.`);
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('The AI service returned an empty reply.');
-  return extractJson(content);
+  let res: Response;
+  try {
+    res = await fetchImpl(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ model, messages, temperature: 0.2 }),
+      redirect: 'error',
+      signal: AbortSignal.timeout(180_000),
+    });
+  } catch {
+    throw new PublicError(MESSAGES.aiUnreachable, 502);
+  }
+  if (res.status === 401 || res.status === 403) throw new PublicError('Your AI provider rejected this key. Check it in Account.', 502);
+  if (res.status === 402 || res.status === 429) throw new PublicError('Your AI account has reached its limit or has no credit. Check your provider account, then try again.', 502);
+  if (res.status === 404) throw new PublicError('Your AI provider did not find this model. Check its name in Account.', 502);
+  if (!res.ok) throw new PublicError(aiUnavailable(res.status), 502);
+  try {
+    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Empty reply.');
+    return extractJson(content);
+  } catch {
+    throw new PublicError(MESSAGES.aiUnreadable, 502);
+  }
 }

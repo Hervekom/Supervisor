@@ -1,6 +1,7 @@
+import type { Coverage } from './limits';
 import type { DegreeType, Profile, Rule, Stage } from './types';
 
-export type Task = { do: string; how: string };
+export type Task = { do: string; how: string; stuck?: string };
 
 export type Step = {
   id: string;
@@ -26,11 +27,11 @@ export const STEPS: Step[] = [
     id: 'title', phase: 'Find your question', title: 'Understand the title you were given',
     goal: 'Turn your supervisor’s title into a clear research question that you understand and can answer.',
     tasks: [
-      { do: 'Ask your supervisor what they expect', how: 'Ask what problem the title addresses, what data to use, what result they expect, and which papers to read first.' },
-      { do: 'Break the title into key terms', how: 'List each technical term in the title. Write what each one means, and what you still need to learn.' },
-      { do: 'Find the problem behind the title', how: 'Read a few recent papers on those terms. Write what is still unsolved, and why it matters.' },
-      { do: 'Write your research question', how: 'Turn the title into one question that evidence can answer. Keep the question close to your supervisor’s intent.' },
-      { do: 'Check it is possible', how: 'Confirm the data, tools and time you need. Show your question and any risks to your supervisor.' },
+      { do: 'Ask your supervisor what they expect', how: 'Ask what problem the title addresses, what data to use, what result they expect, and which papers to read first.', stuck: 'Send your supervisor these four questions in one short message. While you wait, write your best guess for each answer, and look at their recent papers for clues.' },
+      { do: 'Break the title into key terms', how: 'List each technical term in the title. Write what each one means, and what you still need to learn.', stuck: 'Search each term in Google Scholar or CNKI, and read the introduction of one recent review paper. Mark any term you still cannot explain.' },
+      { do: 'Find the problem behind the title', how: 'Read a few recent papers on those terms. Write what is still unsolved, and why it matters.', stuck: 'Read only the abstract and conclusion of three recent papers. Authors often name what remains unsolved in their last paragraphs.' },
+      { do: 'Write your research question', how: 'Turn the title into one question that evidence can answer. Keep the question close to your supervisor’s intent.', stuck: 'Try this frame: how can [method] improve [result] for [problem], measured by [metric]? A rough question is enough to discuss with your supervisor.' },
+      { do: 'Check it is possible', how: 'Confirm the data, tools and time you need. Show your question and any risks to your supervisor.', stuck: 'List what you are unsure about: data, tools, or time. Search for one public dataset, and ask a senior student in your lab what similar work took.' },
     ],
     mistakes: ['Starting experiments before you understand the title', 'Changing the title without asking your supervisor', 'Treating a title as if it were a research question'],
     workLabel: 'Your title, what it means, and your research question',
@@ -397,7 +398,8 @@ STEPS.find((s) => s.id === 'defense')!.practice = [
   'Can you explain the symbols in this equation?',
 ];
 
-export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; rounds?: number; updated?: string; guide?: StepGuide };
+export type ImportedFile = { file: string; extractedChars: number; totalChars: number };
+export type StepState = { work: string; checks: number[]; status: 'open' | 'done' | 'skipped'; coach?: CoachReply; rounds?: number; updated?: string; guide?: StepGuide; imported?: ImportedFile };
 export type StepGuide = { intro: string; tasks: string[] };
 export type LogEntry = { at: string; step: string; tool: string };
 export type PathState = {
@@ -423,10 +425,19 @@ export type CoachReply = {
   weakest: string;
   questions: string[];
   next_action: string;
+  coverage?: Coverage;
 };
 
 export const emptyPath = (): PathState => ({ topic: '', discipline: '', defenseDate: '', current: STEPS[0].id, steps: {}, log: [] });
 export const stepState = (p: PathState, id: string): StepState => p.steps[id] ?? { work: '', checks: [], status: 'open' };
+
+export const STUCK_DEFAULT = 'Write your best guess and mark it as a guess. Look for one recent paper or thesis on this point, or ask your supervisor or a senior student.';
+
+/** Adds what the student could not answer yet to their work, so the critique can see it. */
+export function addOpenQuestion(work: string, task: string, note: string, template = '') {
+  const start = work.trim() ? work.trimEnd() : template.trimEnd();
+  return `${start ? `${start}\n\n` : ''}Open question (${task}): ${note.trim()}`;
+}
 
 export function canComplete(step: Step, s: StepState) {
   return s.work.trim().length > 0 && s.work.trim() !== (step.workTemplate ?? '').trim() && step.tasks.every((_, i) => s.checks.includes(i));
@@ -485,7 +496,7 @@ export const SITUATIONS: Situation[] = [
 ];
 
 /** Starts the path where the student really is. Earlier steps are set aside and can be reopened. */
-export function applySituation(p: PathState, id: string, input: { title?: string; text?: string }): PathState {
+export function applySituation(p: PathState, id: string, input: { title?: string; text?: string; imported?: ImportedFile }): PathState {
   const sit = SITUATIONS.find((s) => s.id === id) ?? SITUATIONS[0];
   const startAt = STEPS.findIndex((s) => s.id === sit.start);
   const steps = { ...p.steps };
@@ -502,6 +513,7 @@ export function applySituation(p: PathState, id: string, input: { title?: string
       status: 'open',
       work: input.text.trim(),
       checks: STEPS[startAt].tasks.map((_, i) => i),
+      ...(input.imported ? { imported: input.imported } : {}),
     };
   }
   return { ...p, steps, current: sit.start, started: true, situation: sit.id, title: title || p.title, topic: p.topic || title };

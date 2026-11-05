@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { checkUser } from '@/lib/auth';
 import { resolveChoice } from '@/lib/aiChoice';
-import { fail, handle, uploaded } from '@/lib/api';
-import { parseDocx } from '@/lib/docx';
+import { fail, handle, openDocx, uploaded } from '@/lib/api';
 import { getProfile, importGuide, pdfPages, saveProfile } from '@/lib/profiles';
 
 export async function POST(req: Request) {
@@ -14,11 +13,11 @@ export async function POST(req: Request) {
     const { config, error } = resolveChoice(typeof raw === 'string' ? JSON.parse(raw) : undefined);
     if (error) return fail(error);
     const u = await uploaded(form);
-    if ('error' in u) return fail(u.error as string);
+    if ('error' in u) return fail(u.error as string, u.status);
     const name = u.file.name.toLowerCase();
     let pages: string[];
     if (name.endsWith('.pdf')) pages = await pdfPages(u.bytes);
-    else if (name.endsWith('.docx')) pages = [(await parseDocx(u.bytes)).paragraphs.map((p) => p.text).join('\n')];
+    else if (name.endsWith('.docx')) pages = [(await openDocx(u.bytes)).paragraphs.map((p) => p.text).join('\n')];
     else return fail('Upload the guide as a PDF or .docx file.');
     const result = await importGuide(pages, u.file.name, config);
     if (!result.kept) return fail('No rule could be matched to the text of this guide.', 422);

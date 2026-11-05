@@ -1,16 +1,29 @@
 'use client';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount } from '@/components/useAccount';
+import { usePathSync, type SaveStatus } from '@/components/usePathSync';
 import { loadAi } from '@/lib/aiSettings';
 import { put, useProfiles } from '@/components/useProfiles';
 import { CRITIC_NAME } from '@/lib/brand';
 import { subtractWorkingDays } from '@/lib/dates';
-import { aiLogText, applySituation, canComplete, emptyPath, historyOf, isPathState, newerPath, nextOpen, progress, SITUATIONS, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepGuide, type StepState } from '@/lib/path';
-import { authHeaders, loadCloudPath, saveCloudPath } from '@/lib/supabase';
+import type { ImportedFile } from '@/lib/path';
+import { addOpenQuestion, aiLogText, applySituation, canComplete, emptyPath, historyOf, isPathState, nextOpen, progress, SITUATIONS, STUCK_DEFAULT, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepGuide, type StepState } from '@/lib/path';
+import { COACH_LIMIT, count, MAX_UPLOAD_LABEL } from '@/lib/limits';
+import { readLocalPath } from '@/lib/pathSync';
+import { errorText, fileProblem, request } from '@/lib/request';
+import { authHeaders } from '@/lib/supabase';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
 
 const KEY = 'path:v1';
+const SAVE_TEXT: Record<SaveStatus, (at: Date | null) => string> = {
+  idle: () => 'Checking your account…',
+  waiting: () => 'Changes not saved to your account yet.',
+  saving: () => 'Saving to your account…',
+  saved: (at) => `Saved to your account${at ? ` at ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}.`,
+  unconfirmed: () => 'Not confirmed as saved to your account. Your work is in this browser, and we will keep trying.',
+  conflict: () => 'Not saved to your account until you choose a version.',
+};
 const show = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? v.toLocaleString('en') : JSON.stringify(v));
 const VERDICT = { not_ready: 'Not ready', almost: 'Almost there', ready: 'Ready to move on' };
 const MARK = { met: '✓', partly: '~', missing: '✗' };
@@ -29,8 +42,7 @@ export default function PathPage() {
   const { user, ready } = useAccount();
   const [path, setPath] = useState<PathState>(emptyPath);
   const [loaded, setLoaded] = useState(false);
-  const [cloudReady, setCloudReady] = useState(false);
-  const [saveState, setSaveState] = useState('');
+  const [localSaveFailed, setLocalSaveFailed] = useState(false);
   const [question, setQuestion] = useState('');
   const [language, setLanguage] = useState('English');
   const [busy, setBusy] = useState(false);
@@ -40,10 +52,12 @@ export default function PathPage() {
   const [startTitle, setStartTitle] = useState('');
   const [startText, setStartText] = useState('');
   const [startFile, setStartFile] = useState('');
+  const [stuckOn, setStuckOn] = useState<number | null>(null);
+  const [openNote, setOpenNote] = useState('');
+  const [startImport, setStartImport] = useState<ImportedFile | null>(null);
   const [startError, setStartError] = useState('');
   const [uploading, setUploading] = useState(false);
   const [tailoring, setTailoring] = useState(false);
-  const touched = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,36 +69,33 @@ export default function PathPage() {
   }, []);
 
   useEffect(() => {
-    if (!loaded || !ready || !user) return;
-    let live = true;
-    loadCloudPath(user.id)
-      .then((cloud) => {
-        if (!live) return;
-        const best = newerPath(path, isPathState(cloud) ? cloud : null);
-        if (best && best !== path) setPath(best);
-        setCloudReady(true);
-      })
-      .catch(() => live && setSaveState('Your account could not load. Your work is kept in this browser.'));
-    return () => { live = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loaded, ready, user?.id]);
+    if (loaded) setLocalSaveFailed(!put(KEY, JSON.stringify(path)));
+  }, [path, loaded]);
 
+  // Another tab's newer copy replaces this tab's, so an old tab cannot write over it.
   useEffect(() => {
-    if (!loaded) return;
-    put(KEY, JSON.stringify(path));
-    if (!user || !cloudReady || !touched.current) return;
-    const t = setTimeout(() => {
-      saveCloudPath(user.id, path)
-        .then(() => setSaveState('Saved to your account'))
-        .catch(() => setSaveState('Not saved to your account yet. Your work is kept in this browser.'));
-    }, 1200);
-    return () => clearTimeout(t);
-  }, [path, loaded, user, cloudReady]);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== KEY) return;
+      if (e.newValue === null) return setPath(emptyPath());
+      try {
+        const next = JSON.parse(e.newValue);
+        if (isPathState(next)) setPath(next);
+      } catch {}
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
-  // Every edit stamps the state, so the newest copy wins across devices.
+  const replacePath = useCallback((p: PathState) => setPath(p), []);
+  const sync = usePathSync({ userId: ready ? user?.id : undefined, loaded, path, replace: replacePath });
+
+  // Every edit stamps the state, and builds on the newest copy in this browser.
   const edit = (u: (p: PathState) => PathState) => {
-    touched.current = true;
-    setPath((p) => ({ ...u(p), savedAt: new Date().toISOString() }));
+    setPath((p) => {
+      const stored = readLocalPath();
+      const latest = stored && (stored.savedAt ?? '') > (p.savedAt ?? '') ? stored : p;
+      return { ...u(latest), savedAt: new Date().toISOString() };
+    });
   };
 
   const step = STEPS.find((s) => s.id === path.current) ?? STEPS[0];
@@ -102,6 +113,13 @@ export default function PathPage() {
   const doneTask = () => {
     const next = [...state.checks, current];
     patch({ checks: next });
+    if (next.filter((i) => i < step.tasks.length).length >= step.tasks.length) setPanel('write');
+  };
+  const saveOpenQuestion = () => {
+    const next = [...state.checks, current];
+    patch({ checks: next, work: addOpenQuestion(state.work, step.tasks[current].do, openNote, step.workTemplate) });
+    setStuckOn(null);
+    setOpenNote('');
     if (next.filter((i) => i < step.tasks.length).length >= step.tasks.length) setPanel('write');
   };
   const go = (id: string) => { edit((p) => ({ ...p, current: id })); setQuestion(''); setError(''); window.scrollTo?.({ top: 0 }); };
@@ -142,13 +160,11 @@ export default function PathPage() {
     setTailoring(true);
     const id = step.id;
     try {
-      const r = await fetch('/api/guide', {
+      const guide = await request<StepGuide>('/api/guide', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ stepId: id, degree, title: path.title, topic: path.topic, discipline: path.discipline, history: historyOf(path, id), language, llm: loadAi() ?? undefined }),
       });
-      if (!r.ok) return;
-      const guide = (await r.json()) as StepGuide;
       edit((p) => ({ ...p, steps: { ...p.steps, [id]: { ...stepState(p, id), guide } } }));
     } catch {
       // The standard guidance remains.
@@ -158,26 +174,28 @@ export default function PathPage() {
   }
 
   async function uploadStart(file: File) {
-    setUploading(true);
     setStartError('');
+    setStartFile('');
+    setStartImport(null);
+    const tooBig = fileProblem(file);
+    if (tooBig) return setStartError(tooBig);
+    setUploading(true);
     const f = new FormData();
     f.set('file', file);
     try {
-      const r = await fetch('/api/extract', { method: 'POST', body: f });
-      if (r.status === 413) throw new Error('This file is too large. Paste the important part below instead.');
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
+      const j = await request<{ text: string; totalChars: number; extractedChars: number }>('/api/extract', { method: 'POST', body: f });
       setStartText(j.text);
       setStartFile(file.name);
+      setStartImport({ file: file.name, extractedChars: j.extractedChars, totalChars: j.totalChars });
     } catch (x) {
-      setStartError(x instanceof Error ? x.message : 'This file could not be read. Paste the text below instead.');
+      setStartError(errorText(x));
     } finally {
       setUploading(false);
     }
   }
 
   function begin() {
-    edit((p) => applySituation(p, situation, { title: startTitle, text: startText }));
+    edit((p) => applySituation(p, situation, { title: startTitle, text: startText, imported: startImport ?? undefined }));
     setStartText('');
   }
 
@@ -185,24 +203,22 @@ export default function PathPage() {
     setBusy(true);
     setError('');
     try {
-      const r = await fetch('/api/coach', {
+      const j = await request<CoachReply>('/api/coach', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ stepId: step.id, degree, topic: path.topic, discipline: path.discipline, work: state.work, question, language, history: historyOf(path, step.id), llm: loadAi() ?? undefined }),
       });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
       edit((p) => {
         const cur = stepState(p, step.id);
         return {
           ...p,
-          steps: { ...p.steps, [step.id]: { ...cur, coach: j as CoachReply, rounds: (cur.rounds ?? 0) + 1 } },
+          steps: { ...p.steps, [step.id]: { ...cur, coach: j, rounds: (cur.rounds ?? 0) + 1 } },
           log: [...p.log, { at: new Date().toISOString(), step: step.id, tool: question ? `${CRITIC_NAME} critique with a question` : `${CRITIC_NAME} critique` }],
         };
       });
       setQuestion('');
     } catch (x) {
-      setError(x instanceof Error ? x.message : 'The critique failed. Try again.');
+      setError(errorText(x));
     } finally {
       setBusy(false);
     }
@@ -220,6 +236,19 @@ export default function PathPage() {
   }
 
   if (!loaded) return null;
+
+  const download2 = (name: string, p: PathState | null) => download(name, JSON.stringify(p, null, 2), 'application/json');
+  const conflictBanner = sync.conflict ? (
+    <div className="notice" role="alert" style={{ marginBottom: 16, maxWidth: 'none' }}>
+      <p><b>Two versions of your thesis exist.</b> This browser and your account hold different work, so nothing was overwritten. Choose which one to continue with. The other is kept in this browser until you sign out, and you can download both first.</p>
+      <div className="ask" style={{ marginTop: 10 }}>
+        <button className="btn" disabled={sync.resolving} onClick={sync.chooseThisBrowser}>Keep this browser’s version</button>
+        <button className="btn ghost" disabled={sync.resolving} onClick={sync.chooseAccount}>Use my account’s version</button>
+        <button className="btn ghost" onClick={() => download2('supervisor-this-browser.json', path)}>Download this browser’s version</button>
+        <button className="btn ghost" disabled={!sync.conflict.cloud} onClick={() => download2('supervisor-account.json', sync.conflict?.cloud ?? null)}>Download my account’s version</button>
+      </div>
+    </div>
+  ) : null;
 
   const setupFields = (
     <>
@@ -263,6 +292,7 @@ export default function PathPage() {
     const sit = SITUATIONS.find((x) => x.id === situation);
     return (
       <div className="welcome">
+        {conflictBanner}
         <h1>Where are you with your thesis?</h1>
         <p className="lede">Supervisor will start from where you are and guide you to the end. You do the writing.</p>
         <div className="choices" role="radiogroup" aria-label="Where you are now">
@@ -284,9 +314,11 @@ export default function PathPage() {
             {sit.upload ? (
               <div className="field">
                 <label htmlFor="start-file">{sit.upload} (optional)</label>
-                <input id="start-file" type="file" accept=".docx,.pdf,.txt" disabled={uploading} onChange={(e) => e.target.files?.[0] && uploadStart(e.target.files[0])} />
+                <input id="start-file" type="file" accept=".docx,.pdf,.txt" aria-describedby="start-file-help" disabled={uploading} onChange={(e) => e.target.files?.[0] && uploadStart(e.target.files[0])} />
+                <p className="hint" id="start-file-help">Word, PDF or text files up to {MAX_UPLOAD_LABEL}.</p>
                 {uploading ? <p className="hint" role="status">Reading your file…</p> : null}
-                {startFile && !uploading ? <p className="hint ok" role="status">{startFile} is ready.</p> : null}
+                {startFile && !uploading ? <p className="hint ok" role="status">{startFile} is ready. {startImport && startImport.extractedChars < startImport.totalChars ? null : startImport ? `All ${count(startImport.extractedChars)} characters were read.` : null}</p> : null}
+                {startImport && startImport.extractedChars < startImport.totalChars && !uploading ? <p className="notice" role="alert">Only part of this file was read: the first {count(startImport.extractedChars)} of {count(startImport.totalChars)} characters. The rest will not be included. To cover it, upload one chapter at a time.</p> : null}
                 {startError ? <p className="error" role="alert">{startError}</p> : null}
                 <details><summary>Paste text instead</summary><textarea aria-label="Paste your text" value={startText} onChange={(e) => setStartText(e.target.value)} style={{ marginTop: 6 }} /></details>
               </div>
@@ -335,10 +367,15 @@ export default function PathPage() {
       </aside>
 
       <div className="stack">
+        {conflictBanner}
         <article className="sheet">
           <p className="hint">Step {index + 1} of {STEPS.length}{step.optional ? ', only if you need it' : ''}</p>
           <h2 className="steptitle">{step.title}</h2>
           <p className="lede">{step.goal}</p>
+
+          {state.imported && state.imported.extractedChars < state.imported.totalChars ? (
+            <p className="notice" style={{ margin: '12px 0' }}>Your work here comes from {state.imported.file}, but only its first {count(state.imported.extractedChars)} of {count(state.imported.totalChars)} characters were read. The rest is not in Supervisor.</p>
+          ) : null}
 
           <div className="stages" role="tablist" aria-label="This step">
             {(['do', 'write', 'critique'] as const).map((k, n) => (
@@ -354,7 +391,19 @@ export default function PathPage() {
                   <p className="hint">Task {current + 1} of {step.tasks.length}</p>
                   <h3>{step.tasks[current].do}</h3>
                   <p>{state.guide?.tasks[current] ?? step.tasks[current].how}</p>
-                  <button className="btn" onClick={doneTask}>Done, next</button>
+                  <div className="ask">
+                    <button className="btn" onClick={doneTask}>Done, next</button>
+                    <button className="btn ghost" aria-expanded={stuckOn === current} onClick={() => { setStuckOn(stuckOn === current ? null : current); setOpenNote(''); }}>I don’t have the answer yet</button>
+                  </div>
+                  {stuckOn === current ? (
+                    <div className="field" style={{ marginTop: 12 }}>
+                      <p><b>You can keep going.</b> {step.tasks[current].stuck ?? STUCK_DEFAULT}</p>
+                      <label htmlFor="open-note" style={{ marginTop: 8 }}>What do you still need to find out?</label>
+                      <textarea id="open-note" value={openNote} onChange={(e) => setOpenNote(e.target.value)} />
+                      <p className="hint">We add this to your notes as an open question. Come back to it with your supervisor.</p>
+                      <div><button className="btn ghost" disabled={!openNote.trim()} onClick={saveOpenQuestion}>Save my question and continue</button></div>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="now">
@@ -411,6 +460,7 @@ export default function PathPage() {
               <div className="field">
                 <label htmlFor="work">{step.workLabel}</label>
                 <textarea id="work" value={state.work} onChange={(e) => patch({ work: e.target.value })} placeholder="Use your own words. This saves automatically." />
+                {state.work.length > COACH_LIMIT ? <p className="hint">The critique reads the first {count(COACH_LIMIT)} of your {count(state.work.length)} characters. It will not cover the rest.</p> : null}
               </div>
               <div className="ask">
                 <button className="btn" disabled={busy || !state.work.trim()} onClick={() => { setPanel('critique'); askCritic(); }}>{busy ? 'Reading your work…' : 'Get my critique'}</button>
@@ -427,13 +477,16 @@ export default function PathPage() {
                 </div>
               ) : null}
               {busy ? <p role="status">Reading your work…</p> : null}
-              {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}</p> : null}
+              {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account|Sign in/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}</p> : null}
               {state.coach && !busy ? (
                 <div className="pen">
                   <p className="verdict">
                     <span className={`badge ${state.coach.verdict}`}>{VERDICT[state.coach.verdict]}</span>
                     <span className="hint">Critique {state.rounds ?? 1}</span>
                   </p>
+                  {state.coach.coverage ? (
+                    <p className="hint">{state.coach.coverage.complete ? `This critique read all ${count(state.coach.coverage.totalChars)} characters of your work for this step.` : <b>This critique read only the first {count(state.coach.coverage.readChars)} of {count(state.coach.coverage.totalChars)} characters. It says nothing about the rest.</b>}</p>
+                  ) : null}
                   <p>{state.coach.summary}</p>
                   {state.coach.weakest ? <p><b>Biggest weakness:</b> {state.coach.weakest}</p> : null}
                   {state.coach.next_action ? <p><b>Do this next:</b> {state.coach.next_action}</p> : null}
@@ -480,7 +533,8 @@ export default function PathPage() {
           </div>
         </details>
         <p className="hint" role="status">
-          {user ? saveState || 'Your work saves to your account.' : <><Link href="/account">Sign in</Link> to keep your work on every device. Until then, it stays in this browser.</>} Text you send for critique goes to the AI service.
+          {localSaveFailed ? <b>This browser could not save your latest changes. Save a backup below now. </b> : null}
+          {user ? SAVE_TEXT[sync.status](sync.savedAt) : <><Link href="/account">Sign in</Link> to keep your work on every device. Until then, it stays in this browser.</>} Text you send for critique goes to the AI service.
         </p>
       </div>
     </div>

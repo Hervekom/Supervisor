@@ -12,7 +12,10 @@ const get = (k: string) => {
 export const put = (k: string, v: string) => {
   try {
     localStorage.setItem(k, v);
-  } catch {}
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export function useProfiles() {
