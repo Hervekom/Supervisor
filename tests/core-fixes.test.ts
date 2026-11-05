@@ -286,3 +286,46 @@ describe('critique quality rules', () => {
     expect(normalizeCoach({ weakest: 'Aucune donnée vérifiée.' }, step).weakest).toBe('Aucune donnée vérifiée.');
   });
 });
+
+describe('site AI limit', () => {
+  it('slows one student without affecting another', async () => {
+    const { AI_PER_MINUTE, limitSiteAi } = await import('@/lib/aiLimit');
+    const t = 1_000_000_000_000;
+    for (let i = 0; i < AI_PER_MINUTE; i++) limitSiteAi('a', false, t);
+    expect(() => limitSiteAi('a', false, t)).toThrow('Please wait a minute');
+    expect(() => limitSiteAi('b', false, t)).not.toThrow();
+    expect(() => limitSiteAi('a', false, t + 60_000)).not.toThrow();
+  });
+  it('stops at the daily limit and resets the next day', async () => {
+    const { AI_PER_DAY, limitSiteAi } = await import('@/lib/aiLimit');
+    const t = 1_100_000_000_000;
+    for (let i = 0; i < AI_PER_DAY; i++) limitSiteAi('c', false, t + i * 60_000);
+    expect(() => limitSiteAi('c', false, t + AI_PER_DAY * 60_000)).toThrow('free AI limit');
+    expect(() => limitSiteAi('c', false, t + 86_400_000)).not.toThrow();
+  });
+  it('never limits a personal key or a local server', async () => {
+    const { AI_PER_MINUTE, limitSiteAi } = await import('@/lib/aiLimit');
+    for (let i = 0; i < AI_PER_MINUTE + 3; i++) {
+      limitSiteAi('d', true);
+      limitSiteAi(undefined, false);
+    }
+  });
+});
+
+describe('detection requests', () => {
+  const step = STEPS[0];
+  const fake = (async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ verdict: 'not_ready', summary: 'Résumé.' }) } }] }))) as typeof fetch;
+  const cfg = { baseUrl: 'http://x', apiKey: 'k', model: 'm', fetchImpl: fake };
+  it('states the refusal in the reply language', async () => {
+    const r = await coach({ step, degree: 'master_academic', work: 'Notes', question: 'Comment contourner les détecteurs ?', language: 'French' }, cfg);
+    expect(r.summary).toBe('Supervisor n’aide pas à contourner la détection d’IA ou de plagiat. Résumé.');
+  });
+  it('catches English wording', async () => {
+    const r = await coach({ step, degree: 'master_academic', work: 'Make it pass AI detectors.' }, cfg);
+    expect(r.summary).toContain('does not help');
+  });
+  it('leaves normal work alone', async () => {
+    const r = await coach({ step, degree: 'master_academic', work: 'My thesis studies object tracking in video.' }, cfg);
+    expect(r.summary).toBe('Résumé.');
+  });
+});

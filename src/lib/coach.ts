@@ -92,10 +92,22 @@ export function normalizeCoach(raw: unknown, step?: Step): CoachReply {
   };
 }
 
+const DETECTION = /\b(ai|plagiarism|turnitin|gptzero|similarity)[\s-]*(detector|detectors|detection|checker|checkers|check)\b|\b(bypass|evade|avoid|beat|pass|fool|trick)\b.{0,40}\b(detector|detectors|detection|turnitin|gptzero)\b|\bhumani[sz]e\b|d[ée]tecteurs?\b|d[ée]tection (de l.)?ia|(检测|查重|降重|绕过)/i;
+
+const NO_DETECTION_HELP: Record<string, string> = {
+  English: 'Supervisor does not help with avoiding AI or plagiarism detection.',
+  French: 'Supervisor n’aide pas à contourner la détection d’IA ou de plagiat.',
+  Chinese: 'Supervisor 不提供规避 AI 或抄袭检测的帮助。',
+  Arabic: 'لا يساعد Supervisor في تجاوز كشف الذكاء الاصطناعي أو الانتحال.',
+};
+const noDetectionHelp = (language?: string) => NO_DETECTION_HELP[language ?? ''] ?? NO_DETECTION_HELP.English;
+
 export async function coach(input: Parameters<typeof coachMessages>[0], c?: LlmConfig) {
   const reply = normalizeCoach(await chatJson(coachMessages(input), c), input.step);
   const coverage = coverageOf(input.work, COACH_LIMIT);
   // A step cannot be called ready on the strength of a part of it.
   const verdict = !coverage.complete && reply.verdict === 'ready' ? 'almost' : reply.verdict;
-  return { ...reply, verdict, coverage };
+  const asked = `${input.question ?? ''}\n${input.work}`;
+  const summary = DETECTION.test(asked) ? `${noDetectionHelp(input.language)} ${reply.summary}`.trim() : reply.summary;
+  return { ...reply, verdict, coverage, summary };
 }
