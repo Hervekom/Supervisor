@@ -255,3 +255,12 @@ describe('PDF', () => {
     expect((await pdfPages(buildSyntheticPdf(['Fictional words on a page.'])))[0]).toContain('Fictional words');
   });
 });
+
+describe('open questions', () => {
+  it('keeps earlier notes and a step template', async () => {
+    const { addOpenQuestion } = await import('@/lib/path');
+    expect(addOpenQuestion('Notes', 'Task', ' Why? ')).toBe('Notes\n\nOpen question (Task): Why?');
+    expect(addOpenQuestion('', 'Task', 'Why?', 'Template')).toBe('Template\n\nOpen question (Task): Why?');
+    expect(addOpenQuestion('', 'Task', 'Why?')).toBe('Open question (Task): Why?');
+  });
+});

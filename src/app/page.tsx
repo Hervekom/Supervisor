@@ -8,7 +8,7 @@ import { put, useProfiles } from '@/components/useProfiles';
 import { CRITIC_NAME } from '@/lib/brand';
 import { subtractWorkingDays } from '@/lib/dates';
 import type { ImportedFile } from '@/lib/path';
-import { aiLogText, applySituation, canComplete, emptyPath, historyOf, isPathState, nextOpen, progress, SITUATIONS, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepGuide, type StepState } from '@/lib/path';
+import { addOpenQuestion, aiLogText, applySituation, canComplete, emptyPath, historyOf, isPathState, nextOpen, progress, SITUATIONS, STUCK_DEFAULT, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepGuide, type StepState } from '@/lib/path';
 import { COACH_LIMIT, count, MAX_UPLOAD_LABEL } from '@/lib/limits';
 import { readLocalPath } from '@/lib/pathSync';
 import { errorText, fileProblem, request } from '@/lib/request';
@@ -52,6 +52,8 @@ export default function PathPage() {
   const [startTitle, setStartTitle] = useState('');
   const [startText, setStartText] = useState('');
   const [startFile, setStartFile] = useState('');
+  const [stuckOn, setStuckOn] = useState<number | null>(null);
+  const [openNote, setOpenNote] = useState('');
   const [startImport, setStartImport] = useState<ImportedFile | null>(null);
   const [startError, setStartError] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -111,6 +113,13 @@ export default function PathPage() {
   const doneTask = () => {
     const next = [...state.checks, current];
     patch({ checks: next });
+    if (next.filter((i) => i < step.tasks.length).length >= step.tasks.length) setPanel('write');
+  };
+  const saveOpenQuestion = () => {
+    const next = [...state.checks, current];
+    patch({ checks: next, work: addOpenQuestion(state.work, step.tasks[current].do, openNote, step.workTemplate) });
+    setStuckOn(null);
+    setOpenNote('');
     if (next.filter((i) => i < step.tasks.length).length >= step.tasks.length) setPanel('write');
   };
   const go = (id: string) => { edit((p) => ({ ...p, current: id })); setQuestion(''); setError(''); window.scrollTo?.({ top: 0 }); };
@@ -382,7 +391,19 @@ export default function PathPage() {
                   <p className="hint">Task {current + 1} of {step.tasks.length}</p>
                   <h3>{step.tasks[current].do}</h3>
                   <p>{state.guide?.tasks[current] ?? step.tasks[current].how}</p>
-                  <button className="btn" onClick={doneTask}>Done, next</button>
+                  <div className="ask">
+                    <button className="btn" onClick={doneTask}>Done, next</button>
+                    <button className="btn ghost" aria-expanded={stuckOn === current} onClick={() => { setStuckOn(stuckOn === current ? null : current); setOpenNote(''); }}>I don’t have the answer yet</button>
+                  </div>
+                  {stuckOn === current ? (
+                    <div className="field" style={{ marginTop: 12 }}>
+                      <p><b>You can keep going.</b> {step.tasks[current].stuck ?? STUCK_DEFAULT}</p>
+                      <label htmlFor="open-note" style={{ marginTop: 8 }}>What do you still need to find out?</label>
+                      <textarea id="open-note" value={openNote} onChange={(e) => setOpenNote(e.target.value)} />
+                      <p className="hint">We add this to your notes as an open question. Come back to it with your supervisor.</p>
+                      <div><button className="btn ghost" disabled={!openNote.trim()} onClick={saveOpenQuestion}>Save my question and continue</button></div>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <div className="now">

@@ -76,3 +76,17 @@ test('saved progress from the current release still opens', async ({ page }) => 
   await expect(page.getByRole('heading', { level: 2, name: STEPS.find((s) => s.id === 'literature')!.title })).toBeVisible();
   await expect(page.getByText('1 of 21 steps finished')).toBeVisible();
 });
+
+test('a student without an answer can note a question and continue', async ({ page }) => {
+  await seed(page, { 'path:v1': started() });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'I don’t have the answer yet' }).click();
+  await expect(page.getByText('You can keep going.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save my question and continue' })).toBeDisabled();
+  await page.getByLabel('What do you still need to find out?').fill('Which dataset my supervisor expects');
+  await page.getByRole('button', { name: 'Save my question and continue' }).click();
+  await expect(page.getByRole('heading', { level: 3, name: STEPS[0].tasks[1].do })).toBeVisible();
+  const saved = (await stored(page, 'path:v1')).steps.title;
+  expect(saved.work).toBe(`Open question (${STEPS[0].tasks[0].do}): Which dataset my supervisor expects`);
+  expect(saved.checks).toEqual([0]);
+});
