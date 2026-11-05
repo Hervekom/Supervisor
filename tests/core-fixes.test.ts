@@ -264,3 +264,25 @@ describe('open questions', () => {
     expect(addOpenQuestion('', 'Task', 'Why?')).toBe('Open question (Task): Why?');
   });
 });
+
+describe('critique quality rules', () => {
+  const step = STEPS[0];
+  const standard = step.standards![0];
+  it('asks for a strict reading, the reply language and a plain refusal', () => {
+    const system = coachMessages({ step, degree: 'master_academic', work: 'x' })[0].content;
+    expect(system).toContain('Vague or general wording is partly at best');
+    expect(system).toContain('how the outcome is measured');
+    expect(system).toContain('Write every field in the reply language');
+    expect(system).toContain('you will not write it for them');
+    expect(system).toContain('you do not help with this');
+  });
+  it('replaces a copied standard with the reason in the reply language', async () => {
+    const { normalizeCoach } = await import('@/lib/coach');
+    const r = normalizeCoach({ weakest: standard, criteria: [{ standard, status: 'partly', comment: 'Les termes restent vagues.' }] }, step);
+    expect(r.weakest).toBe('Les termes restent vagues.');
+  });
+  it('keeps a weakness written by the model', async () => {
+    const { normalizeCoach } = await import('@/lib/coach');
+    expect(normalizeCoach({ weakest: 'Aucune donnée vérifiée.' }, step).weakest).toBe('Aucune donnée vérifiée.');
+  });
+});
