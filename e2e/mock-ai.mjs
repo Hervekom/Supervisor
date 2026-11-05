@@ -4,6 +4,9 @@ import http from 'node:http';
 function reply(messages) {
   const system = messages[0]?.content ?? '';
   const user = messages[1]?.content ?? '';
+  if (system.includes('like a chef leading a recipe')) {
+    return { reply: `Mock chef reply. ${Array(300).fill('word').join(' ')}`, suggestions: ['Mock suggestion', 'Second idea'], step: user.includes('open method') ? 'method' : 'not_a_step' };
+  }
   if (system.includes('writing guide')) {
     if (user.includes('<student_paragraph>')) return { missing: ['Mock missing evidence'], question: 'Mock review question?' };
     if (user.includes('Build a plan')) return { points: [{ point: 'Mock point from answers', evidence: 'Mock evidence' }, { point: Array(40).fill('word').join(' '), evidence: '' }] };

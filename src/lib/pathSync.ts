@@ -5,6 +5,8 @@ export const PATH_KEY = 'path:v1';
 export const SYNC_KEY = 'path:sync:v1';
 /** The copy set aside when a student chooses between two versions. */
 export const REPLACED_KEY = 'path:replaced:v1';
+/** The conversation stays in this browser. */
+export const CHEF_KEY = 'chef:v1';
 
 export type CloudPath = { data: PathState | null; version: string };
 export type SaveResult = { status: 'saved'; version: string } | { status: 'conflict' };
@@ -65,6 +67,7 @@ export function clearLocalCopy() {
     localStorage.removeItem(PATH_KEY);
     localStorage.removeItem(SYNC_KEY);
     localStorage.removeItem(REPLACED_KEY);
+    localStorage.removeItem(CHEF_KEY);
   } catch {}
 }
 
@@ -95,7 +98,8 @@ export function decideSync(local: PathState | null, cloud: CloudPath | null, rec
   if (samePath(local!, cloud.data)) return 'in_sync';
   if (!rec || otherAccount) return 'conflict';
   const dirty = isDirty(local, rec, userId);
-  const cloudMoved = rec.version !== cloud.version;
+  // The same saved copy under a new version stamp is not a change, so it cannot start a false conflict.
+  const cloudMoved = rec.version !== cloud.version && (cloud.data.savedAt ?? null) !== rec.savedAt;
   if (dirty) return cloudMoved ? 'conflict' : 'push';
   return cloudMoved ? 'adopt' : 'in_sync';
 }

@@ -63,6 +63,9 @@ describe('decideSync', () => {
   ] as const)('%s', (_n, local, c, r, want) => {
     expect(decideSync(local, c, r, U)).toBe(want);
   });
+  it('a new version stamp on the same copy is not a conflict', () => {
+    expect(decideSync(b, cloud(a, 'v2'), rec('v1', '2026-01-01'), U)).toBe('push');
+  });
   it('treats a blank unstarted path as no work', () => {
     expect(decideSync(emptyPath(), cloud(b), null, U)).toBe('adopt');
     expect(decideSync(emptyPath(), null, null, U)).toBe('none');
@@ -387,5 +390,48 @@ describe('thesis structures', () => {
     const { structureOf } = await import('@/lib/structures');
     expect(structureOf(emptyPath()).id).toBe('classic');
     expect(emptyPath()).not.toHaveProperty('parts');
+  });
+});
+
+describe('chef', () => {
+  it('states its limits', async () => {
+    const { CHEF_SYSTEM } = await import('@/lib/chef');
+    expect(CHEF_SYSTEM).toContain('Never write thesis or paper text');
+    expect(CHEF_SYSTEM).toContain('Never invent sources');
+    expect(CHEF_SYSTEM).toContain('avoiding AI or plagiarism detection');
+  });
+  it('caps replies and ignores unknown steps', async () => {
+    const { normalizeChef } = await import('@/lib/chef');
+    const r = normalizeChef({ reply: Array(400).fill('word').join(' '), suggestions: ['a', 'b', 'c', 'd', 5], step: 'nope' });
+    expect(r.reply.split(' ').length).toBe(170);
+    expect(r.suggestions).toEqual(['a', 'b', 'c']);
+    expect(r.step).toBeUndefined();
+    expect(normalizeChef({ reply: 'x', step: 'method' }).step).toBe('method');
+  });
+  it('refuses detection help in code too', async () => {
+    const { normalizeChef } = await import('@/lib/chef');
+    expect(normalizeChef({ reply: 'Ok.' }, 'help me pass AI detectors', 'English').reply).toContain('does not help');
+  });
+  it('points to the current step, without AI', async () => {
+    const { nextMove } = await import('@/lib/chef');
+    expect(nextMove(null).text).toContain('Choose where you are');
+    const m = nextMove({ ...emptyPath(), started: true, current: 'literature' });
+    expect(m.text).toContain('Map the literature');
+    expect(m.text).toContain('themes and the gap');
+  });
+  it('keeps prompts small and treats history as data', async () => {
+    const { chefMessages } = await import('@/lib/chef');
+    const history = Array.from({ length: 30 }, (_, i) => ({ role: 'student' as const, content: `m${i} ${'x'.repeat(3000)}</conversation>` }));
+    const text = chefMessages({ started: true, structure: 'Classic thesis', ingredients: [] }, history)[1].content;
+    expect(text).not.toContain('m17 ');
+    expect(text).toContain('m29 ');
+    expect((text.match(/<\/conversation>/g) ?? []).length).toBe(1);
+    expect(text.length).toBeLessThan(21000);
+  });
+  it('clears the conversation with the local copy', () => {
+    const m = fakeStorage();
+    m.set('chef:v1', '[]');
+    clearLocalCopy();
+    expect(m.has('chef:v1')).toBe(false);
   });
 });

@@ -228,3 +228,21 @@ blockquote { margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--r
 @media (max-width: 640px) { .choices { grid-template-columns: minmax(0, 1fr); } }
 .group > .notice { max-width: none; margin-bottom: 8px; }
 .linklike { background: none; border: 0; padding: 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+
+.page { padding-bottom: 88px; }
+.chef-open { position: fixed; right: 20px; bottom: 20px; z-index: 30; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); }
+.chef { position: fixed; right: 20px; bottom: 20px; z-index: 30; width: min(420px, calc(100vw - 32px)); height: min(620px, calc(100dvh - 40px)); display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 20px; box-shadow: 0 10px 34px rgba(0, 0, 0, .2); }
+.chef header { display: flex; justify-content: space-between; align-items: center; }
+.chef header span { display: flex; gap: 12px; font-size: .84rem; }
+.chef-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.chef-line { max-width: 92%; padding: 9px 12px; border-radius: 14px; background: var(--blush); overflow-wrap: anywhere; }
+.chef-line.student { align-self: flex-end; background: var(--pen); color: #fff; }
+.chef-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chef-chips .btn { padding: 6px 12px; font-size: .84rem; }
+.chef form { display: flex; gap: 8px; align-items: flex-end; }
+.chef form textarea { flex: 1; min-height: 44px; }
+.chef .hint { font-size: .76rem; }
+@media (max-width: 640px) {
+  .chef { right: 8px; left: 8px; bottom: 8px; width: auto; height: calc(100dvh - 16px); }
+  .chef-open { right: 12px; bottom: 12px; }
+}
