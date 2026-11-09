@@ -1,0 +1,104 @@
+{
+  "id": "git",
+  "name": "Git",
+  "kind": "application",
+  "purpose": "Saves every version of your code and settings, so you can repeat an experiment and show exactly what you ran.",
+  "work_types": [
+    "any"
+  ],
+  "level": "recommended",
+  "publisher_domain": "git-scm.com",
+  "official_download_url": "https://git-scm.com/book/en/v2/Getting-Started-Installing-Git",
+  "official_docs_url": "https://git-scm.com/book/en/v2/Getting-Started-Installing-Git",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the latest stable release offered for your system.",
+  "prerequisites": [],
+  "install": {
+    "windows": [
+      {
+        "text": "Download and run the Git for Windows installer from git-scm.com. The default options are fine for most students."
+      }
+    ],
+    "macos": [
+      {
+        "text": "Run the command below. If Git is missing, macOS offers to install the Command Line Tools, which include Git.",
+        "command": "git --version"
+      }
+    ],
+    "linux": [
+      {
+        "text": "On Debian or Ubuntu, install it with apt. On Fedora, use dnf.",
+        "command": "sudo apt install git-all"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "git --version",
+      "expected": "git version 2.x.y"
+    },
+    "macos": {
+      "command": "git --version",
+      "expected": "git version 2.x.y"
+    },
+    "linux": {
+      "command": "git --version",
+      "expected": "git version 2.x.y"
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "Windows: git is not recognized after installing",
+      "solution": "Close the terminal and open a new one, so it picks up the new path."
+    },
+    {
+      "problem": "You commit a large dataset by mistake",
+      "solution": "Keep datasets out of Git. Add the data folder to a .gitignore file before your first commit."
+    }
+  ],
+  "manual_review": [
+    "The download link points to the official install chapter of the Git book. Confirm the direct downloads page for each system."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://git-scm.com/book/en/v2/Getting-Started-Installing-Git",
+    "https://git-scm.com/install/windows"
+  ],
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Enregistre chaque version de votre code et de vos réglages, pour pouvoir refaire une expérience et montrer exactement ce que vous avez lancé.",
+      "version_guidance": "Installez la dernière version stable proposée pour votre système.",
+      "install": {
+        "windows": [
+          "Téléchargez et lancez l’installateur Git for Windows depuis git-scm.com. Les options par défaut conviennent à la plupart des étudiants."
+        ],
+        "macos": [
+          "Lancez la commande ci-dessous. Si Git manque, macOS propose d’installer les Command Line Tools, qui contiennent Git."
+        ],
+        "linux": [
+          "Sur Debian ou Ubuntu, installez-le avec apt. Sur Fedora, utilisez dnf."
+        ]
+      },
+      "expected": {
+        "windows": "git version 2.x.y",
+        "macos": "git version 2.x.y",
+        "linux": "git version 2.x.y"
+      },
+      "common_problems": [
+        {
+          "problem": "Windows : git n’est pas reconnu après l’installation",
+          "solution": "Fermez le terminal et ouvrez-en un nouveau, pour qu’il prenne en compte le nouveau chemin."
+        },
+        {
+          "problem": "Vous enregistrez par erreur un gros jeu de données dans Git",
+          "solution": "Gardez les jeux de données hors de Git. Ajoutez le dossier des données à un fichier .gitignore avant votre premier commit."
+        }
+      ]
+    }
+  }
+}

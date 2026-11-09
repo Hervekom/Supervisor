@@ -1,4 +1,6 @@
 import type { Coverage } from './limits';
+import type { LabState } from './lab';
+import type { RunRecord } from './runs';
 import type { DegreeType, Profile, Rule, Stage } from './types';
 
 export type Task = { do: string; how: string; stuck?: string };
@@ -87,6 +89,7 @@ export const STEPS: Step[] = [
       { do: 'Check ethics and permissions', how: 'Ask whether you need ethics approval, consent or data permission. Keep the proof.' },
     ],
     mistakes: ['Choosing a method because it is popular', 'Combining methods without a reason', 'Choosing success measures after seeing results'],
+    tool: { href: '/lab', label: 'Set up your computer' },
     workLabel: 'Your method, why you chose it, and how you will evaluate results',
     coachFocus: 'fit between question and method, validity, reproducibility',
   },
@@ -131,6 +134,7 @@ export const STEPS: Step[] = [
       { do: 'Evaluate on the test set once', how: 'Use it only at the end, then save the outputs, logs and model weights.' },
     ],
     mistakes: ['Tuning on the test set', 'Reporting only the best run', 'Comparing models on different data', 'Scaling or balancing data before the split'],
+    tool: { href: '/lab', label: 'Set up your computer' },
     workLabel: 'Your model, data split, settings and what you ran',
     coachFocus: 'data leakage, fair comparison, repeat runs, and whether the plan can answer the research question',
     optional: true,
@@ -416,6 +420,10 @@ export type PathState = {
   log: LogEntry[];
   structure?: StructureId;
   parts?: Record<string, string>;
+  /** Lab setup progress. Optional, so older saved copies stay valid. */
+  lab?: LabState;
+  /** Experiment runs the student reported by hand. Optional, so older saved copies stay valid. */
+  runs?: RunRecord[];
 };
 
 export type Verdict = 'not_ready' | 'almost' | 'ready';

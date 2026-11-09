@@ -1,0 +1,122 @@
+{
+  "id": "scikit-learn",
+  "name": "scikit-learn",
+  "kind": "python_package",
+  "purpose": "Classic machine learning methods, data splitting and evaluation metrics. Useful for baselines even in deep learning work.",
+  "work_types": [
+    "data_science",
+    "machine_learning",
+    "nlp"
+  ],
+  "level": "required",
+  "publisher_domain": "scikit-learn.org",
+  "official_download_url": "https://scikit-learn.org/stable/install.html",
+  "official_docs_url": "https://scikit-learn.org/stable/",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the latest release. scikit-learn 1.7 and later need Python 3.10 or newer.",
+  "prerequisites": [
+    "python",
+    "pip",
+    "venv"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install scikit-learn.",
+        "command": "python -m pip install scikit-learn"
+      }
+    ],
+    "macos": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install scikit-learn.",
+        "command": "python -m pip install scikit-learn"
+      }
+    ],
+    "linux": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install scikit-learn.",
+        "command": "python -m pip install scikit-learn"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "python -c \"import sklearn; print('scikit-learn', sklearn.__version__)\"",
+      "expected": "One line: scikit-learn and its version, for example scikit-learn 1.x.y. ModuleNotFoundError means it is not installed in the active environment."
+    },
+    "macos": {
+      "command": "python -c \"import sklearn; print('scikit-learn', sklearn.__version__)\"",
+      "expected": "One line: scikit-learn and its version, for example scikit-learn 1.x.y. ModuleNotFoundError means it is not installed in the active environment."
+    },
+    "linux": {
+      "command": "python -c \"import sklearn; print('scikit-learn', sklearn.__version__)\"",
+      "expected": "One line: scikit-learn and its version, for example scikit-learn 1.x.y. ModuleNotFoundError means it is not installed in the active environment."
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "ModuleNotFoundError when importing it",
+      "solution": "Your virtual environment is probably not active, or the package went into another Python. Activate the environment, then install again with python -m pip install."
+    },
+    {
+      "problem": "Windows: OSError: [Errno 2] No such file or directory during install",
+      "solution": "The install path is too long for Windows. The official guide explains how to enable long paths. Ask your supervisor or IT before changing the registry."
+    }
+  ],
+  "manual_review": [
+    "Verification command prints a label before the version so the check is specific to this package. It uses the package's standard __version__ attribute and is not quoted from the official page."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://scikit-learn.org/stable/install.html"
+  ],
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Méthodes classiques d’apprentissage automatique, découpage des données et métriques d’évaluation. Utile pour les modèles de référence, même en apprentissage profond.",
+      "version_guidance": "Installez la dernière version. scikit-learn 1.7 et suivantes demandent Python 3.10 ou plus récent.",
+      "install": {
+        "windows": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez scikit-learn."
+        ],
+        "macos": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez scikit-learn."
+        ],
+        "linux": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez scikit-learn."
+        ]
+      },
+      "expected": {
+        "windows": "Une ligne : scikit-learn et sa version, par exemple scikit-learn 1.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif.",
+        "macos": "Une ligne : scikit-learn et sa version, par exemple scikit-learn 1.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif.",
+        "linux": "Une ligne : scikit-learn et sa version, par exemple scikit-learn 1.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif."
+      },
+      "common_problems": [
+        {
+          "problem": "ModuleNotFoundError à l’import",
+          "solution": "Votre environnement virtuel n’est sans doute pas actif, ou le paquet est allé dans un autre Python. Activez l’environnement, puis réinstallez avec python -m pip install."
+        },
+        {
+          "problem": "Windows : OSError: [Errno 2] No such file or directory pendant l’installation",
+          "solution": "Le chemin d’installation est trop long pour Windows. Le guide officiel explique comment activer les chemins longs. Demandez à votre encadrant ou au service informatique avant de modifier le registre."
+        }
+      ]
+    }
+  }
+}

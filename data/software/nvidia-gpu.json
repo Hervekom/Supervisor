@@ -1,0 +1,108 @@
+{
+  "id": "nvidia-gpu",
+  "name": "NVIDIA driver and CUDA",
+  "kind": "guidance",
+  "purpose": "Lets deep learning use an NVIDIA graphics card. Only needed if your computer has an NVIDIA GPU and you plan to train on it.",
+  "work_types": [
+    "deep_learning",
+    "computer_vision",
+    "nlp"
+  ],
+  "level": "conditional",
+  "condition": "nvidia_gpu",
+  "publisher_domain": "www.nvidia.com",
+  "official_download_url": "https://www.nvidia.com/en-us/drivers/",
+  "official_docs_url": "https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html",
+  "os": [
+    "windows",
+    "linux"
+  ],
+  "version_guidance": "Install a recent official driver for your GPU first. Install the full CUDA Toolkit only if your project compiles CUDA code or your supervisor asks for it. Pick the PyTorch CUDA option from its own selector.",
+  "prerequisites": [],
+  "install": {
+    "windows": [
+      {
+        "text": "Find your GPU model and download its driver from the official NVIDIA drivers page."
+      },
+      {
+        "text": "Only if needed: install the CUDA Toolkit following NVIDIA’s Windows guide. Since CUDA 13.1, the driver is not bundled with the Toolkit and must be installed separately first."
+      }
+    ],
+    "linux": [
+      {
+        "text": "Install the official NVIDIA driver for your distribution and GPU. Follow NVIDIA’s Linux guide, or your lab’s instructions on shared machines."
+      },
+      {
+        "text": "Only if needed: install the CUDA Toolkit following NVIDIA’s Linux installation guide."
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "nvidia-smi",
+      "expected": "A table with your GPU name and driver version. If the command is not found, the driver is missing."
+    },
+    "linux": {
+      "command": "nvidia-smi",
+      "expected": "A table with your GPU name and driver version. If the command is not found, the driver is missing."
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "nvidia-smi is not recognized",
+      "solution": "The NVIDIA driver is not installed, or the computer has no NVIDIA GPU. Install the driver from the official page, then restart."
+    },
+    {
+      "problem": "A shared lab server",
+      "solution": "Do not install drivers yourself. Ask the server administrator which CUDA setup is available."
+    },
+    {
+      "problem": "macOS",
+      "solution": "Recent Macs do not use NVIDIA GPUs, so this card does not apply. Use the CPU setup."
+    }
+  ],
+  "manual_review": [
+    "Whether PyTorch pip packages need a separately installed CUDA Toolkit was not confirmed from an official page in this review. The card only says to install the Toolkit when the project needs it.",
+    "The Linux driver steps are general. Confirm the distribution-specific steps."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/index.html",
+    "https://docs.nvidia.com/cuda/cuda-installation-guide-linux/",
+    "https://www.nvidia.com/en-us/drivers/"
+  ],
+  "i18n": {
+    "fr": {
+      "purpose": "Permet à l’apprentissage profond d’utiliser une carte graphique NVIDIA. Utile seulement si votre ordinateur a un GPU NVIDIA et que vous comptez entraîner dessus.",
+      "version_guidance": "Installez d’abord un pilote officiel récent pour votre GPU. N’installez le CUDA Toolkit complet que si votre projet compile du code CUDA ou si votre encadrant le demande. Choisissez l’option CUDA de PyTorch dans son propre sélecteur.",
+      "install": {
+        "windows": [
+          "Trouvez le modèle de votre GPU et téléchargez son pilote sur la page officielle des pilotes NVIDIA.",
+          "Seulement si nécessaire : installez le CUDA Toolkit en suivant le guide Windows de NVIDIA. Depuis CUDA 13.1, le pilote n’est plus fourni avec le Toolkit et doit être installé à part, en premier."
+        ],
+        "linux": [
+          "Installez le pilote NVIDIA officiel pour votre distribution et votre GPU. Suivez le guide Linux de NVIDIA, ou les consignes de votre laboratoire sur les machines partagées.",
+          "Seulement si nécessaire : installez le CUDA Toolkit en suivant le guide d’installation Linux de NVIDIA."
+        ]
+      },
+      "expected": {
+        "windows": "Un tableau avec le nom de votre GPU et la version du pilote. Si la commande est introuvable, le pilote manque.",
+        "linux": "Un tableau avec le nom de votre GPU et la version du pilote. Si la commande est introuvable, le pilote manque."
+      },
+      "common_problems": [
+        {
+          "problem": "nvidia-smi n’est pas reconnu",
+          "solution": "Le pilote NVIDIA n’est pas installé, ou l’ordinateur n’a pas de GPU NVIDIA. Installez le pilote depuis la page officielle, puis redémarrez."
+        },
+        {
+          "problem": "Un serveur partagé du laboratoire",
+          "solution": "N’installez pas de pilotes vous-même. Demandez à l’administrateur du serveur quelle configuration CUDA est disponible."
+        },
+        {
+          "problem": "macOS",
+          "solution": "Les Mac récents n’utilisent pas de GPU NVIDIA, cette fiche ne s’applique donc pas. Utilisez la configuration CPU."
+        }
+      ]
+    }
+  }
+}

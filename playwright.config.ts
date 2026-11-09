@@ -10,6 +10,8 @@ const appEnv = {
   LLM_BASE_URL: `http://127.0.0.1:${MOCK_PORT}`,
   LLM_API_KEY: 'e2e-mock-key',
   LLM_MODEL: 'e2e-mock-model',
+  // Lets this production build run without sign-in, for tests only. Never set on a real deployment.
+  SUPERVISOR_OPEN_AUTH: '1',
 };
 
 export default defineConfig({

@@ -1,0 +1,117 @@
+{
+  "id": "numpy",
+  "name": "NumPy",
+  "kind": "python_package",
+  "purpose": "Fast arrays and maths. Most data and machine learning libraries are built on it.",
+  "work_types": [
+    "statistics",
+    "data_science",
+    "machine_learning",
+    "deep_learning",
+    "computer_vision",
+    "nlp"
+  ],
+  "level": "required",
+  "publisher_domain": "numpy.org",
+  "official_download_url": "https://numpy.org/install/",
+  "official_docs_url": "https://numpy.org/doc/stable/",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the latest release that supports your Python version. Record the installed version in your research log.",
+  "prerequisites": [
+    "python",
+    "pip",
+    "venv"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install NumPy.",
+        "command": "python -m pip install numpy"
+      }
+    ],
+    "macos": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install NumPy.",
+        "command": "python -m pip install numpy"
+      }
+    ],
+    "linux": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install NumPy.",
+        "command": "python -m pip install numpy"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "python -c \"import numpy; print('numpy', numpy.__version__)\"",
+      "expected": "One line: numpy and its version, for example numpy 2.x.y. ModuleNotFoundError means it is not installed in the active environment."
+    },
+    "macos": {
+      "command": "python -c \"import numpy; print('numpy', numpy.__version__)\"",
+      "expected": "One line: numpy and its version, for example numpy 2.x.y. ModuleNotFoundError means it is not installed in the active environment."
+    },
+    "linux": {
+      "command": "python -c \"import numpy; print('numpy', numpy.__version__)\"",
+      "expected": "One line: numpy and its version, for example numpy 2.x.y. ModuleNotFoundError means it is not installed in the active environment."
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "ModuleNotFoundError when importing it",
+      "solution": "Your virtual environment is probably not active, or the package went into another Python. Activate the environment, then install again with python -m pip install."
+    }
+  ],
+  "manual_review": [
+    "Verification command prints a label before the version so the check is specific to this package. It uses the package's standard __version__ attribute and is not quoted from the official page."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://numpy.org/install/"
+  ],
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Tableaux et calculs rapides. La plupart des bibliothèques de données et d’apprentissage automatique reposent dessus.",
+      "version_guidance": "Installez la dernière version compatible avec votre version de Python. Notez la version installée dans votre journal de recherche.",
+      "install": {
+        "windows": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez NumPy."
+        ],
+        "macos": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez NumPy."
+        ],
+        "linux": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez NumPy."
+        ]
+      },
+      "expected": {
+        "windows": "Une ligne : numpy et sa version, par exemple numpy 2.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif.",
+        "macos": "Une ligne : numpy et sa version, par exemple numpy 2.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif.",
+        "linux": "Une ligne : numpy et sa version, par exemple numpy 2.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif."
+      },
+      "common_problems": [
+        {
+          "problem": "ModuleNotFoundError à l’import",
+          "solution": "Votre environnement virtuel n’est sans doute pas actif, ou le paquet est allé dans un autre Python. Activez l’environnement, puis réinstallez avec python -m pip install."
+        }
+      ]
+    }
+  }
+}

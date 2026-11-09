@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount } from '@/components/useAccount';
 import { put, useProfiles } from '@/components/useProfiles';
+import { ResearchEvidence } from '@/components/ResearchEvidence';
 import { usePathSync } from '@/components/usePathSync';
 import { count } from '@/lib/limits';
 import { emptyPath, isPathState, type PathState, type StructureId } from '@/lib/path';
@@ -77,6 +78,7 @@ export default function DocumentPage() {
       <p className="lede">Each step gives you the ingredients for a part of your thesis. You write the text here, in your own words.</p>
 
       {sync.conflict ? <p className="notice" role="alert" style={{ marginTop: 12 }}>Two versions of your thesis exist. <Link href="/">Open My thesis</Link> to choose one.</p> : null}
+      <ResearchEvidence path={path} />
 
       <div className="sheet" style={{ marginTop: 20 }}>
         <div className="field">
