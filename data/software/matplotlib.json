@@ -56,16 +56,16 @@
   },
   "verify": {
     "windows": {
-      "command": "python -c \"import matplotlib; print(matplotlib.__version__)\"",
-      "expected": "A version number, for example 2.1.0. An error such as ModuleNotFoundError means it is not installed in the active environment."
+      "command": "python -c \"import matplotlib; print('matplotlib', matplotlib.__version__)\"",
+      "expected": "One line: matplotlib and its version, for example matplotlib 3.x.y. ModuleNotFoundError means it is not installed in the active environment."
     },
     "macos": {
-      "command": "python -c \"import matplotlib; print(matplotlib.__version__)\"",
-      "expected": "A version number, for example 2.1.0. An error such as ModuleNotFoundError means it is not installed in the active environment."
+      "command": "python -c \"import matplotlib; print('matplotlib', matplotlib.__version__)\"",
+      "expected": "One line: matplotlib and its version, for example matplotlib 3.x.y. ModuleNotFoundError means it is not installed in the active environment."
     },
     "linux": {
-      "command": "python -c \"import matplotlib; print(matplotlib.__version__)\"",
-      "expected": "A version number, for example 2.1.0. An error such as ModuleNotFoundError means it is not installed in the active environment."
+      "command": "python -c \"import matplotlib; print('matplotlib', matplotlib.__version__)\"",
+      "expected": "One line: matplotlib and its version, for example matplotlib 3.x.y. ModuleNotFoundError means it is not installed in the active environment."
     }
   },
   "common_problems": [
@@ -78,7 +78,9 @@
       "solution": "Add plt.show() at the end, or save the figure with plt.savefig(\"figure.png\")."
     }
   ],
-  "manual_review": [],
+  "manual_review": [
+    "Verification command prints a label before the version so the check is specific to this package. It uses the package's standard __version__ attribute and is not quoted from the official page."
+  ],
   "last_reviewed": "2026-11-09",
   "sources": [
     "https://matplotlib.org/stable/install/index.html"

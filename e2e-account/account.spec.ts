@@ -226,3 +226,40 @@ test('signed-in critique with no AI explains what to do next', async ({ page }) 
   await expect(page.locator('.error')).toContainText("AI feedback isn't set up yet");
   await expect(page.locator('.error a')).toHaveAttribute('href', '/account');
 });
+
+// ---------- Lab progress (Phase B1) ----------
+
+const labCard = (page: Page, name: string) => page.locator('.lab-card').filter({ has: page.getByRole('heading', { name, exact: true }) });
+
+test('B1: a verified Lab result is saved with the thesis in the account', async ({ page }) => {
+  await seedLocal(page, started('Thesis work that must stay'));
+  await signIn(page);
+  await expect(page.getByText('The work from this browser is saved to your account.')).toBeVisible();
+  await page.goto('/lab');
+  await page.getByRole('checkbox', { name: /^Python programming/ }).check();
+  await page.getByRole('radio', { name: 'Windows', exact: true }).check();
+  const py = labCard(page, 'Python');
+  await py.getByLabel('Paste what the command printed').fill('Python 3.12.7');
+  await py.getByRole('button', { name: 'Check output' }).click();
+  await expect(py.getByTestId('status-python')).toHaveText('Verified');
+  await expect.poll(async () => (await state()).row?.data?.lab?.tools?.python?.check?.status, { timeout: 15_000 }).toBe('verified');
+  const row = (await state()).row.data;
+  expect(row.steps.title.work).toBe('Thesis work that must stay');
+  expect(JSON.stringify(row.lab)).not.toContain('3.12.7\n');
+  await expect(page.getByText('Your Lab progress is saved with your thesis in your account.')).toBeVisible();
+});
+
+test('B1: Lab progress alone does not start a "two versions" choice, and survives sign-in', async ({ page }) => {
+  await fetch(`${S}/__row`, { method: 'POST', body: JSON.stringify({ data: started('Work already in the account', { savedAt: '2026-10-01T00:00:00.000Z' }), updated_at: '2026-10-01T00:00:00+00:00' }) });
+  await page.goto('/lab');
+  await page.getByRole('checkbox', { name: /^Python programming/ }).check();
+  await page.getByRole('radio', { name: 'Windows', exact: true }).check();
+  await labCard(page, 'Git').getByRole('checkbox', { name: 'I followed the installation steps' }).check();
+  await signIn(page);
+  await page.goto('/lab');
+  await expect(page.getByText(/Two versions/)).toHaveCount(0);
+  await expect(labCard(page, 'Git').getByTestId('status-git')).toHaveText('Installation marked complete by you');
+  // The account's thesis came in, and the Lab progress joined it.
+  await expect.poll(async () => (await state()).row.data.lab?.tools?.git?.marked, { timeout: 15_000 }).toBe(true);
+  expect((await state()).row.data.steps.title.work).toBe('Work already in the account');
+});

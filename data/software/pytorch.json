@@ -60,16 +60,16 @@
   },
   "verify": {
     "windows": {
-      "command": "python -c \"import torch; print(torch.__version__); print(torch.cuda.is_available())\"",
-      "expected": "A version number, then True if your NVIDIA GPU can be used, or False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
+      "command": "python -c \"import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())\"",
+      "expected": "One line: torch, its version, then cuda True if your NVIDIA GPU can be used, or cuda False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
     },
     "macos": {
-      "command": "python -c \"import torch; print(torch.__version__); print(torch.cuda.is_available())\"",
-      "expected": "A version number, then True if your NVIDIA GPU can be used, or False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
+      "command": "python -c \"import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())\"",
+      "expected": "One line: torch, its version, then cuda True if your NVIDIA GPU can be used, or cuda False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
     },
     "linux": {
-      "command": "python -c \"import torch; print(torch.__version__); print(torch.cuda.is_available())\"",
-      "expected": "A version number, then True if your NVIDIA GPU can be used, or False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
+      "command": "python -c \"import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())\"",
+      "expected": "One line: torch, its version, then cuda True if your NVIDIA GPU can be used, or cuda False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
     }
   },
   "common_problems": [
@@ -88,7 +88,8 @@
   ],
   "manual_review": [
     "The Python range on the PyTorch page conflicts (3.10 to 3.14 in the system notes, 3.11 or later in the top note). Confirm before each review.",
-    "The page does not mention Apple GPU (MPS) support, so this card makes no claim about it."
+    "The page does not mention Apple GPU (MPS) support, so this card makes no claim about it.",
+    "Verification command prints a label before the version so the check is specific to this package. It uses the package's standard __version__ attribute and is not quoted from the official page."
   ],
   "last_reviewed": "2026-11-09",
   "sources": [

@@ -69,16 +69,16 @@
   },
   "verify": {
     "windows": {
-      "command": "jupyter lab --version",
-      "expected": "A version number such as 4.x.y. Start it with: jupyter lab"
+      "command": "python -c \"import jupyterlab; print('jupyterlab', jupyterlab.__version__)\"",
+      "expected": "One line: jupyterlab and its version, for example jupyterlab 4.x.y. To start it, run: jupyter lab"
     },
     "macos": {
-      "command": "jupyter lab --version",
-      "expected": "A version number such as 4.x.y. Start it with: jupyter lab"
+      "command": "python -c \"import jupyterlab; print('jupyterlab', jupyterlab.__version__)\"",
+      "expected": "One line: jupyterlab and its version, for example jupyterlab 4.x.y. To start it, run: jupyter lab"
     },
     "linux": {
-      "command": "jupyter lab --version",
-      "expected": "A version number such as 4.x.y. Start it with: jupyter lab"
+      "command": "python -c \"import jupyterlab; print('jupyterlab', jupyterlab.__version__)\"",
+      "expected": "One line: jupyterlab and its version, for example jupyterlab 4.x.y. To start it, run: jupyter lab"
     }
   },
   "common_problems": [
@@ -96,7 +96,8 @@
     }
   ],
   "manual_review": [
-    "The install command is the official pip command, run as python -m pip."
+    "The install command is the official pip command, run as python -m pip.",
+    "Verification command prints a label before the version so the check is specific to this package. It uses the package's standard __version__ attribute and is not quoted from the official page."
   ],
   "last_reviewed": "2026-11-09",
   "sources": [

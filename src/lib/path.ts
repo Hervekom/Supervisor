@@ -1,4 +1,5 @@
 import type { Coverage } from './limits';
+import type { LabState } from './lab';
 import type { DegreeType, Profile, Rule, Stage } from './types';
 
 export type Task = { do: string; how: string; stuck?: string };
@@ -418,6 +419,8 @@ export type PathState = {
   log: LogEntry[];
   structure?: StructureId;
   parts?: Record<string, string>;
+  /** Lab setup progress. Optional, so older saved copies stay valid. */
+  lab?: LabState;
 };
 
 export type Verdict = 'not_ready' | 'almost' | 'ready';

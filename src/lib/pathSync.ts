@@ -7,6 +7,10 @@ export const SYNC_KEY = 'path:sync:v1';
 export const REPLACED_KEY = 'path:replaced:v1';
 /** The conversation stays in this browser. */
 export const CHEF_KEY = 'chef:v1';
+/** Browser copy of the Lab progress, kept so it survives when the account's copy replaces this browser's. */
+export const LAB_MIRROR_KEY = 'lab:v2';
+/** Lab progress from before it was saved with the thesis. Read once, never written. */
+export const LAB_V1_KEY = 'lab:v1';
 
 export type CloudPath = { data: PathState | null; version: string };
 export type SaveResult = { status: 'saved'; version: string } | { status: 'conflict' };
@@ -68,6 +72,8 @@ export function clearLocalCopy() {
     localStorage.removeItem(SYNC_KEY);
     localStorage.removeItem(REPLACED_KEY);
     localStorage.removeItem(CHEF_KEY);
+    localStorage.removeItem(LAB_MIRROR_KEY);
+    localStorage.removeItem(LAB_V1_KEY);
   } catch {}
 }
 

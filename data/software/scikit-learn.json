@@ -54,16 +54,16 @@
   },
   "verify": {
     "windows": {
-      "command": "python -c \"import sklearn; sklearn.show_versions()\"",
-      "expected": "A list of versions for Python, scikit-learn and its dependencies"
+      "command": "python -c \"import sklearn; print('scikit-learn', sklearn.__version__)\"",
+      "expected": "One line: scikit-learn and its version, for example scikit-learn 1.x.y. ModuleNotFoundError means it is not installed in the active environment."
     },
     "macos": {
-      "command": "python -c \"import sklearn; sklearn.show_versions()\"",
-      "expected": "A list of versions for Python, scikit-learn and its dependencies"
+      "command": "python -c \"import sklearn; print('scikit-learn', sklearn.__version__)\"",
+      "expected": "One line: scikit-learn and its version, for example scikit-learn 1.x.y. ModuleNotFoundError means it is not installed in the active environment."
     },
     "linux": {
-      "command": "python -c \"import sklearn; sklearn.show_versions()\"",
-      "expected": "A list of versions for Python, scikit-learn and its dependencies"
+      "command": "python -c \"import sklearn; print('scikit-learn', sklearn.__version__)\"",
+      "expected": "One line: scikit-learn and its version, for example scikit-learn 1.x.y. ModuleNotFoundError means it is not installed in the active environment."
     }
   },
   "common_problems": [
@@ -76,7 +76,9 @@
       "solution": "The install path is too long for Windows. The official guide explains how to enable long paths. Ask your supervisor or IT before changing the registry."
     }
   ],
-  "manual_review": [],
+  "manual_review": [
+    "Verification command prints a label before the version so the check is specific to this package. It uses the package's standard __version__ attribute and is not quoted from the official page."
+  ],
   "last_reviewed": "2026-11-09",
   "sources": [
     "https://scikit-learn.org/stable/install.html"

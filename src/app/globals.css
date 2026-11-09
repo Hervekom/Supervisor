@@ -265,3 +265,20 @@ fieldset.field { border: 0; padding: 0; margin: 0; min-width: 0; }
 .pc-note { display: none; margin-top: 14px; }
 @media (max-width: 720px) { .pc-note { display: block; } }
 @media (max-width: 640px) { .topbar nav { display: grid; grid-template-columns: repeat(3, 1fr); } .topbar nav a { white-space: nowrap; } }
+.lab-verify { border-top: 1px solid var(--rule); padding-top: 10px; display: grid; gap: 6px; }
+.lab-verify textarea { background: #fff; border: 1px solid var(--rule); border-radius: 12px; padding: 9px 10px; width: 100%; min-height: 84px; resize: vertical; font: .86rem/1.45 ui-monospace, 'Cascadia Mono', Consolas, monospace; }
+.lab-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lab-result { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--desk); border: 1px solid var(--rule); }
+.lab-result p { margin: 0; }
+.lab-result.verified { border-color: var(--good); }
+.lab-result.failed { border-color: var(--stop); }
+.lab-result.manual_review, .lab-result.pending { border-color: var(--pen); }
+.lab-badge { margin: 0; justify-self: start; font: 600 .8rem var(--sans); padding: 3px 10px; border-radius: 999px; background: var(--blush); color: var(--ink-soft); }
+.lab-badge.verified { background: #e3f3ec; color: var(--good); }
+.lab-badge.failed { background: #f9e4e6; color: var(--stop); }
+.lab-badge.manual_review, .lab-badge.pending { background: var(--blush); color: var(--pen-deep); }
+/* On small screens the Ask Supervisor button is smaller, and steps aside while the student types. */
+@media (max-width: 720px) {
+  .chef-open { right: 12px; bottom: 12px; padding: 8px 14px; font-size: .86rem; }
+  body:has(textarea:focus, input[type=text]:focus, input[type=email]:focus, input[type=password]:focus, input[type=search]:focus, select:focus) .chef-open { display: none; }
+}
