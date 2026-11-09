@@ -3,6 +3,7 @@
 // the version found and a short reason code are kept.
 
 import { fill, t, type Lang } from './i18n';
+import { findPii } from './pii';
 import type { GpuAnswer, Os } from './software';
 
 /** Raise this when a rule changes, so older results are shown as needing a new check. */
@@ -46,7 +47,7 @@ function pkgCommand(module: string, label: string) {
 
 // ---------- Sensitive information ----------
 
-export type Sensitive = 'user_path' | 'email' | 'ip' | 'secret';
+export type Sensitive = 'user_path' | 'email' | 'ip' | 'secret' | 'device' | 'phone' | 'user_name';
 
 const SECRET = [
   /\bsk-[A-Za-z0-9_-]{16,}/, // API keys in the common sk- format
@@ -63,6 +64,7 @@ export function findSensitive(text: string): Sensitive[] {
   if (/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(text)) found.add('email');
   if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(text) && [...text.matchAll(/\b((?:\d{1,3}\.){3}\d{1,3})\b/g)].some((m) => m[1].split('.').every((n) => +n <= 255) && !isVersionContext(text, m.index ?? 0))) found.add('ip');
   if (SECRET.some((r) => r.test(text))) found.add('secret');
+  for (const k of findPii(text)) found.add(k);
   return [...found];
 }
 /** "Driver Version: 560.94.0.1" style numbers are versions, not addresses. */

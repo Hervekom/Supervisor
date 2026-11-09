@@ -216,7 +216,9 @@ describe('accounts', async () => {
     set();
     const req = new Request('http://x', { headers: { authorization: 'Bearer t' } });
     expect((await checkUser(req, (async () => new Response('', { status: 401 })) as typeof fetch)).ok).toBe(false);
-    expect((await checkUser(req, (async () => new Response('{}')) as typeof fetch)).ok).toBe(true);
+    // A session must name its user, so the fair-use limit always has someone to count.
+    expect((await checkUser(req, (async () => new Response('{"id":"u1","email":"a@b.test"}')) as typeof fetch))).toEqual({ ok: true, userId: 'u1', email: 'a@b.test' });
+    expect((await checkUser(req, (async () => new Response('{}')) as typeof fetch)).ok).toBe(false);
     delete process.env.NEXT_PUBLIC_SUPABASE_URL;
     delete process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   });

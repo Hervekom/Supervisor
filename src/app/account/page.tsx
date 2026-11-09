@@ -6,7 +6,7 @@ import { RESET_PATH, useAccount } from '@/components/useAccount';
 import { clearAi } from '@/lib/aiSettings';
 import { authMessage, isNetworkFailure } from '@/lib/authMessages';
 import { MESSAGES } from '@/lib/messages';
-import { clearLocalCopy, confirmSynced, hasWork, readLocalPath, syncNow, type SignOutCheck } from '@/lib/pathSync';
+import { clearLocalCopy, confirmSynced, hasWork, labAtRisk, mergeLabMirror, readLabMirror, readLocalPath, syncNow, type LabRisk, type SignOutCheck } from '@/lib/pathSync';
 import { cloudPaths, supabase } from '@/lib/supabase';
 
 const NOT_SET_UP = 'Accounts are not set up on this server.';
@@ -22,6 +22,7 @@ export default function AccountPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [signOutProblem, setSignOutProblem] = useState<Exclude<SignOutCheck, 'ok'> | null>(null);
+  const [labRisk, setLabRisk] = useState<LabRisk | null>(null);
   const [syncNote, setSyncNote] = useState('');
   const syncedFor = useRef('');
 
@@ -76,15 +77,25 @@ export default function AccountPage() {
     return true;
   }
 
-  async function signOut() {
+  /** `lab` is what to do with Lab progress that cannot reach the account: ask first, keep it here, or delete it. */
+  async function signOut(lab: 'ask' | 'keep' | 'delete' = 'ask') {
     if (!user) return;
     setBusy(true);
     setError('');
     setMessage('');
     setSyncNote('');
+    // Newer Lab progress joins the thesis copy, so the normal save below sends it to the account.
+    mergeLabMirror();
+    const risk = labAtRisk(readLocalPath(), readLabMirror());
+    if (risk && lab === 'ask') {
+      setLabRisk(risk);
+      setBusy(false);
+      return;
+    }
+    setLabRisk(null);
     const check = await confirmSynced(user.id, cloudPaths);
     if (check !== 'ok') setSignOutProblem(check);
-    else if (await finishSignOut('Signed out. Your work is saved to your account.')) clearLocalCopy();
+    else if (await finishSignOut(risk && lab === 'keep' ? 'Signed out. Your thesis work is saved to your account. Your Lab progress stays in this browser.' : 'Signed out. Your work is saved to your account.')) clearLocalCopy({ keepLab: !!risk && lab === 'keep' });
     setBusy(false);
   }
 
@@ -108,7 +119,22 @@ export default function AccountPage() {
         <div className="form" style={{ marginTop: 20 }}>
           <p>Signed in as <b>{user.email}</b></p>
           {syncNote ? <p className="hint" role="status">{syncNote}</p> : null}
-          <div><button className="btn ghost" disabled={busy} onClick={signOut}>{busy ? 'Checking your work is saved…' : 'Sign out'}</button></div>
+          <div><button className="btn ghost" disabled={busy} onClick={() => signOut()}>{busy ? 'Checking your work is saved…' : 'Sign out'}</button></div>
+          {labRisk ? (
+            <div className="notice" role="alertdialog" aria-labelledby="lab-risk-title" aria-describedby="lab-risk-text">
+              <p id="lab-risk-title"><b>Your Lab progress is not saved to your account.</b></p>
+              <p id="lab-risk-text">
+                This browser holds {labRisk.verified} verified tool{labRisk.verified === 1 ? '' : 's'}, {labRisk.checked} check result{labRisk.checked === 1 ? '' : 's'} in total and {labRisk.marked} tick{labRisk.marked === 1 ? '' : 's'}.
+                Lab progress is saved to your account only once you start your thesis. Signing out normally deletes it from this browser.
+              </p>
+              <div className="ask" style={{ marginTop: 10 }}>
+                <button className="btn" disabled={busy} onClick={() => signOut('keep')}>Keep it in this browser and sign out</button>
+                <button className="btn ghost" disabled={busy} onClick={() => signOut('delete')}>Delete it and sign out</button>
+                <button className="btn ghost" disabled={busy} onClick={() => setLabRisk(null)}>Cancel</button>
+              </div>
+              <p className="hint">If you keep it, anyone using this browser can see which tools you checked. Nothing about your thesis is kept.</p>
+            </div>
+          ) : null}
           {signOutProblem ? (
             <div className="notice" role="alert">
               <p>
@@ -117,7 +143,7 @@ export default function AccountPage() {
                   : 'We could not confirm that your latest work is saved to your account, so you are still signed in and nothing was deleted.'}
               </p>
               <div className="ask" style={{ marginTop: 10 }}>
-                {signOutProblem === 'failed' ? <button className="btn" disabled={busy} onClick={signOut}>Try again</button> : null}
+                {signOutProblem === 'failed' ? <button className="btn" disabled={busy} onClick={() => signOut()}>Try again</button> : null}
                 <button className="btn ghost" disabled={busy} onClick={signOutKeepingCopy}>Sign out and keep my work in this browser</button>
               </div>
             </div>

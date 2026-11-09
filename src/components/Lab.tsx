@@ -5,6 +5,7 @@ import { useAccount } from '@/components/useAccount';
 import { put } from '@/components/useProfiles';
 import { Runs } from '@/components/Runs';
 import { usePathSync } from '@/components/usePathSync';
+import { supabase } from '@/lib/supabase';
 import { useLang } from '@/components/useLang';
 import { LANGS, t as messages, type Lang, type Messages } from '@/lib/i18n';
 import { cleanLab, currentCheck, emptyLab, fromLabV1, hasLabProgress, newerLab, recordCheck, setMarked, statusOf, update, type LabState, type LabStatus } from '@/lib/lab';
@@ -288,7 +289,7 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
         <p className="empty" style={{ marginTop: 24 }}>{!lab.workTypes.length ? m.emptyTypes : m.emptySystem}</p>
       ) : null}
 
-      {loaded ? <Runs path={path} os={os} editPath={editPath} lang={lang} /> : null}
+      {loaded ? <Runs path={path} os={os} editPath={editPath} lang={lang} signedOut={ready && !!supabase() && !user} /> : null}
     </div>
   );
 }

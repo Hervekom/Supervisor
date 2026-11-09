@@ -3,6 +3,7 @@
 
 import { fill, STEP_TITLES_FR, t, type Lang } from './i18n';
 import { findSensitive, type Sensitive } from './labVerify';
+import { identityWords, redactIdentity, redactPii } from './pii';
 import type { LabState } from './lab';
 import { STEPS } from './path';
 
@@ -54,7 +55,8 @@ export const emptyDraft = (): RunDraft => ({ step: 'experiments', outcome: 'comp
 /** Hides names in home-folder paths, emails, addresses and secrets. Returns what was hidden. */
 export function redact(text: string): { text: string; hidden: Sensitive[] } {
   const hidden = findSensitive(text);
-  let t = text
+  // Network paths, hosts, user names, serials and phones first, so the rules below see what is left.
+  const t = redactPii(text)
     .replace(/([A-Za-z]:\\Users\\)[^\\\s]+/gi, '$1[user]')
     .replace(/\/(Users|home)\/[^/\s]+/g, '/$1/[user]')
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[email]')
@@ -128,6 +130,16 @@ export function cleanRun(v: unknown): RunRecord | null {
   const d = cleanDraft(r);
   if (!d.name) return null;
   return { id: r.id, source: 'student', ...d, createdAt: r.createdAt.slice(0, 40), updatedAt: clip(r.updatedAt, 40) || r.createdAt.slice(0, 40), ...(typeof r.addedToSheet === 'string' ? { addedToSheet: r.addedToSheet.slice(0, 40) } : {}) };
+}
+
+/** Hides the student's own name, from the account email, in every text field of a run. Used on the server before AI calls. */
+export function withoutIdentity(r: RunRecord, email?: string): RunRecord {
+  const words = identityWords(email);
+  if (!words.length) return r;
+  const fields = ['name', 'purpose', 'dataset', 'split', 'model', 'settings', 'seeds', 'versions', 'hardware', 'duration', 'log', 'notes'] as const;
+  const out = { ...r, metrics: r.metrics.map((m) => ({ ...m, name: redactIdentity(m.name, words) })) };
+  for (const f of fields) out[f] = redactIdentity(r[f], words);
+  return out;
 }
 
 export const cleanRuns = (v: unknown): RunRecord[] => (Array.isArray(v) ? v.map(cleanRun).filter((r): r is RunRecord => !!r).slice(0, MAX_RUNS) : []);
@@ -280,6 +292,36 @@ export function runToText(r: RunRecord, lang: Lang = 'en'): string {
     r.notes && `${m.notes}: ${r.notes}`,
   ];
   return lines.filter(Boolean).join('\n');
+}
+
+/** A block that runToText wrote, in either language. */
+const RUN_BLOCK = /^(Run|Expérience) ?: /;
+
+/**
+ * Adds a run block to the results sheet. Existing text is never changed or removed.
+ * The standard template is put first when the notes are empty or hold only run blocks,
+ * so its headings stay available, and it is never added twice.
+ */
+export function appendToResultsSheet(work: string, block: string, template: string): string {
+  const text = work.trim();
+  const tpl = template.trim();
+  const firstHeading = tpl.split('\n')[0]?.trim();
+  const hasTemplate = !!firstHeading && text.includes(firstHeading);
+  const onlyRuns = !!text && text.split(/\n\s*\n/).every((b) => RUN_BLOCK.test(b.trim()));
+  if (!text) return tpl ? `${tpl}\n\n${block}` : block;
+  if (tpl && !hasTemplate && onlyRuns) return `${tpl}\n\n${text}\n\n${block}`;
+  return `${work.trimEnd()}\n\n${block}`;
+}
+
+/** The template for the Write tab: added when the notes are empty, or put before notes that hold only run blocks. */
+export function withResultsTemplate(work: string, template: string): string | null {
+  const text = work.trim();
+  const tpl = template.trim();
+  if (!tpl) return null;
+  if (!text) return template;
+  const firstHeading = tpl.split('\n')[0]?.trim();
+  const onlyRuns = text.split(/\n\s*\n/).every((b) => RUN_BLOCK.test(b.trim()));
+  return !text.includes(firstHeading) && onlyRuns ? `${tpl}\n\n${text}` : null;
 }
 
 /** Every number the student submitted in a run, so the AI reply can be checked against it. Dates are not included. */

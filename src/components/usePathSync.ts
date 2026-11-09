@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { emptyPath, type PathState } from '@/lib/path';
-import { isDirty, keepAccount, keepLocal, pushNow, readLocalPath, readSync, syncNow, type SyncOutcome } from '@/lib/pathSync';
+import { isDirty, keepAccount, keepLocal, pushNow, readLocalPath, readSync, setAside, syncNow, writeLocalPath, type SyncOutcome } from '@/lib/pathSync';
 import { cloudPaths } from '@/lib/supabase';
 
 export type SaveStatus = 'idle' | 'waiting' | 'saving' | 'saved' | 'unconfirmed' | 'conflict';
@@ -120,6 +120,24 @@ export function usePathSync(opts: { userId?: string; loaded: boolean; path: Path
     }
   }
 
+  /** Keeps the runs of both versions. Both original versions are set aside first, so nothing is lost. */
+  async function chooseCombined(merged: PathState) {
+    if (!userId || !conflict) return;
+    setResolving(true);
+    try {
+      setAside(readLocalPath());
+      writeLocalPath(merged);
+      replace(merged);
+      blocked.current = false;
+      apply(await keepLocal(userId, cloudPaths, conflict.cloud, conflict.version));
+    } catch {
+      blocked.current = true;
+      setStatus('conflict');
+    } finally {
+      setResolving(false);
+    }
+  }
+
   function chooseAccount() {
     if (!userId || !conflict) return;
     replace(keepAccount(userId, conflict.cloud, conflict.version, emptyPath()));
@@ -129,5 +147,5 @@ export function usePathSync(opts: { userId?: string; loaded: boolean; path: Path
     setSavedAt(new Date());
   }
 
-  return { status, savedAt, conflict, resolving, chooseThisBrowser, chooseAccount };
+  return { status, savedAt, conflict, resolving, chooseThisBrowser, chooseAccount, chooseCombined };
 }

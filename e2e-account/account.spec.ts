@@ -321,3 +321,92 @@ test('B2.1: a run step reaches a second device, and changing language saves noth
   await expect(other.getByTestId('research-evidence').getByText('1 linked to a step')).toBeVisible();
   await other.context().close();
 });
+
+// ---------- Phase B2.3 ----------
+
+async function labVerifiedAsGuest(page: Page) {
+  await page.goto('/lab');
+  await page.getByRole('checkbox', { name: /^Python programming/ }).check();
+  await page.getByRole('radio', { name: 'Windows', exact: true }).check();
+  const py = page.locator('.lab-card').filter({ has: page.getByRole('heading', { name: 'Python', exact: true }) });
+  await py.getByLabel('Paste what the command printed').fill('Python 3.12.7');
+  await py.getByRole('button', { name: 'Check output' }).click();
+  await expect(py.getByTestId('status-python')).toHaveText('Verified');
+}
+
+test('B2.3 D4: sign-out explains unsaved Lab progress; cancel, keep and delete all behave', async ({ page }) => {
+  await labVerifiedAsGuest(page);
+  await signIn(page);
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog.getByText('Your Lab progress is not saved to your account.')).toBeVisible();
+  await expect(dialog.getByText(/1 verified tool/)).toBeVisible();
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByText('Signed in as')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Keep it in this browser and sign out' }).click();
+  await expect(page.getByText('Your Lab progress stays in this browser.')).toBeVisible();
+  await page.goto('/lab');
+  await expect(page.getByTestId('status-python')).toHaveText('Verified');
+
+  await signIn(page);
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Delete it and sign out' }).click();
+  await expect(page.getByText('Signed out. Your work is saved to your account.')).toBeVisible();
+  expect(await page.evaluate(() => [localStorage.getItem('lab:v2'), localStorage.getItem('path:v1')])).toEqual([null, null]);
+});
+
+test('B2.3 D4: Lab progress travels with a started thesis, so sign-out asks nothing and loses nothing', async ({ page, browser }) => {
+  await labVerifiedAsGuest(page);
+  await seedLocal(page, started('Thesis work'));
+  await signIn(page);
+  await expect(page.getByText('The work from this browser is saved to your account.')).toBeVisible();
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByText('Signed out. Your work is saved to your account.')).toBeVisible();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  expect((await state()).row.data.lab?.tools?.python?.check?.status).toBe('verified');
+  const other = await (await browser.newContext()).newPage();
+  await signIn(other);
+  await other.goto('/lab');
+  await expect(other.getByTestId('status-python')).toHaveText('Verified');
+  await other.context().close();
+});
+
+test('B2.3 S1: the feedback route refuses requests without a session when sign-in is configured', async ({ request }) => {
+  const r = await request.post('/api/runs/feedback', { data: { run: { id: 'run-123456', createdAt: '2026-11-09T00:00:00Z', name: 'x', metrics: [{ name: 'acc', value: 0.5, split: 'test' }] } } });
+  expect(r.status()).toBe(401);
+  expect(JSON.stringify(await r.json())).not.toMatch(/SUPABASE|LLM_|key=/i);
+});
+
+test('B2.3 D1: runs added on two devices can be kept together, and both versions are set aside', async ({ page, browser }) => {
+  await seedLocal(page, started('Thesis'));
+  await signIn(page);
+  await expect(page.getByText('The work from this browser is saved to your account.')).toBeVisible();
+  const other = await (await browser.newContext()).newPage();
+  await signIn(other);
+  await other.goto('/lab');
+  await other.getByRole('button', { name: 'Add a run' }).waitFor();
+
+  const add = async (p: Page, name: string) => {
+    await p.getByRole('button', { name: 'Add a run' }).click();
+    await p.getByLabel('Run name').fill(name);
+    await p.getByRole('button', { name: 'Add a result' }).click();
+    await p.getByLabel('Result 1 name').fill('accuracy');
+    await p.getByLabel('Result 1 value').fill('0.8');
+    await p.getByRole('button', { name: 'Save run' }).click();
+  };
+  await page.goto('/lab');
+  await add(page, 'Run from device A');
+  await expect.poll(async () => (await state()).row?.data?.runs?.length ?? 0, { timeout: 15_000 }).toBe(1);
+  await add(other, 'Run from device B');
+  await expect(other.getByText(/Two versions of your work exist/)).toBeVisible({ timeout: 15_000 });
+  await other.goto('/');
+  await expect(other.getByText('Only your experiment runs differ: 1 only in this browser, 1 only in your account.', { exact: false })).toBeVisible();
+  await other.getByRole('button', { name: 'Keep the runs from both versions' }).click();
+  await expect.poll(async () => ((await state()).row.data.runs ?? []).map((r: { name: string }) => r.name).sort(), { timeout: 15_000 }).toEqual(['Run from device A', 'Run from device B']);
+  expect((await state()).row.data.steps.title.work).toBe('Thesis');
+  const aside = await other.evaluate(() => JSON.parse(localStorage.getItem('path:replaced:list:v1') ?? '[]').length);
+  expect(aside).toBeGreaterThanOrEqual(2);
+  await other.context().close();
+});

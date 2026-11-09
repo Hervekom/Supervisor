@@ -9,9 +9,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <a className="skip-link" href="#main">Skip to content</a>
         <div className="shell">
           <Spine />
-          <main className="page">{children}</main>
+          <main className="page" id="main" tabIndex={-1}>{children}</main>
           <Chef />
         </div>
       </body>

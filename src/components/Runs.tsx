@@ -8,7 +8,7 @@ import { findSensitive } from '@/lib/labVerify';
 import { stepState, STEPS, type PathState } from '@/lib/path';
 import { errorText, request } from '@/lib/request';
 import type { RunFeedback } from '@/lib/runFeedback';
-import { cleanDraft, cleanRuns, emptyDraft, fmt, isStepId, newRun, parseMetricsFile, parseNumber, runProblems, runToText, SPLITS, stepTitle, summarize, versionsFromLab, type Metric, type RunDraft, type RunRecord, type Split } from '@/lib/runs';
+import { appendToResultsSheet, cleanDraft, cleanRuns, emptyDraft, fmt, isStepId, newRun, parseMetricsFile, parseNumber, runProblems, runToText, SPLITS, stepTitle, summarize, versionsFromLab, type Metric, type RunDraft, type RunRecord, type Split } from '@/lib/runs';
 import type { Os } from '@/lib/software';
 import { authHeaders } from '@/lib/supabase';
 
@@ -178,7 +178,7 @@ function Feedback({ fb, m }: { fb: RunFeedback; m: Messages }) {
   );
 }
 
-function RunCard({ run, onEdit, onDelete, onSheet, topic, onAi, lang }: { run: RunRecord; onEdit: () => void; onDelete: () => void; onSheet: () => void; topic: string; onAi: () => void; lang: Lang }) {
+function RunCard({ run, onEdit, onDelete, onSheet, topic, onAi, lang, signedOut }: { run: RunRecord; onEdit: () => void; onDelete: () => void; onSheet: () => void; topic: string; onAi: () => void; lang: Lang; signedOut: boolean }) {
   const m = messages(lang);
   const [confirm, setConfirm] = useState(false);
   const [fb, setFb] = useState<RunFeedback | null>(null);
@@ -207,7 +207,7 @@ function RunCard({ run, onEdit, onDelete, onSheet, topic, onAi, lang }: { run: R
   ).filter(([, v]) => v).map(([k, v]) => [m.facts[k], v]);
 
   return (
-    <li className="sheet lab-card" data-testid="run-card">
+    <li className="sheet lab-card" data-testid="run-card" aria-busy={busy}>
       <div className="lab-head">
         <h3>{run.name}</h3>
         <span className="tag">{run.createdAt.slice(0, 10)}</span>
@@ -225,7 +225,11 @@ function RunCard({ run, onEdit, onDelete, onSheet, topic, onAi, lang }: { run: R
       {run.log ? <details><summary>{m.logExcerpt}</summary><pre className="run-log">{run.log}</pre></details> : null}
       <div className="lab-actions">
         <button type="button" className="btn ghost" onClick={onSheet}>{run.addedToSheet ? m.addToSheetAgain : m.addToSheet}</button>
-        <button type="button" className="btn ghost" onClick={ask} disabled={busy}>{busy ? m.readingRun : m.askFeedback}</button>
+        {signedOut ? (
+          <Link className="btn ghost linkbtn" href="/account" title={m.signInForFeedback}>{m.signInForFeedback}</Link>
+        ) : (
+          <button type="button" className="btn ghost" onClick={ask} disabled={busy} aria-describedby={busy ? `busy-${run.id}` : undefined}>{busy ? m.readingRun : m.askFeedback}</button>
+        )}
         <button type="button" className="btn ghost" onClick={onEdit}>{m.edit}</button>
         {!confirm ? <button type="button" className="btn ghost" onClick={() => setConfirm(true)}>{m.delete}</button> : null}
       </div>
@@ -239,16 +243,20 @@ function RunCard({ run, onEdit, onDelete, onSheet, topic, onAi, lang }: { run: R
         </div>
       ) : null}
       {run.addedToSheet ? <p className="hint">{m.addedOn(run.addedToSheet.slice(0, 10), stepTitle('evidence', lang))}</p> : null}
-      {error ? <p className="notice" role="alert">{error}</p> : null}
+      {busy ? <p className="hint" id={`busy-${run.id}`} role="status">{m.readingRun}</p> : null}
+      {error ? <p className="notice" role="alert">{error}{/sign in/i.test(error) ? <> <Link href="/account">{m.signInLink}</Link></> : null}</p> : null}
       {fb ? <Feedback fb={fb} m={m} /> : null}
     </li>
   );
 }
 
-export function Runs({ path, os, editPath, lang = 'en' }: { path: PathState; os: Os | null; editPath: (fn: (p: PathState) => PathState) => void; lang?: Lang }) {
+export function Runs({ path, os, editPath, lang = 'en', signedOut = false }: { path: PathState; os: Os | null; editPath: (fn: (p: PathState) => PathState) => void; lang?: Lang; signedOut?: boolean }) {
   const m = messages(lang);
   const [editing, setEditing] = useState<string | 'new' | null>(null);
+  // The run as it was when editing started, so the edit survives if another window deletes it meanwhile.
+  const [snapshot, setSnapshot] = useState<RunRecord | null>(null);
   const [filter, setFilter] = useState<StepFilter>('all');
+  const [notice, setNotice] = useState('');
   const runs = cleanRuns(path.runs);
   const summary = summarize(runs).filter((s) => s.n > 1);
   const setRuns = (fn: (r: RunRecord[]) => RunRecord[]) => editPath((p) => ({ ...p, runs: fn(cleanRuns(p.runs)) }));
@@ -269,7 +277,7 @@ export function Runs({ path, os, editPath, lang = 'en' }: { path: PathState; os:
     );
   }
 
-  const editingRun = runs.find((r) => r.id === editing);
+  const editingRun = editing && editing !== 'new' ? runs.find((r) => r.id === editing) ?? (snapshot?.id === editing ? snapshot : undefined) : undefined;
   const initial: RunDraft = editingRun ? (({ id: _i, source: _s, createdAt: _c, updatedAt: _u, addedToSheet: _a, ...d }) => d)(editingRun) : { ...emptyDraft(), versions: versionsFromLab(cleanLab(path.lab), os), ...(isStepId(filter) ? { stepId: filter } : {}) };
   const counts: Record<string, number> = { all: runs.length, none: runs.filter((r) => !r.stepId).length };
   for (const r of runs) if (r.stepId) counts[r.stepId] = (counts[r.stepId] ?? 0) + 1;
@@ -284,7 +292,8 @@ export function Runs({ path, os, editPath, lang = 'en' }: { path: PathState; os:
         <div className="sheet" style={{ marginTop: 12 }}>
           <h3>{m.repeated}</h3>
           <p className="hint">{m.repeatedHint}</p>
-          <div className="table-wrap">
+          <p className="hint swipe-hint">{m.swipeTable}</p>
+          <div className="table-wrap" tabIndex={0} role="region" aria-label={m.repeated}>
             <table className="run-table" data-testid="run-summary">
               <thead><tr><th scope="col">{m.colResult}</th><th scope="col">{m.colSplit}</th><th scope="col">{m.colRuns}</th><th scope="col">{m.colMean}</th><th scope="col">{m.colSd}</th><th scope="col">{m.colRange}</th></tr></thead>
               <tbody>{summary.map((s) => <tr key={`${s.name}|${s.split}`}><td>{s.name}</td><td>{m.splits[s.split]}</td><td>{s.n}</td><td>{num(s.mean, lang)}</td><td>{s.sd === null ? '—' : num(s.sd, lang)}</td><td>{m.range(num(s.min, lang, 12), num(s.max, lang, 12))}</td></tr>)}</tbody>
@@ -295,22 +304,28 @@ export function Runs({ path, os, editPath, lang = 'en' }: { path: PathState; os:
 
       {editing ? (
         <RunForm
-          key={`${editing}-${lang}`}
+          // The key is the run only: changing language keeps what the student has typed.
+          key={editing}
           initial={initial}
           lang={lang}
           onCancel={() => setEditing(null)}
           onSave={(d) => {
             const now = new Date().toISOString();
-            setRuns((rs) =>
-              editingRun
-                ? rs.map((r) => {
-                    if (r.id !== editingRun.id) return r;
-                    // The ID, the creation date and the results sheet date stay. A cleared step is removed.
-                    const { stepId: _old, ...base } = r;
-                    return { ...base, ...d, updatedAt: now };
-                  })
-                : [...rs, newRun(d, now)],
-            );
+            setRuns((rs) => {
+              if (!editingRun) return [...rs, newRun(d, now)];
+              // The run was deleted in another tab while it was being edited: the edit is kept, not dropped.
+              if (!rs.some((r) => r.id === editingRun.id)) {
+                setNotice(m.restoredRun);
+                const { stepId: _old, ...base } = editingRun;
+                return [...rs, { ...base, ...d, updatedAt: now }];
+              }
+              return rs.map((r) => {
+                if (r.id !== editingRun.id) return r;
+                // The ID, the creation date and the results sheet date stay. A cleared step is removed.
+                const { stepId: _old, ...base } = r;
+                return { ...base, ...d, updatedAt: now };
+              });
+            });
             setEditing(null);
           }}
         />
@@ -321,6 +336,7 @@ export function Runs({ path, os, editPath, lang = 'en' }: { path: PathState; os:
         </p>
       )}
 
+      {notice ? <p className="notice" role="status" style={{ marginTop: 12 }}>{notice}</p> : null}
       {runs.length ? (
         <>
           <div className="field run-filter">
@@ -334,14 +350,18 @@ export function Runs({ path, os, editPath, lang = 'en' }: { path: PathState; os:
                   key={r.id}
                   run={r}
                   lang={lang}
+                  signedOut={signedOut}
                   topic={path.title || path.topic}
-                  onEdit={() => setEditing(r.id)}
+                  onEdit={() => {
+                    setSnapshot(r);
+                    setEditing(r.id);
+                  }}
                   onDelete={() => setRuns((rs) => rs.filter((x) => x.id !== r.id))}
                   onSheet={() =>
                     editPath((p) => {
                       const now = new Date().toISOString();
                       const st = stepState(p, 'evidence');
-                      const work = `${st.work.trim() ? `${st.work.trimEnd()}\n\n` : ''}${runToText(r, lang)}`;
+                      const work = appendToResultsSheet(st.work, runToText(r, lang), STEPS.find((x) => x.id === 'evidence')?.workTemplate ?? '');
                       return { ...p, steps: { ...p.steps, evidence: { ...st, work } }, runs: cleanRuns(p.runs).map((x) => (x.id === r.id ? { ...x, addedToSheet: now } : x)) };
                     })
                   }

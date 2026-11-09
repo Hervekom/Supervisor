@@ -123,7 +123,9 @@ test('a run can be added to the results sheet, labelled as reported', async ({ p
   await runCard(page, 'Baseline, seed 1').getByRole('button', { name: 'Add to my results sheet' }).click();
   await expect(runCard(page, 'Baseline, seed 1').getByText(/Added to your results sheet on/)).toBeVisible();
   const work = (await stored(page, 'path:v1')).steps.evidence.work as string;
-  expect(work).toMatch(/^Run: Baseline, seed 1 \(reported by the student, \d{4}-\d{2}-\d{2}\)/);
+  // Since B2.3 the results sheet template comes first, then the labelled run block.
+  expect(work.startsWith('Research questions:')).toBe(true);
+  expect(work).toMatch(/\n\nRun: Baseline, seed 1 \(reported by the student, \d{4}-\d{2}-\d{2}\)/);
   expect(work).toContain('Results: accuracy (test) = 0.912');
 });
 

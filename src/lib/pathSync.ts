@@ -1,3 +1,4 @@
+import { cleanLab, fromLabV1, hasLabProgress, newerLab, type LabState } from './lab';
 import { isPathState, type PathState } from './path';
 
 export const PATH_KEY = 'path:v1';
@@ -61,20 +62,79 @@ export function readSync(): SyncRecord | null {
 const writeSync = (r: SyncRecord) => write(SYNC_KEY, JSON.stringify(r));
 const stamp = (userId: string, version: string | null, p: PathState | null) => writeSync({ userId, version, savedAt: p?.savedAt ?? null });
 
-export const setAside = (p: PathState | null) => {
-  if (p) write(REPLACED_KEY, JSON.stringify(p));
+/** Earlier set-aside copies, newest first. A new conflict never overwrites them silently. */
+export const REPLACED_LIST_KEY = 'path:replaced:list:v1';
+export const MAX_SET_ASIDE = 5;
+export type SetAside = { at: string; path: PathState };
+
+export function readSetAside(): SetAside[] {
+  const v = parse(read(REPLACED_LIST_KEY));
+  const list = Array.isArray(v) ? (v as SetAside[]).filter((x) => x && typeof x.at === 'string' && isPathState(x.path)) : [];
+  // A copy set aside before this list existed is kept as the oldest entry.
+  const single = parse(read(REPLACED_KEY));
+  if (isPathState(single) && !list.some((x) => JSON.stringify(x.path) === JSON.stringify(single))) list.push({ at: single.savedAt ?? '', path: single });
+  return list;
+}
+
+export const setAside = (p: PathState | null, now = new Date().toISOString()) => {
+  if (!p) return;
+  const list = [{ at: now, path: p }, ...readSetAside()].slice(0, MAX_SET_ASIDE);
+  write(REPLACED_LIST_KEY, JSON.stringify(list));
+  write(REPLACED_KEY, JSON.stringify(p));
 };
 
-/** Only called once the account is confirmed to hold the work, or the student chose to leave it. */
-export function clearLocalCopy() {
+/**
+ * Only called once the account is confirmed to hold the work, or the student chose to leave it.
+ * `keepLab` leaves the Lab progress in this browser, when the student chose to keep it.
+ */
+export function clearLocalCopy(opts: { keepLab?: boolean } = {}) {
   try {
     localStorage.removeItem(PATH_KEY);
     localStorage.removeItem(SYNC_KEY);
     localStorage.removeItem(REPLACED_KEY);
+    localStorage.removeItem(REPLACED_LIST_KEY);
     localStorage.removeItem(CHEF_KEY);
-    localStorage.removeItem(LAB_MIRROR_KEY);
-    localStorage.removeItem(LAB_V1_KEY);
+    if (!opts.keepLab) {
+      localStorage.removeItem(LAB_MIRROR_KEY);
+      localStorage.removeItem(LAB_V1_KEY);
+    }
   } catch {}
+}
+
+/** The Lab progress kept in this browser apart from the thesis copy. */
+export function readLabMirror(): LabState | undefined {
+  return cleanLab(parse(read(LAB_MIRROR_KEY))) ?? fromLabV1(parse(read(LAB_V1_KEY)));
+}
+
+const sameLab = (a: LabState | undefined, b: LabState | undefined) => JSON.stringify(canonical(a ?? null)) === JSON.stringify(canonical(b ?? null));
+
+export type LabRisk = { verified: number; marked: number; checked: number };
+
+/**
+ * Lab progress that signing out would delete: it exists in this browser but cannot reach the account,
+ * because no thesis has been started (thesis-less copies are never synced, so no false conflict can start).
+ */
+export function labAtRisk(local: PathState | null, mirror: LabState | undefined): LabRisk | null {
+  if (hasWork(local)) return null;
+  const lab = newerLab(cleanLab(local?.lab), mirror);
+  if (!lab || !hasLabProgress(lab)) return null;
+  const tools = Object.values(lab.tools);
+  const checks = tools.filter((t) => t.check);
+  return { verified: checks.filter((t) => t.check!.status === 'verified').length, checked: checks.length, marked: tools.filter((t) => t.marked).length };
+}
+
+/**
+ * When a thesis exists, newer Lab progress from this browser's copy is put into the thesis copy,
+ * so the normal save sends it to the account. Returns true when the thesis copy changed.
+ */
+export function mergeLabMirror(now = new Date().toISOString()): boolean {
+  const local = readLocalPath();
+  if (!hasWork(local)) return false;
+  const mirror = readLabMirror();
+  const own = cleanLab(local!.lab);
+  const best = newerLab(own, mirror);
+  if (!best || !hasLabProgress(best) || sameLab(best, own)) return false;
+  return writeLocalPath({ ...local!, lab: best, savedAt: now });
 }
 
 export const hasWork = (p: PathState | null) => !!p && (!!p.started || Object.keys(p.steps).length > 0);

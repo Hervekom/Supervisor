@@ -1,4 +1,4 @@
-import { checkClaims, evidenceOf, type ClaimKind } from './claims';
+import { checkClaims, evidenceOf, type ClaimKind, type Qualitative } from './claims';
 import { aiLanguage, t } from './i18n';
 import { chatJson, type LlmConfig } from './llm';
 import { runToText, SOURCE_LABEL, stepTitle, type RunRecord } from './runs';
@@ -10,7 +10,10 @@ Rules you never break:
 - Never invent, estimate, round, convert or predict any result, metric, score or statistic. Write no number about results unless it appears in the record exactly as written.
 - Do not calculate new differences, ratios, percentage changes or "times faster" figures.
 - Do not say the model beats, outperforms or improves on a baseline or another method unless that result is in the record. Say instead what comparison is missing.
-- Numbers about what to do next, such as "repeat with 3 seeds", are fine. Never present them as results.
+- Numbers about what to do next, such as "repeat with 3 seeds", are fine. Never present them as results, and never predict what a future run will give.
+- Each number belongs to one metric and one data split. Never apply a value to another metric or split, and never turn an error or loss value into a percentage.
+- Call something an improvement only when the record holds a baseline result of the same metric on the same split.
+- Do not say a result is statistically significant, robust, generalizes well or is state-of-the-art unless the record shows the test or comparison that supports it. Say what is missing instead.
 - Never write thesis text, results paragraphs or captions for the student.
 - Say plainly what this record can and cannot support. For example: one seed only, no baseline, no validation split, test set used for tuning, missing versions or hardware, a failed run that still teaches something.
 - Never advise on hiding AI use or on avoiding AI or plagiarism detection.
@@ -65,10 +68,12 @@ const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => ty
 export function normalizeRunFeedback(raw: unknown, run: RunRecord, language?: string): RunFeedback {
   const r = (raw ?? {}) as Record<string, unknown>;
   const evidence = evidenceOf(run);
+  const lang = aiLanguage(language) === 'French' ? 'fr' : 'en';
   const kinds = new Set<ClaimKind>();
+  const said = new Set<Qualitative>();
   let removed = 0;
   const clean = (s: string) => {
-    const k = checkClaims(s.slice(0, 600), evidence);
+    const k = checkClaims(s.slice(0, 600), evidence, lang, said);
     removed += k.removed;
     k.kinds.forEach((x) => kinds.add(x));
     return k.text;
@@ -76,7 +81,6 @@ export function normalizeRunFeedback(raw: unknown, run: RunRecord, language?: st
   const cleanList = (v: unknown) => list(v).map(clean).filter(Boolean);
   const rawSummary = typeof r.summary === 'string' ? r.summary : '';
   const summary = clean(rawSummary);
-  const lang = aiLanguage(language) === 'French' ? 'fr' : 'en';
   return {
     summary: summary || (rawSummary ? t(lang).neutralSummary : 'No summary was returned.'),
     can_support: cleanList(r.can_support),

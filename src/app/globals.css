@@ -318,3 +318,9 @@ fieldset.field { border: 0; padding: 0; margin: 0; min-width: 0; }
 .research-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 10px; }
 .research-grid h3 { font-size: 1.02rem; }
 .research-counts { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 2px; }
+.skip-link { position: absolute; left: -9999px; top: 8px; z-index: 100; background: var(--sheet); color: var(--ink); padding: 10px 16px; border-radius: 999px; box-shadow: 0 4px 16px rgba(0, 0, 0, .15); }
+.skip-link:focus { left: 16px; }
+main:focus { outline: none; }
+.swipe-hint { display: none; }
+@media (max-width: 640px) { .swipe-hint { display: block; } }
+.table-wrap:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
