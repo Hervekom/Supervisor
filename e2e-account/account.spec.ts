@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs';
 import { expect, test, type Page } from '@playwright/test';
 
 const S = 'http://127.0.0.1:4120';
@@ -347,10 +348,16 @@ test('B2.3 D4: sign-out explains unsaved Lab progress; cancel, keep and delete a
   await page.getByRole('button', { name: 'Sign out' }).click();
   await page.getByRole('button', { name: 'Keep it in this browser and sign out' }).click();
   await expect(page.getByText('Your Lab progress stays in this browser.')).toBeVisible();
+  // Since B2.3.2 (D-M1) kept progress stays with its account: signed out, this browser shows none of it,
+  // and signing in again brings it back.
+  await page.goto('/lab');
+  await expect(page.getByRole('radio', { name: 'Windows', exact: true })).toBeVisible();
+  await expect(page.getByText('Verified', { exact: true })).toHaveCount(0);
+  await signIn(page);
   await page.goto('/lab');
   await expect(page.getByTestId('status-python')).toHaveText('Verified');
 
-  await signIn(page);
+  await page.goto('/account');
   await page.getByRole('button', { name: 'Sign out' }).click();
   await page.getByRole('button', { name: 'Delete it and sign out' }).click();
   await expect(page.getByText('Signed out. Your work is saved to your account.')).toBeVisible();
@@ -409,4 +416,237 @@ test('B2.3 D1: runs added on two devices can be kept together, and both versions
   const aside = await other.evaluate(() => JSON.parse(localStorage.getItem('path:replaced:list:v1') ?? '[]').length);
   expect(aside).toBeGreaterThanOrEqual(2);
   await other.context().close();
+});
+
+// ---------- Phase B2.3.2 ----------
+// Two synthetic accounts share one browser. Their IDs come from the mock: …0001 is A, …0002 is B.
+const A_ID = '00000000-0000-4000-8000-000000000001';
+async function signInAs(page: Page, email: string) {
+  await page.goto('/account');
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill('not-a-real-password');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+}
+const signOutPlain = async (page: Page) => {
+  await page.goto('/account');
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByText(/^Signed out\./)).toBeVisible();
+};
+async function verifyPython(page: Page) {
+  await page.goto('/lab');
+  await page.getByRole('checkbox', { name: /^Python programming/ }).check();
+  await page.getByRole('radio', { name: 'Windows', exact: true }).check();
+  const py = page.locator('.lab-card').filter({ has: page.getByRole('heading', { name: 'Python', exact: true }) });
+  await py.getByLabel('Paste what the command printed').fill('Python 3.12.7');
+  await py.getByRole('button', { name: 'Check output' }).click();
+  await expect(py.getByTestId('status-python')).toHaveText('Verified');
+}
+const verifiedCount = (page: Page) => page.getByText('Verified', { exact: true }).count();
+
+test('B2.3.2 D-M1: Lab progress kept by account A is never seen, inherited or synced by account B, and A gets it back', async ({ page }) => {
+  await signInAs(page, 'student@example.test');
+  await verifyPython(page);
+  await page.goto('/account');
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Keep it in this browser and sign out' }).click();
+  await expect(page.getByText('Your Lab progress stays in this browser.')).toBeVisible();
+
+  await signInAs(page, 'second@example.test');
+  await page.goto('/lab');
+  await expect(page.getByRole('radio', { name: 'Windows', exact: true })).toBeVisible();
+  expect(await verifiedCount(page)).toBe(0);
+  await expect(page.getByRole('checkbox', { name: /^Python programming/ })).not.toBeChecked();
+  // Nothing of A's is offered to B either.
+  await expect(page.getByRole('region', { name: 'Lab progress not linked to you' })).toHaveCount(0);
+  // B starts a thesis: what B's account receives holds no Lab progress of A.
+  await page.evaluate(() => {
+    const p = JSON.parse(localStorage.getItem('path:v1') ?? '{}');
+    localStorage.setItem('path:v1', JSON.stringify({ ...p, topic: 'B thesis', current: 'title', started: true, situation: 'title', steps: { title: { work: 'B work', checks: [], status: 'open' } }, log: [], savedAt: new Date().toISOString() }));
+  });
+  await page.goto('/');
+  await expect.poll(async () => (await state()).rows['00000000-0000-4000-8000-000000000002']?.data?.steps?.title?.work, { timeout: 15_000 }).toBe('B work');
+  expect((await state()).rows['00000000-0000-4000-8000-000000000002'].data.lab).toBeUndefined();
+  await signOutPlain(page);
+  // A's progress is still in the browser, under A.
+  const owners = await page.evaluate(() => JSON.parse(localStorage.getItem('lab:owners:v1') ?? '{}'));
+  expect(owners[`user:${A_ID}`].tools.python.check.status).toBe('verified');
+
+  await signInAs(page, 'student@example.test');
+  await page.goto('/lab');
+  await expect(page.getByTestId('status-python')).toHaveText('Verified');
+  await page.reload();
+  await expect(page.getByTestId('status-python')).toHaveText('Verified');
+});
+
+test('B2.3.2 D-M1: progress made signed out in another tab, or saved by an earlier version, is only offered, never taken', async ({ page, context }) => {
+  // An earlier version kept progress without an owner.
+  await page.goto('/guides');
+  await page.evaluate(() => localStorage.setItem('lab:v2', JSON.stringify({ workTypes: ['python'], os: 'windows', gpu: 'no', osConfirmed: true, updatedAt: '2026-11-01T09:00:00.000Z', tools: { python: { check: { status: 'verified', os: 'windows', rule: 1, at: '2026-11-01T09:00:00.000Z', reason: 'ok', found: 'Python 3.12.7' } } } })));
+  // Another tab, signed out, makes progress of its own.
+  const tab = await context.newPage();
+  await tab.goto('/lab');
+  await tab.getByRole('checkbox', { name: /^Statistical analysis/ }).check();
+  await expect.poll(() => tab.evaluate(() => localStorage.getItem('lab:owners:v1') ?? '')).toContain('statistics');
+  await tab.close();
+
+  await signInAs(page, 'student@example.test');
+  await page.goto('/lab');
+  const offer = page.getByRole('region', { name: 'Lab progress not linked to you' });
+  await expect(offer).toBeVisible();
+  await expect(offer.getByText(/^Saved by an earlier version/)).toBeVisible();
+  await expect(offer.getByText(/^From an earlier signed-out session/)).toBeVisible();
+  expect(await verifiedCount(page)).toBe(0);
+  expect((await state()).row).toBeFalsy();
+
+  // Download keeps a copy without changing anything.
+  const [download] = await Promise.all([page.waitForEvent('download'), offer.getByRole('button', { name: 'Download it' }).first().click()]);
+  const file = JSON.parse(readFileSync(await download.path(), 'utf8'));
+  expect(file.lab.tools.python.check.found).toBe('Python 3.12.7');
+  expect(await page.evaluate(() => localStorage.getItem('lab:v2'))).not.toBeNull();
+
+  // Claiming is explicit and explained; the other session's progress stays offered until removed.
+  await offer.getByRole('button', { name: 'This is mine: use it' }).first().click();
+  await expect(page.getByTestId('status-python')).toHaveText('Verified');
+  expect(await page.evaluate(() => localStorage.getItem('lab:v2'))).toBeNull();
+  await offer.getByRole('button', { name: 'Not mine: remove it from this browser' }).click();
+  await offer.getByRole('button', { name: 'Remove it from this browser' }).click();
+  await expect(page.getByRole('region', { name: 'Lab progress not linked to you' })).toHaveCount(0);
+});
+
+async function makeConflict(page: Page, accountWork: string, localWork: string) {
+  await fetch(`${S}/__row`, { method: 'POST', body: JSON.stringify({ data: started(accountWork, { savedAt: '2026-10-01T00:00:00.000Z' }), updated_at: '2026-10-01T00:00:00+00:00' }) });
+  await seedLocal(page, started(localWork));
+}
+
+test('B2.3.2 D-H1: a set-aside version is never deleted at sign-out without a warning; download, cancel, keep and delete', async ({ page }) => {
+  await makeConflict(page, 'Account version', 'Browser version');
+  await signInAs(page, 'student@example.test');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Keep this browser’s version' }).click();
+  await expect.poll(async () => (await state()).row.data.steps.title.work).toBe('Browser version');
+
+  await page.goto('/account');
+  await expect(page.getByRole('heading', { name: 'Set-aside versions in this browser' })).toBeVisible();
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  const dialog = page.getByRole('alertdialog');
+  await expect(dialog.getByText('1 set-aside version of your work is kept in this browser.')).toBeVisible();
+  await expect(dialog.getByText(/not part of your account’s current version/)).toBeVisible();
+  const [download] = await Promise.all([page.waitForEvent('download'), dialog.getByRole('button', { name: 'Download the set-aside versions' }).click()]);
+  const file = JSON.parse(readFileSync(await download.path(), 'utf8'));
+  expect(file.copies).toHaveLength(1);
+  expect(file.copies[0].path.steps.title.work).toBe('Account version');
+  await dialog.getByRole('button', { name: 'Cancel' }).click();
+  await expect(page.getByText(`Signed in as student@example.test`)).toBeVisible();
+
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Keep it in this browser and sign out' }).click();
+  await expect(page.getByText('The set-aside version stays in this browser.')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('path:replaced:list:v1'))).toContain('Account version');
+
+  // Reload and sign in again: the copy is still listed, and can be removed explicitly after export.
+  await page.reload();
+  await signInAs(page, 'student@example.test');
+  const list = page.locator('.set-aside');
+  await expect(list.getByText(/Fictional/)).toBeVisible();
+  await list.getByRole('button', { name: 'Remove', exact: true }).click();
+  await list.getByRole('button', { name: 'Keep it' }).click();
+  expect(await page.evaluate(() => localStorage.getItem('path:replaced:list:v1'))).toContain('Account version');
+  await list.getByRole('button', { name: 'Remove', exact: true }).click();
+  await list.getByRole('button', { name: 'Remove this version' }).click();
+  await expect(page.getByRole('heading', { name: 'Set-aside versions in this browser' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByText('Signed out. Your work is saved to your account.')).toBeVisible();
+});
+
+test('B2.3.2 D-H1: deleting at sign-out removes only what the student confirmed', async ({ page }) => {
+  await makeConflict(page, 'Account version', 'Browser version');
+  await signInAs(page, 'student@example.test');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Keep this browser’s version' }).click();
+  await expect.poll(async () => (await state()).row.data.steps.title.work).toBe('Browser version');
+  await page.goto('/account');
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Delete it and sign out' }).click();
+  await expect(page.getByText('Signed out. Your work is saved to your account.')).toBeVisible();
+  expect(await page.evaluate(() => [localStorage.getItem('path:replaced:list:v1'), localStorage.getItem('path:replaced:v1')])).toEqual(['[]', null]);
+});
+
+test('B2.3.2 D-H1: with five set-aside versions, a sixth choice is blocked until one is exported or removed', async ({ page }) => {
+  await makeConflict(page, 'Account version', 'Browser version');
+  await page.evaluate((id) => {
+    const copies = [0, 1, 2, 3, 4].map((i) => ({ at: `2026-10-0${i + 1}T00:00:00.000Z`, owner: id, path: { topic: `Old ${i}`, discipline: '', defenseDate: '', current: 'title', started: true, situation: 'title', steps: { title: { work: `Old ${i}`, checks: [], status: 'open' } }, log: [], savedAt: `2026-10-0${i + 1}T00:00:00.000Z` } }));
+    localStorage.setItem('path:replaced:list:v1', JSON.stringify(copies));
+  }, A_ID);
+  await signInAs(page, 'student@example.test');
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Keep this browser’s version' }).click();
+  await expect(page.getByText('This browser already keeps 5 set-aside versions.')).toBeVisible();
+  await page.waitForTimeout(1500);
+  expect((await state()).row.data.steps.title.work).toBe('Account version');
+  expect(JSON.parse(await page.evaluate(() => localStorage.getItem('path:replaced:list:v1') ?? '[]'))).toHaveLength(5);
+  await page.getByRole('button', { name: 'Use my account’s version' }).click();
+  await expect(page.getByText('This browser already keeps 5 set-aside versions.')).toBeVisible();
+  await expect(page.locator('#work')).toHaveCount(0);
+
+  const list = page.locator('.set-aside');
+  await list.getByRole('button', { name: 'Remove', exact: true }).first().click();
+  await list.getByRole('button', { name: 'Remove this version' }).click();
+  await page.getByRole('button', { name: 'Keep this browser’s version' }).click();
+  await expect.poll(async () => (await state()).row.data.steps.title.work).toBe('Browser version');
+  const copies = JSON.parse(await page.evaluate(() => localStorage.getItem('path:replaced:list:v1') ?? '[]'));
+  expect(copies).toHaveLength(5);
+  expect(copies.map((c: { path: { topic: string; steps: { title: { work: string } } } }) => c.path.steps.title.work)).toContain('Account version');
+});
+
+for (const [label, viewport] of [['desktop', { width: 1280, height: 800 }], ['phone', { width: 390, height: 844 }]] as const) {
+  test(`B2.3.2 U-L1: the sign-out dialog takes, keeps and returns keyboard focus (${label})`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await labVerifiedAsGuest(page);
+    await signIn(page);
+    const open = page.getByRole('button', { name: 'Sign out' });
+    await open.focus();
+    await page.keyboard.press('Enter');
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await expect(dialog).toHaveAccessibleName('Before you sign out');
+    const inside = () => page.evaluate(() => !!document.activeElement?.closest('[role=alertdialog]'));
+    expect(await inside()).toBe(true);
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press('Tab');
+      expect(await inside()).toBe(true);
+    }
+    for (let i = 0; i < 6; i++) {
+      await page.keyboard.press('Shift+Tab');
+      expect(await inside()).toBe(true);
+    }
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(open).toBeFocused();
+    await expect(page.getByText('Signed in as')).toBeVisible();
+    // Cancel returns focus too.
+    await open.click();
+    await dialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(open).toBeFocused();
+  });
+}
+
+test('B2.3.2 D-M1: kept progress survives closing the browser tab, and stays with its account', async ({ page, context }) => {
+  await signInAs(page, 'student@example.test');
+  await verifyPython(page);
+  await page.goto('/account');
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await page.getByRole('button', { name: 'Keep it in this browser and sign out' }).click();
+  await expect(page.getByText('Your Lab progress stays in this browser.')).toBeVisible();
+  await page.close();
+  // A new tab has a new signed-out session, as after a browser restart. The progress is not offered to it.
+  const again = await context.newPage();
+  await again.goto('/lab');
+  await expect(again.getByRole('radio', { name: 'Windows', exact: true })).toBeVisible();
+  expect(await verifiedCount(again)).toBe(0);
+  await expect(again.getByRole('region', { name: 'Lab progress not linked to you' })).toHaveCount(0);
+  await signInAs(again, 'student@example.test');
+  await again.goto('/lab');
+  await expect(again.getByTestId('status-python')).toHaveText('Verified');
 });

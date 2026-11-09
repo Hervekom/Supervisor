@@ -122,3 +122,24 @@ export function recordCheck(l: LabState, id: string, os: Os, r: CheckResult, now
 export function update(l: LabState, patch: Partial<Omit<LabState, 'tools' | 'updatedAt'>>, now = new Date().toISOString()): LabState {
   return touch({ ...l, ...patch }, now);
 }
+
+/**
+ * Joins two Lab states without losing either: every tool from both is kept, and for a tool in both,
+ * the newer check and any tick are kept. Used when a student claims progress as their own.
+ */
+export function combineLabs(a: LabState | undefined, b: LabState | undefined, now = new Date().toISOString()): LabState | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  const newer = (a.updatedAt ?? '') >= (b.updatedAt ?? '') ? a : b;
+  const tools: Record<string, LabTool> = { ...a.tools };
+  for (const [id, t] of Object.entries(b.tools)) {
+    const x = tools[id];
+    if (!x) {
+      tools[id] = t;
+      continue;
+    }
+    const check = !x.check ? t.check : !t.check ? x.check : (x.check.at >= t.check.at ? x.check : t.check);
+    tools[id] = { ...(x.marked || t.marked ? { marked: true } : {}), ...(check ? { check } : {}) };
+  }
+  return { ...newer, workTypes: [...new Set([...a.workTypes, ...b.workTypes])], os: newer.os ?? a.os ?? b.os, tools, updatedAt: now };
+}

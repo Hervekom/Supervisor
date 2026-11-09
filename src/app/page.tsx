@@ -12,7 +12,8 @@ import type { ImportedFile, StructureId } from '@/lib/path';
 import { partsOfStep, STRUCTURES } from '@/lib/structures';
 import { addOpenQuestion, aiLogText, applySituation, canComplete, emptyPath, historyOf, isPathState, nextOpen, progress, SITUATIONS, STUCK_DEFAULT, stepRules, stepStages, stepState, STEPS, type CoachReply, type PathState, type StepGuide, type StepState } from '@/lib/path';
 import { COACH_LIMIT, count, MAX_UPLOAD_LABEL } from '@/lib/limits';
-import { readLocalPath } from '@/lib/pathSync';
+import { readLocalPath, setAsideFor } from '@/lib/pathSync';
+import { SetAsideList } from '@/components/SetAsideList';
 import { planRunMerge } from '@/lib/runMerge';
 import { withResultsTemplate } from '@/lib/runs';
 import { errorText, fileProblem, request } from '@/lib/request';
@@ -252,7 +253,7 @@ export default function PathPage() {
   const names = (rs: { name: string }[]) => rs.map((r) => `“${r.name}”`).join(', ');
   const conflictBanner = sync.conflict ? (
     <div className="notice" role="alert" style={{ marginBottom: 16, maxWidth: 'none' }}>
-      <p><b>Two versions of your thesis exist.</b> This browser and your account hold different work, so nothing was overwritten. Choose which one to continue with. The other is kept in this browser until you sign out, and you can download both first.</p>
+      <p><b>Two versions of your thesis exist.</b> This browser and your account hold different work, so nothing was overwritten. Choose which one to continue with. The other is kept in this browser as a set-aside version. It is never deleted without asking you, and you can download both first.</p>
       {merge?.combinable ? (
         <p style={{ marginTop: 8 }}>
           Only your experiment runs differ: {merge.onlyHere.length} only in this browser, {merge.onlyAccount.length} only in your account. You can keep the runs from both. If you deleted one of them on purpose on another device, delete it again afterwards.
@@ -260,6 +261,12 @@ export default function PathPage() {
       ) : null}
       {merge?.reason === 'edited_both' ? <p style={{ marginTop: 8 }}>These runs were changed in both versions, so they cannot be combined: {names(merge.editedBoth)}. Download both versions before you choose.</p> : null}
       {merge?.editedHereMissingThere.length ? <p style={{ marginTop: 8 }}>Edited in this browser but missing from your account, perhaps deleted on another device: {names(merge.editedHereMissingThere)}.</p> : null}
+      {sync.setAsideFull ? (
+        <div style={{ marginTop: 8 }}>
+          <p><b>This browser already keeps 5 set-aside versions.</b> Nothing was changed. Download a version you may need, or remove one, then choose again.</p>
+          <SetAsideList copies={setAsideFor(user?.id)} onChange={() => sync.clearSetAsideFull()} />
+        </div>
+      ) : null}
       <div className="ask" style={{ marginTop: 10 }}>
         {merge?.combinable && merge.merged ? <button className="btn" disabled={sync.resolving} onClick={() => sync.chooseCombined(merge.merged!)}>Keep the runs from both versions</button> : null}
         <button className={merge?.combinable ? 'btn ghost' : 'btn'} disabled={sync.resolving} onClick={sync.chooseThisBrowser}>Keep this browser’s version</button>

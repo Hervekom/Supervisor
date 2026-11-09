@@ -1,4 +1,4 @@
-export type AuthCheck = { ok: true; userId?: string; email?: string } | { ok: false; status: number; error: string };
+export type AuthCheck = { ok: true; userId?: string; email?: string; name?: string } | { ok: false; status: number; error: string };
 
 export const AUTH_OFF_MESSAGE = 'Sign-in is not set up on this server, so AI features are switched off.';
 
@@ -22,8 +22,10 @@ export async function checkUser(req: Request, f: typeof fetch = fetch, env: Reco
   if (!header?.startsWith('Bearer ')) return { ok: false, status: 401, error: 'Sign in to use this feature.' };
   const res = await f(`${url}/auth/v1/user`, { headers: { apikey: key, authorization: header } });
   if (!res.ok) return { ok: false, status: 401, error: 'Your session has ended. Sign in again.' };
-  const user = (await res.json().catch(() => null)) as { id?: string; email?: string } | null;
+  const user = (await res.json().catch(() => null)) as { id?: string; email?: string; user_metadata?: { full_name?: unknown; name?: unknown } } | null;
   // Every signed-in request has a user ID, so the fair-use limit always applies to it.
   if (!user?.id) return { ok: false, status: 401, error: 'Your session has ended. Sign in again.' };
-  return { ok: true, userId: user.id, ...(typeof user.email === 'string' ? { email: user.email } : {}) };
+  // The display name, when the account has one, is used only to hide the student's own name before AI calls.
+  const name = [user.user_metadata?.full_name, user.user_metadata?.name].find((v): v is string => typeof v === 'string' && !!v.trim());
+  return { ok: true, userId: user.id, ...(typeof user.email === 'string' ? { email: user.email } : {}), ...(name ? { name: name.slice(0, 120) } : {}) };
 }

@@ -132,9 +132,13 @@ export function cleanRun(v: unknown): RunRecord | null {
   return { id: r.id, source: 'student', ...d, createdAt: r.createdAt.slice(0, 40), updatedAt: clip(r.updatedAt, 40) || r.createdAt.slice(0, 40), ...(typeof r.addedToSheet === 'string' ? { addedToSheet: r.addedToSheet.slice(0, 40) } : {}) };
 }
 
-/** Hides the student's own name, from the account email, in every text field of a run. Used on the server before AI calls. */
-export function withoutIdentity(r: RunRecord, email?: string): RunRecord {
-  const words = identityWords(email);
+/**
+ * Hides the student's own name, from the account's display name and email, in every text field of a run.
+ * Used on the server before AI calls. Metric names are checked too, but a metric such as "Dice" is a common
+ * word for the name rules, so it is kept unless it stands next to another part of the name.
+ */
+export function withoutIdentity(r: RunRecord, email?: string, displayName?: string): RunRecord {
+  const words = identityWords(email, displayName);
   if (!words.length) return r;
   const fields = ['name', 'purpose', 'dataset', 'split', 'model', 'settings', 'seeds', 'versions', 'hardware', 'duration', 'log', 'notes'] as const;
   const out = { ...r, metrics: r.metrics.map((m) => ({ ...m, name: redactIdentity(m.name, words) })) };

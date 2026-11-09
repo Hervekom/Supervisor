@@ -6,7 +6,11 @@ import type { RunRecord } from './runs';
 
 export type ClaimKind =
   | 'percent' | 'points' | 'factor' | 'decimal' | 'integer' | 'date' | 'version' | 'seed' | 'config' | 'duration' | 'size'
-  | 'rank' | 'prediction' | 'comparison' | 'qualitative';
+  | 'rank' | 'prediction' | 'target' | 'comparison' | 'qualitative'
+  /** The value exists, but the run does not say which data split it is from, so a split-specific claim cannot be checked. */
+  | 'unknown_split'
+  /** The value exists, but the run does not say whether it is a fraction or a percentage. */
+  | 'unknown_scale';
 
 // ---------- What a metric is ----------
 
@@ -43,7 +47,9 @@ export function classifyMetric(name: string, value: number): MetricInfo {
   const base = baseName(name).name;
   const k = KNOWN.find((x) => x.re.test(base));
   if (!k) return { kind: 'unknown', direction: 'unknown', scale: /%|percent|pct|pourcent/i.test(name) ? 'percent' : 'unknown', aliases: base.length > 1 ? [base] : [] };
-  const scale: Scale = k.percentScale ? 'percent' : k.kind !== 'proportion' ? 'raw' : value >= 0 && value <= 1 ? 'unit' : value > 1 && value <= 100 ? 'percent' : 'unknown';
+  // A percentage-type error (MAPE) of 0.12 may be 12% or 0.12%: without a "%" in the name, or a value above 1, the scale is unknown.
+  const pctName = /%|percent|pct|pourcent/i.test(name);
+  const scale: Scale = k.percentScale ? (pctName || value > 1 ? 'percent' : 'unknown') : k.kind !== 'proportion' ? 'raw' : value >= 0 && value <= 1 ? 'unit' : value > 1 && value <= 100 ? 'percent' : 'unknown';
   return { kind: k.kind, direction: k.direction, scale, aliases: [...new Set([...k.aliases, base])] };
 }
 
@@ -55,7 +61,8 @@ const SPLIT_WORDS: [RegExp, 'test' | 'validation' | 'train'][] = [
 ];
 /** "Baseline accuracy (test)" is the accuracy of the baseline, on the test split. */
 function baseName(name: string): { name: string; baseline: boolean; split?: 'test' | 'validation' | 'train' } {
-  let n = name.toLowerCase().trim();
+  // "baseline_f1", "acc_baseline", "val_acc": underscores and dots separate words in metric names.
+  let n = name.toLowerCase().trim().replace(/_+/g, ' ').replace(/(?<=\p{L})\.(?=\p{L})/gu, ' ').replace(/%/g, ' ');
   const baseline = BASELINE_WORDS.test(n);
   BASELINE_WORDS.lastIndex = 0;
   n = n.replace(BASELINE_WORDS, ' ');
@@ -101,7 +108,9 @@ export function evidenceOf(r: RunRecord): Evidence {
   const metrics: MetricEvidence[] = r.metrics.map((m) => {
     const b = baseName(m.name);
     const split = m.split === 'other' && b.split ? b.split : m.split;
-    return { name: m.name.toLowerCase(), base: b.name, role: b.baseline ? 'baseline' : 'model', split, value: m.value, info: classifyMetric(m.name, m.value) };
+    // "acc" and "accuracy" are the same measure, so a baseline named "acc_baseline" pairs with "accuracy".
+    const known = KNOWN.find((x) => x.re.test(b.name));
+    return { name: m.name.toLowerCase(), base: known && known.aliases.includes(b.name) ? known.aliases[0] : b.name, role: b.baseline ? 'baseline' : 'model', split, value: m.value, info: classifyMetric(m.name, m.value) };
   });
   const versions = new Set<string>();
   for (const v of `${r.versions}\n${r.hardware}\n${r.log}`.matchAll(/\d+(?:\.\d+)+(?:\+[A-Za-z0-9.]+)?/g)) versions.add(v[0]);
@@ -129,6 +138,8 @@ export function evidenceOf(r: RunRecord): Evidence {
  */
 export function matches(claimRaw: string, claim: number, value: number): boolean {
   if (round(claim) === round(value)) return true;
+  // A perfect or empty-looking value (0, 1, 100) is accepted only when it is exact: 0.996 is never "1.0" or "100%".
+  if (claim === 0 || claim === 1 || claim === 100) return false;
   const digits = claimRaw.replace(/^[^\d]*/, '').replace(/[^\d.,]/g, '');
   const decimals = /[.,](\d+)$/.test(digits) ? digits.split(/[.,]/).pop()!.length : 0;
   const significant = digits.replace(/[.,]/g, '').replace(/^0+/, '').length;
@@ -142,8 +153,8 @@ const matchesAny = (raw: string, v: number | undefined, values: Iterable<number>
 const PERF = /(accura|precision|précision|exactitude|recall|rappel|\bf1\b|f-score|\bauc\b|\broc\b|rmse|\bmae\b|\bmse\b|mape|\br2\b|r²|loss|perte|error|erreur|score|bleu|rouge|\biou\b|\bmap\b|perplexit|performance|improv|amélior|increase|augment|decrease|diminu|gain|gagn|drop|baisse|hausse|outperform|surpass|dépass|better|meilleur|worse|pire|higher|lower|plus élev|plus faible|faster|slower|plus rapide|plus lent|reach|atteint|achiev|obtenu|beat|bat\b|battu|progress)/i;
 const ADVICE = /^\s*(run|re-?run|repeat|use|try|train|add|report|record|collect|consider|compare|aim|keep|set|split|install|upgrade|lancez|relancez|répétez|refaites|utilisez|essayez|entraînez|ajoutez|indiquez|notez|comparez|visez|gardez|fixez|découpez|installez)\b|\b(you should|you could|you can|you may want|consider|try to|at least|aim for|we recommend|or later|or newer|vous devriez|vous pouvez|pensez à|essayez de|au moins|visez|ou plus récent)\b/i;
 /** A change claim: "improved by", "dropped 5%", "a 3% gain". */
-const CHANGE = /(improv|increas|decreas|drop|rose|rise|rais|fell|fall|reduc|gain|boost|declin|grew|grow|lift|amélior|augment|diminu|baiss|rédui|réduct|progress|chut|hausse|recul|gagn)/i;
-const IMPROVE = /(improv|gain|boost|better|lift|amélior|gagn|meilleur|progress)/i;
+const CHANGE = /(outperform|surpass|\bbeats?\b|\bbat(?:tre|tu)?\b|dépass|improv|increas|decreas|drop|rose|rise|rais|fell|fall|reduc|gain|boost|declin|grew|grow|lift|amélior|augment|diminu|baiss|rédui|réduct|progress|chut|hausse|recul|gagn)/i;
+const IMPROVE = /(outperform|surpass|\bbeats?\b|\bbat(?:tre|tu)?\b|dépass|improv|gain|boost|better|lift|amélior|gagn|meilleur|progress)/i;
 const WORSEN = /(worse|degrad|pire|dégrad)/i;
 const UP = /(increas|rose|rise|rais|grew|grow|higher|augment|hausse|plus élev)/i;
 const DOWN = /(decreas|drop|fell|fall|reduc|declin|lower|diminu|baiss|rédui|réduct|chut|recul|plus faible)/i;
@@ -153,10 +164,10 @@ const PERF_FACTOR_AFTER = /^\s*(faster|slower|better|worse|more accurate|larger|
 /** A predicted result: "you should then see", "would reach", "expect", "devrait atteindre". */
 const PREDICT = /(you (should|will|would|could|might|may) (then )?(see|get|reach|achieve|obtain|observe)|\bwould (reach|get|achieve|be|give|yield)\b|\bwill (reach|get|achieve|be|give|yield)\b|\bexpect(ed)?\b|\blikely to (reach|be|get)\b|\bcould reach\b|\bshould reach\b|devriez (voir|obtenir|atteindre)|devrait (atteindre|donner|être)|pourrait atteindre|attendez-vous|obtiendrez|atteindrez|attendu)/i;
 const HEDGE = /(cannot|can't|can not|could not|does not|do not|did not|doesn't|don't|isn't|is not|are not|not yet|\bnot\b|\bno\b|without|whether|\bif\b|would|could|should|might|need|needs|to show|to claim|to support|to test|to check|claim|unless|before you|\bne\b|\bn['’]|\bpas\b|aucun|sans|\bsi\b|pourrait|devrait|faudrait|pour montrer|pour affirmer|pour vérifier|affirmer|avant de|vérifier si|savoir si)/i;
-const COMPARISON = /(outperform|\bbeats?\b|\bbeat\b|better than|worse than|superior|inferior|improves? (on|over|upon)|improved (on|over|upon)|surpass|exceed|higher than|lower than|faster than|slower than|more accurate than|ahead of|dépasse|surpasse|meilleure? que|pire que|plus rapide que|plus lent que|plus élevée? que|plus faible que|supérieure? à|inférieure? à|au-dessus de la référence|améliore .* par rapport)/i;
+const COMPARISON = /(crush|dominat|trounc|blows? away|écrase|\bbat(?:tre|tu)?\b|outperform|\bbeats?\b|\bbeat\b|better than|worse than|superior|inferior|improves? (on|over|upon)|improved (on|over|upon)|surpass|exceed|higher than|lower than|faster than|slower than|more accurate than|ahead of|dépasse|surpasse|meilleure? que|pire que|plus rapide que|plus lent que|plus élevée? que|plus faible que|supérieure? à|inférieure? à|au-dessus de la référence|améliore .* par rapport)/i;
 const QUALITATIVE: [RegExp, 'significance' | 'robustness' | 'generalization' | 'sota'][] = [
   [/statistically (significant|superior|better)|significantly (better|worse|higher|lower|improv|outperform)|statistiquement (significati|supérieur)|significativement|\bsignificant (improvement|gain|difference)/i, 'significance'],
-  [/\brobust(ness)?\b|\brobuste/i, 'robustness'],
+  [/\brobust(ly|ness)?\b|\brobuste/i, 'robustness'],
   [/generali[sz]es? well|generali[sz]ation|generali[sz]es to|généralise bien|bonne généralisation|se généralise/i, 'generalization'],
   [/state[- ]of[- ]the[- ]art|\bsota\b|état de l['’]art/i, 'sota'],
 ];
@@ -236,16 +247,45 @@ function pairs(list: MetricEvidence[]) {
 }
 
 /** Whether a stated direction ("improved", "dropped") agrees with the data and the metric's known direction. */
+/** "The baseline beats the model": the baseline is the subject, so the claim is that the model is worse. */
+const BASELINE_SUBJECT = /\b(baseline|reference|référence)\b[^,;]*?(\bbeats?\b|outperform|surpass|\bbat(?:tre|tu)?\b|dépasse)/i;
 function directionOk(sentence: string, a: MetricEvidence, b: MetricEvidence): boolean {
   const up = b.value > a.value;
   if (IMPROVE.test(sentence) || WORSEN.test(sentence)) {
     const d = b.info.direction;
     if (d !== 'higher_is_better' && d !== 'lower_is_better') return false;
-    const better = d === 'higher_is_better' ? up : !up;
+    const better = (d === 'higher_is_better' ? up : !up) !== BASELINE_SUBJECT.test(sentence);
     return IMPROVE.test(sentence) ? better : !better;
   }
   if (UP.test(sentence) && !DOWN.test(sentence)) return up;
   if (DOWN.test(sentence) && !UP.test(sentence)) return !up;
+  return true;
+}
+
+const ABOVE = /(above|higher|greater|more than|exceeds?|au-dessus|plus élevée?|supérieure?)/i;
+const BELOW = /(below|lower|less than|under\b|en dessous|en-dessous|plus faible|plus basse?|inférieure?)/i;
+/** The splits a sentence names, in the order it names them. The first is the subject: "test is above validation". */
+function splitOrder(sentence: string): string[] {
+  const found = SPLIT_WORDS.flatMap(([re, s]) => {
+    const m = sentence.match(re);
+    return m ? [{ s, at: m.index ?? 0 }] : [];
+  });
+  return found.sort((a, b) => a.at - b.at).map((x) => x.s);
+}
+/**
+ * A gap between two splits is neutral: it has a size and a sign, never an "improvement".
+ * When the sentence says which one is above or below, the data must agree.
+ */
+function gapDirectionOk(sentence: string, a: MetricEvidence, b: MetricEvidence): boolean {
+  const order = splitOrder(sentence);
+  if (order.length < 2) return !(ABOVE.test(sentence) || BELOW.test(sentence));
+  const subject = [a, b].find((x) => x.split === order[0]);
+  const other = [a, b].find((x) => x.split === order[1]);
+  if (!subject || !other || subject === other) return false;
+  const above = ABOVE.test(sentence);
+  const below = BELOW.test(sentence);
+  if (above && !below) return subject.value > other.value;
+  if (below && !above) return subject.value < other.value;
   return true;
 }
 
@@ -262,7 +302,7 @@ export function checkToken(t: Token, sentence: string, e: Evidence): ClaimKind |
   const ps = pairs(ref.list);
   // An improvement or a change needs a baseline of the same measure, on the same split, going the stated way.
   const changePairs = ps.filter((p) => p.baseline && directionOk(sentence, p.a, p.b));
-  const gapPairs = change ? changePairs : [...changePairs, ...ps.filter((p) => !p.baseline)];
+  const gapPairs = change ? changePairs : [...changePairs, ...ps.filter((p) => !p.baseline && gapDirectionOk(sentence, p.a, p.b))];
   const diffs = gapPairs.map((p) => Math.abs(p.b.value - p.a.value));
   const pointDiffs = gapPairs.flatMap((p) => (p.a.info.kind === 'proportion' && p.a.info.scale === 'unit' ? [Math.abs(p.b.value - p.a.value) * 100] : p.a.info.scale === 'percent' ? [Math.abs(p.b.value - p.a.value)] : []));
   const relative = gapPairs.filter((p) => p.a.value !== 0).map((p) => Math.abs((p.b.value - p.a.value) / p.a.value) * 100);
@@ -314,14 +354,27 @@ export function checkToken(t: Token, sentence: string, e: Evidence): ClaimKind |
   }
 }
 
+/** "Aim for 0.95", "visez 0,95": a number to reach, which reads like a result unless it is clearly labelled as hypothetical. */
+const TARGET = /\b(aim(?:ing)? (?:for|at)|target(?:s|ing)?\b|shoot for|go for|objective of|visez|viser|vise\b|objectif|cible)/i;
+const HYPOTHETICAL = /(hypothetical|for example|for instance|e\.g\.|illustrative|as an example|your own target|you choose|hypothétique|par exemple|à titre d['’]exemple|fictif|que vous choisissez)/i;
+/** "Does not just beat", "non seulement": a negation that strengthens a claim instead of hedging it. */
+const RHETORICAL = /(not just|not only|not merely|not simply|pas seulement|non seulement|ne fait pas que|pas uniquement|pas simplement)/i;
+/**
+ * For comparisons, only doubt counts as a hedge ("you cannot yet say", "whether", "si"). A plain negation
+ * ("does not beat the baseline") is itself a comparison with a baseline, and needs one in the run.
+ */
+const COMPARE_HEDGE = /(cannot|can't|can not|could not|not yet|whether|\bif\b|would|could|should|might|need|needs|to show|to claim|to support|to test|to check|claim|unless|before you|without|\bshows?\b|\bprove|establish|demonstrat|\byet\b|\bsi\b|\bsans\b|pourrait|devrait|faudrait|pour montrer|pour affirmer|pour vérifier|affirmer|avant de|vérifier si|savoir si|pas encore|ne (?:pouvez|peut|peux|pouvons) pas|montr|prouv|établi|démontr)/i;
+
 /** Splits a sentence into clauses, so a hedge in one clause does not excuse a claim in another. */
 const clauses = (s: string) => s.split(/[,;:—–]|\b(?:but|which|while|whereas|although|though|mais|tandis que|alors que|bien que)\b/i);
-function unhedged(re: RegExp, sentence: string): boolean {
+function unhedged(re: RegExp, sentence: string, hedge: RegExp = HEDGE): boolean {
   return clauses(sentence).some((c) => {
     const mm = c.match(re);
     if (!mm) return false;
     if (/\?\s*$/.test(c.trim()) || /\?\s*$/.test(sentence.trim())) return false;
-    return !HEDGE.test(c.slice(0, mm.index ?? 0));
+    const before = c.slice(0, mm.index ?? 0);
+    if (RHETORICAL.test(before)) return true;
+    return !hedge.test(before);
   });
 }
 
@@ -330,13 +383,36 @@ export type Problems = { kinds: ClaimKind[]; qualitative: Qualitative[] };
 
 /** The problems in one sentence, or empty lists when it can stay. */
 export function analyzeSentence(sentence: string, e: Evidence): Problems {
+  const p = analyzeCore(sentence, e);
+  if (!p.kinds.length || p.qualitative.length) return p;
+  const s = joinThousands(sentence);
+  // The value is there, but its split is unknown: the claim stays removed, and the student is told why.
+  const named = splitOrder(s);
+  const unsplit = e.metrics.filter((m) => m.split === 'other');
+  if (named.length && unsplit.length) {
+    const asIf = { ...e, metrics: [...e.metrics, ...unsplit.flatMap((m) => named.map((split) => ({ ...m, split })))] };
+    if (!analyzeCore(sentence, asIf).kinds.length) return { kinds: ['unknown_split'], qualitative: [] };
+  }
+  // The value is there, but it is not known to be a fraction or a percentage.
+  const unscaled = e.metrics.filter((m) => m.info.scale === 'unknown' && m.info.kind === 'error');
+  if (unscaled.length && /%|percent|pour ?cent|points?/i.test(s)) {
+    const asIf = { ...e, metrics: e.metrics.map((m) => (unscaled.includes(m) ? { ...m, value: m.value * 100, info: { ...m.info, scale: 'percent' as const } } : m)) };
+    if (!analyzeCore(sentence, asIf).kinds.length) return { kinds: ['unknown_scale'], qualitative: [] };
+  }
+  return p;
+}
+
+function analyzeCore(sentence: string, e: Evidence): Problems {
   const s = joinThousands(sentence);
   const toks = tokens(s);
   let kinds = toks.map((t) => checkToken(t, s, e)).filter((k): k is ClaimKind => !!k);
   // A predicted result is never evidence, even when it sounds like advice.
   if (PREDICT.test(s) && toks.some((t) => ['percent', 'decimal', 'points', 'factor'].includes(t.kind) || (t.kind === 'integer' && PERF.test(s)))) kinds.unshift('prediction');
   // A comparison stated as fact needs a baseline in the run. A hedge counts only in the same clause, before the comparison.
-  if (unhedged(COMPARISON, s) && !e.metrics.some((m) => m.role === 'baseline')) kinds.push('comparison');
+  // A target clearly labelled as hypothetical is advice, not a result: its number is not checked against the run.
+  if (TARGET.test(s) && HYPOTHETICAL.test(s)) kinds = kinds.filter((k) => !['percent', 'decimal', 'points', 'integer'].includes(k));
+  if (TARGET.test(s) && !HYPOTHETICAL.test(s) && toks.some((t) => ['percent', 'decimal', 'points', 'factor'].includes(t.kind) || (t.kind === 'integer' && PERF.test(s)))) kinds.push('target');
+  if (unhedged(COMPARISON, s, COMPARE_HEDGE) && !e.metrics.some((m) => m.role === 'baseline')) kinds.push('comparison');
   const qualitative = QUALITATIVE.filter(([re, k]) => unhedged(re, s) && !(k === 'significance' && e.statsTest)).map(([, k]) => k);
   if (qualitative.length) kinds.push('qualitative');
   kinds = [...new Set(kinds)];

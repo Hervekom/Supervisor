@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount } from '@/components/useAccount';
 import { put } from '@/components/useProfiles';
 import { Runs } from '@/components/Runs';
@@ -8,24 +8,15 @@ import { usePathSync } from '@/components/usePathSync';
 import { supabase } from '@/lib/supabase';
 import { useLang } from '@/components/useLang';
 import { LANGS, t as messages, type Lang, type Messages } from '@/lib/i18n';
-import { cleanLab, currentCheck, emptyLab, fromLabV1, hasLabProgress, newerLab, recordCheck, setMarked, statusOf, update, type LabState, type LabStatus } from '@/lib/lab';
+import { cleanLab, combineLabs, currentCheck, emptyLab, hasLabProgress, newerLab, recordCheck, setMarked, statusOf, update, type LabState, type LabStatus } from '@/lib/lab';
+import { adoptLegacyWithoutAccounts, adoptSessionGuest, BROWSER_OWNER, claimUnowned, exportLab, identityFor, keepThesislessLab, listUnowned, readLabFor, removeUnowned, writeLabFor, type Unowned } from '@/lib/labOwner';
 import { explain, findSensitive, VERIFY_COMMANDS, verifyOutput, type CheckResult } from '@/lib/labVerify';
 import { emptyPath, isPathState, type PathState } from '@/lib/path';
-import { hasWork, LAB_MIRROR_KEY, LAB_V1_KEY, PATH_KEY, readLocalPath } from '@/lib/pathSync';
+import { hasWork, PATH_KEY, readLocalPath } from '@/lib/pathSync';
 import { guessOs, OS_LABELS, selectTools, textOf, WORK_TYPES, type GpuAnswer, type Os, type Software, type WorkType } from '@/lib/software';
 
 const GPU_TYPES: (WorkType | 'python')[] = ['deep_learning', 'computer_vision', 'nlp'];
 const PYTHON_ENV = new Set(['venv', 'jupyterlab', 'numpy', 'pandas', 'matplotlib', 'scikit-learn', 'pytorch']);
-
-function readJson(key: string): unknown {
-  try {
-    return JSON.parse(localStorage.getItem(key) ?? 'null');
-  } catch {
-    return null;
-  }
-}
-/** A browser copy of the Lab, so progress survives when the account's copy replaces this browser's. */
-const readMirror = () => cleanLab(readJson(LAB_MIRROR_KEY)) ?? fromLabV1(readJson(LAB_V1_KEY));
 
 /** Puts the newer Lab progress into the path. Leaves the path untouched when nothing changes. */
 function withLab(p: PathState, mirror: LabState | undefined): PathState {
@@ -33,6 +24,59 @@ function withLab(p: PathState, mirror: LabState | undefined): PathState {
   const best = newerLab(own, mirror);
   if (!best || best === own || !hasLabProgress(best)) return p;
   return { ...p, lab: best, savedAt: new Date().toISOString() };
+}
+
+/**
+ * The work as this owner may see it. A started thesis carries its own Lab part, which travels with the thesis.
+ * A thesis-less copy is never synced, so its Lab part may come from someone else: only this owner's progress is shown,
+ * and any other Lab part is kept aside as unowned progress the student can claim.
+ */
+function forOwner(p: PathState, owner: string): PathState {
+  const mine = readLabFor(owner);
+  if (hasWork(p)) return withLab(p, mine);
+  const current = cleanLab(p.lab);
+  if (current && hasLabProgress(current) && JSON.stringify(current.tools) !== JSON.stringify(mine?.tools ?? null)) keepThesislessLab(current);
+  const { lab: _lab, ...rest } = p;
+  return (mine ? { ...rest, lab: mine } : rest) as PathState;
+}
+
+function UnownedLab({ items, m, onUse, onRemove }: { items: Unowned[]; m: Messages; onUse: (u: Unowned) => void; onRemove: (u: Unowned) => void }) {
+  const [confirm, setConfirm] = useState('');
+  const download = (u: Unowned) => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([exportLab(u)], { type: 'application/json' }));
+    a.download = `supervisor-lab-progress-${(u.updatedAt || 'earlier').slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  return (
+    <div className="notice" role="region" aria-label={m.unownedTitle} style={{ marginTop: 16 }}>
+      <p><b>{m.unownedTitle}</b></p>
+      <p>{m.unownedText}</p>
+      <ul className="todo">
+        {items.map((u) => {
+          const checks = Object.values(u.lab.tools).filter((t) => t.check?.status === 'verified').length;
+          return (
+            <li key={u.key}>
+              {m.unownedItem(u.source === 'earlier_version' ? m.unownedEarlier : m.unownedSession, checks, (u.updatedAt || '').slice(0, 10))}
+              <div className="lab-actions" style={{ marginTop: 6 }}>
+                <button type="button" className="btn ghost" onClick={() => onUse(u)}>{m.unownedUse}</button>
+                <button type="button" className="btn ghost" onClick={() => download(u)}>{m.unownedDownload}</button>
+                {confirm === u.key ? (
+                  <>
+                    <button type="button" className="btn danger" onClick={() => onRemove(u)}>{m.unownedRemoveConfirm}</button>
+                    <button type="button" className="btn ghost" onClick={() => setConfirm('')}>{m.keepIt}</button>
+                  </>
+                ) : (
+                  <button type="button" className="btn ghost" onClick={() => setConfirm(u.key)}>{m.unownedRemove}</button>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 export function CopyCommand({ command, m }: { command: string; m: Messages }) {
@@ -117,20 +161,34 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
   const [lang, saveLang] = useLang();
   const m = messages(lang);
 
+  // Whose Lab progress this is: the signed-in account's stable ID, or this tab's signed-out session.
+  // A server without sign-in has one user per browser, so its progress has a single owner.
+  const accounts = !!supabase();
+  const owner = ready ? (accounts ? identityFor(user?.id) : BROWSER_OWNER) : null;
+  const ownerRef = useRef(owner);
+  ownerRef.current = owner;
+  const [unowned, setUnowned] = useState<Unowned[]>([]);
+
   useEffect(() => {
-    setPath(withLab(readLocalPath() ?? emptyPath(), readMirror()));
+    if (!owner) return;
+    // Signing in from the same tab continues the same person's work. Nothing else moves between owners.
+    if (user?.id) adoptSessionGuest(user.id);
+    if (!accounts) adoptLegacyWithoutAccounts();
+    setPath(forOwner(readLocalPath() ?? emptyPath(), owner));
+    setUnowned(listUnowned(owner).filter((u) => accounts || u.source !== 'earlier_version'));
     setSuggested(guessOs(navigator.userAgent));
     setWide(window.matchMedia('(min-width: 721px)').matches);
     setLoaded(true);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [owner]);
 
   // The thesis and the Lab share one saved copy. Writing it keeps every other part as it is.
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || !owner) return;
     put(PATH_KEY, JSON.stringify(path));
     const lab = cleanLab(path.lab);
-    if (hasLabProgress(lab)) put(LAB_MIRROR_KEY, JSON.stringify(lab));
-  }, [path, loaded]);
+    if (lab && hasLabProgress(lab)) writeLabFor(owner, lab);
+  }, [path, loaded, owner]);
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -144,7 +202,7 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
-  const replace = useCallback((p: PathState) => setPath(withLab(p, readMirror())), []);
+  const replace = useCallback((p: PathState) => setPath(ownerRef.current ? forOwner(p, ownerRef.current) : p), []);
   const sync = usePathSync({ userId: ready ? user?.id : undefined, loaded, path, replace });
 
   const lab = cleanLab(path.lab) ?? emptyLab();
@@ -185,6 +243,22 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
       <p className="hint" style={{ marginTop: 6 }}>{m.noCodeHint}</p>
       <p className="notice pc-note" role="note">{m.pcNote}</p>
       {sync.conflict ? <p className="notice" role="alert" style={{ marginTop: 12 }}>{m.twoVersions} <Link href="/">{m.openMyThesis}</Link> {m.toChooseOne}</p> : null}
+      {loaded && owner && unowned.length ? (
+        <UnownedLab
+          items={unowned}
+          m={m}
+          onUse={(u) => {
+            // The student said this progress is theirs. It joins their own; nothing from either side is dropped.
+            const mine = claimUnowned(u.key, owner);
+            if (mine) editPath((p) => ({ ...p, lab: combineLabs(cleanLab(p.lab), mine) }));
+            setUnowned(listUnowned(owner));
+          }}
+          onRemove={(u) => {
+            removeUnowned(u.key);
+            setUnowned(listUnowned(owner));
+          }}
+        />
+      ) : null}
 
       <div className="sheet" style={{ marginTop: 20 }}>
         <fieldset className="field">

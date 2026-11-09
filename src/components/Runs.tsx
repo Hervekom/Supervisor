@@ -8,6 +8,7 @@ import { findSensitive } from '@/lib/labVerify';
 import { stepState, STEPS, type PathState } from '@/lib/path';
 import { errorText, request } from '@/lib/request';
 import type { RunFeedback } from '@/lib/runFeedback';
+import { maybePii } from '@/lib/pii';
 import { appendToResultsSheet, cleanDraft, cleanRuns, emptyDraft, fmt, isStepId, newRun, parseMetricsFile, parseNumber, runProblems, runToText, SPLITS, stepTitle, summarize, versionsFromLab, type Metric, type RunDraft, type RunRecord, type Split } from '@/lib/runs';
 import type { Os } from '@/lib/software';
 import { authHeaders } from '@/lib/supabase';
@@ -74,6 +75,9 @@ function RunForm({ initial, onSave, onCancel, lang }: { initial: RunDraft; onSav
   const [f, setF] = useState<Form>(() => toForm(initial));
   const [problems, setProblems] = useState<string[]>([]);
   const [fileNote, setFileNote] = useState('');
+  // Rows read from a file without a split. The student may give them one; "not specified" stays as it is.
+  const [unsplit, setUnsplit] = useState<number[]>([]);
+  const [fileSplit, setFileSplit] = useState<Split>('other');
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
   const setRow = (i: number, r: Partial<Row>) => setF((x) => ({ ...x, rows: x.rows.map((row, k) => (k === i ? { ...row, ...r } : row)) }));
   const hidden = findSensitive(`${f.log}\n${f.notes}\n${f.settings}\n${f.hardware}`);
@@ -85,7 +89,12 @@ function RunForm({ initial, onSave, onCancel, lang }: { initial: RunDraft; onSav
     if (!file) return;
     if (file.size > 50_000) return setFileNote(m.fileProblems.tooLarge);
     const { metrics, problems: p } = parseMetricsFile(file.name, await file.text(), lang);
-    if (metrics.length) setF((x) => ({ ...x, rows: [...x.rows.filter((r) => r.name.trim() || r.value.trim()), ...metrics.map((mm) => ({ name: mm.name, value: String(mm.value), split: mm.split }))] }));
+    if (metrics.length) setF((x) => {
+      const kept = x.rows.filter((r) => r.name.trim() || r.value.trim());
+      setUnsplit(metrics.flatMap((mm, i) => (mm.split === 'other' ? [kept.length + i] : [])));
+      setFileSplit('other');
+      return { ...x, rows: [...kept, ...metrics.map((mm) => ({ name: mm.name, value: String(mm.value), split: mm.split }))] };
+    });
     setFileNote([metrics.length ? m.fileRead(metrics.length, file.name) : '', ...p].filter(Boolean).join(' '));
   }
 
@@ -137,7 +146,7 @@ function RunForm({ initial, onSave, onCancel, lang }: { initial: RunDraft; onSav
               <select aria-label={m.resultSplit(i + 1)} value={r.split} onChange={(e) => setRow(i, { split: e.target.value as Split })}>
                 {SPLITS.map((s) => <option key={s} value={s}>{m.splits[s]}</option>)}
               </select>
-              <button type="button" className="btn ghost" aria-label={m.removeResult(i + 1)} onClick={() => setF((x) => ({ ...x, rows: x.rows.filter((_, k) => k !== i) }))}>{m.remove}</button>
+              <button type="button" className="btn ghost" aria-label={m.removeResult(i + 1)} onClick={() => { setUnsplit([]); setF((x) => ({ ...x, rows: x.rows.filter((_, k) => k !== i) })); }}>{m.remove}</button>
             </div>
           ))}
         </div>
@@ -150,11 +159,25 @@ function RunForm({ initial, onSave, onCancel, lang }: { initial: RunDraft; onSav
         </div>
         <p className="hint">{m.fileHint}</p>
         {fileNote ? <p className="hint" role="status">{fileNote}</p> : null}
+        {unsplit.length ? (
+          <div className="field">
+            <p className="hint" id="run-file-split-hint">{m.fileNoSplit(unsplit.length)}</p>
+            <label htmlFor="run-file-split"><b>{m.fileSplitLabel}</b></label>
+            <select id="run-file-split" aria-describedby="run-file-split-hint" value={fileSplit} onChange={(e) => {
+              const v = e.target.value as Split;
+              setFileSplit(v);
+              setF((x) => ({ ...x, rows: x.rows.map((r, i) => (unsplit.includes(i) ? { ...r, split: v } : r)) }));
+            }}>
+              {SPLITS.map((s) => <option key={s} value={s}>{m.splits[s]}</option>)}
+            </select>
+          </div>
+        ) : null}
       </fieldset>
 
       {field('log', true)}
       {field('notes', true)}
       {hidden.length ? <p className="notice" role="alert">{hidden.includes('secret') ? m.hiddenSecret : m.hiddenOther}</p> : null}
+      {maybePii(`${f.log}\n${f.notes}\n${f.settings}\n${f.hardware}`) ? <p className="hint" role="status">{m.maybePersonal}</p> : null}
       {problems.length ? <ul className="notice" role="alert">{problems.map((p) => <li key={p}>{p}</li>)}</ul> : null}
       <div className="lab-actions">
         <button type="button" className="btn" onClick={save}>{m.saveRun}</button>
@@ -174,6 +197,9 @@ function Feedback({ fb, m }: { fb: RunFeedback; m: Messages }) {
       {block(m.missing, fb.missing)}
       {fb.next_action ? <p><b>{m.next}</b> {fb.next_action}</p> : null}
       <p className="hint">{m.basedOn}{fb.removed ? ` ${m.removedClaims(fb.removed)}` : ''}</p>
+      {fb.kinds?.includes('unknown_split') ? <p className="hint">{m.removedUnknownSplit}</p> : null}
+      {fb.kinds?.includes('unknown_scale') ? <p className="hint">{m.removedUnknownScale}</p> : null}
+      {fb.kinds?.includes('target') ? <p className="hint">{m.removedTarget}</p> : null}
     </div>
   );
 }

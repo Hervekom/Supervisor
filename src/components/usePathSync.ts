@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { emptyPath, type PathState } from '@/lib/path';
-import { isDirty, keepAccount, keepLocal, pushNow, readLocalPath, readSync, setAside, syncNow, writeLocalPath, type SyncOutcome } from '@/lib/pathSync';
+import { isDirty, keepAccount, keepLocal, pushNow, readLocalPath, readSync, setAside, setAsideRoom, syncNow, writeLocalPath, type SyncOutcome } from '@/lib/pathSync';
 import { cloudPaths } from '@/lib/supabase';
 
 export type SaveStatus = 'idle' | 'waiting' | 'saving' | 'saved' | 'unconfirmed' | 'conflict';
@@ -16,6 +16,7 @@ export function usePathSync(opts: { userId?: string; loaded: boolean; path: Path
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [conflict, setConflict] = useState<Conflict | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [full, setFull] = useState(false);
   const running = useRef(false);
   const again = useRef(false);
   const blocked = useRef(false);
@@ -106,8 +107,15 @@ export function usePathSync(opts: { userId?: string; loaded: boolean; path: Path
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run]);
 
+  /** True when there is room to set aside `n` copies. Otherwise the student must export or remove one first. */
+  const roomFor = (n: number) => {
+    if (setAsideRoom(userId) >= n) return true;
+    setFull(true);
+    return false;
+  };
+
   async function chooseThisBrowser() {
-    if (!userId || !conflict) return;
+    if (!userId || !conflict || !roomFor(1)) return;
     setResolving(true);
     try {
       blocked.current = false;
@@ -122,10 +130,10 @@ export function usePathSync(opts: { userId?: string; loaded: boolean; path: Path
 
   /** Keeps the runs of both versions. Both original versions are set aside first, so nothing is lost. */
   async function chooseCombined(merged: PathState) {
-    if (!userId || !conflict) return;
+    if (!userId || !conflict || !roomFor(2)) return;
     setResolving(true);
     try {
-      setAside(readLocalPath());
+      setAside(readLocalPath(), undefined, userId);
       writeLocalPath(merged);
       replace(merged);
       blocked.current = false;
@@ -139,13 +147,18 @@ export function usePathSync(opts: { userId?: string; loaded: boolean; path: Path
   }
 
   function chooseAccount() {
-    if (!userId || !conflict) return;
-    replace(keepAccount(userId, conflict.cloud, conflict.version, emptyPath()));
+    if (!userId || !conflict || !roomFor(1)) return;
+    try {
+      replace(keepAccount(userId, conflict.cloud, conflict.version, emptyPath()));
+    } catch {
+      setFull(true);
+      return;
+    }
     blocked.current = false;
     setConflict(null);
     setStatus('saved');
     setSavedAt(new Date());
   }
 
-  return { status, savedAt, conflict, resolving, chooseThisBrowser, chooseAccount, chooseCombined };
+  return { status, savedAt, conflict, resolving, chooseThisBrowser, chooseAccount, chooseCombined, setAsideFull: full, clearSetAsideFull: () => setFull(false) };
 }

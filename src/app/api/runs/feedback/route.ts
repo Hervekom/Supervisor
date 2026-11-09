@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const cleaned = cleanRun(b.run);
     if (!cleaned) return fail('Save the run first, then ask for feedback.');
     // The AI receives only the cleaned record, without the student's own name.
-    const run = withoutIdentity(cleaned, auth.email);
+    const run = withoutIdentity(cleaned, auth.email, auth.name);
     if (runProblems(run).length) return fail('Complete the run first, then ask for feedback.');
     const { config, error } = resolveChoice(b.llm);
     if (error) return fail(error);

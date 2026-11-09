@@ -109,6 +109,35 @@ test('results can be read from a small CSV file in the browser, without uploadin
   expect(requests.filter((u) => !u.includes('/_next/')).length).toBe(before);
 });
 
+test('results read without a data split can be given one, or stay "not specified" (B2.3.2 N-FP1)', async ({ page }) => {
+  await seed(page, { 'path:v1': thesis() });
+  await page.goto('/lab');
+  await page.getByRole('button', { name: 'Add a run' }).click();
+  await page.getByLabel('Run name').fill('Imported');
+  await page.locator('input[type=file]').setInputFiles({ name: 'metrics.csv', mimeType: 'text/csv', buffer: Buffer.from('metric,value\naccuracy,0.912\nloss,0.231\n') });
+  await expect(page.getByText('2 results have no data split in the file.', { exact: false })).toBeVisible();
+  await expect(page.getByLabel('Result 1 data split')).toHaveValue('other');
+  await expect(page.getByLabel('Result 1 data split').locator('option:checked')).toHaveText('Other or not specified');
+  await page.getByLabel('Data split for the results read without one').selectOption('test');
+  await expect(page.getByLabel('Result 1 data split')).toHaveValue('test');
+  await expect(page.getByLabel('Result 2 data split')).toHaveValue('test');
+  await page.getByLabel('Result 2 data split').selectOption('train');
+  await page.getByRole('button', { name: 'Save run' }).click();
+  const saved = await stored(page, 'path:v1');
+  expect(saved.runs[0].metrics).toEqual([{ name: 'accuracy', value: 0.912, split: 'test' }, { name: 'loss', value: 0.231, split: 'train' }]);
+});
+
+test('a file with a split column keeps it, and a value without one stays unspecified', async ({ page }) => {
+  await seed(page, { 'path:v1': thesis() });
+  await page.goto('/lab');
+  await page.getByRole('button', { name: 'Add a run' }).click();
+  await page.getByLabel('Run name').fill('Imported 2');
+  await page.locator('input[type=file]').setInputFiles({ name: 'm.json', mimeType: 'application/json', buffer: Buffer.from('{"accuracy": 0.9}') });
+  await expect(page.getByText('1 result has no data split in the file.', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Save run' }).click();
+  expect((await stored(page, 'path:v1')).runs[0].metrics).toEqual([{ name: 'accuracy', value: 0.9, split: 'other' }]);
+});
+
 test('repeated runs show the mean and standard deviation of the reported values only', async ({ page }) => {
   await seed(page, { 'path:v1': thesis() });
   await page.goto('/lab');

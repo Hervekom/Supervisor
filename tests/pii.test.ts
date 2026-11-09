@@ -7,8 +7,9 @@ import { cleanRun, emptyDraft, newRun, redact, withoutIdentity } from '@/lib/run
 // All names, hosts and numbers below are invented.
 describe('device and contact details are hidden', () => {
   const cases: [string, string][] = [
-    ['Data in \\\\fileserver\\students\\li\\data.csv', 'Data in \\\\[host]\\[share]\\li\\data.csv'],
-    ['Mounted smb://nas01/research for the run', 'Mounted smb://[host]/[research] for the run'.replace('[research]', '[share]')],
+    // Since B2.3.2 the whole network path is replaced, including the folders after the share (B2.3.1 S-M1).
+    ['Data in \\\\fileserver\\students\\li\\data.csv', 'Data in [network-path]'],
+    ['Mounted smb://nas01/research for the run', 'Mounted [network-path] for the run'],
     ['li@lab-pc:~$ python train.py', '[user]@[host]:~$ python train.py'],
     ['Ran on gpu01.lab.local overnight', 'Ran on [host] overnight'],
     ['Computer DESKTOP-4F7K2QX', 'Computer [host]'],
