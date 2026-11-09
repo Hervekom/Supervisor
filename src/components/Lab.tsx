@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { useAccount } from '@/components/useAccount';
 import { put } from '@/components/useProfiles';
+import { Runs } from '@/components/Runs';
 import { usePathSync } from '@/components/usePathSync';
 import { cleanLab, currentCheck, emptyLab, fromLabV1, hasLabProgress, newerLab, recordCheck, setMarked, STATUS_LABEL, statusOf, update, type LabState, type LabStatus } from '@/lib/lab';
 import { explain, findSensitive, VERIFY_COMMANDS, verifyOutput, type CheckResult, type Sensitive } from '@/lib/labVerify';
@@ -154,13 +155,17 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
   const os = lab.os ?? suggested;
   const sel = { workTypes: lab.workTypes, os, gpu: lab.gpu };
 
-  /** Builds on the newest copy in this browser, and changes only the Lab part. */
-  const edit = (fn: (l: LabState) => LabState) =>
+  /** Builds on the newest copy in this browser. The caller changes only its own part. */
+  const editPath = (fn: (p: PathState) => PathState) =>
     setPath((p) => {
       const stored = readLocalPath();
       const latest = stored && (stored.savedAt ?? '') > (p.savedAt ?? '') ? stored : p;
-      const base = cleanLab(latest.lab) ?? emptyLab();
-      return { ...latest, lab: fn({ ...base, os: base.os ?? os }), savedAt: new Date().toISOString() };
+      return { ...fn(latest), savedAt: new Date().toISOString() };
+    });
+  const edit = (fn: (l: LabState) => LabState) =>
+    editPath((p) => {
+      const base = cleanLab(p.lab) ?? emptyLab();
+      return { ...p, lab: fn({ ...base, os: base.os ?? os }) };
     });
 
   const toggleType = (id: WorkType | 'python') => edit((l) => update(l, { workTypes: l.workTypes.includes(id) ? l.workTypes.filter((x) => x !== id) : [...l.workTypes, id] }));
@@ -286,6 +291,8 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
       ) : loaded ? (
         <p className="empty" style={{ marginTop: 24 }}>{!lab.workTypes.length ? 'Choose what your research involves to see your checklist.' : 'Choose your system to see your checklist.'}</p>
       ) : null}
+
+      {loaded ? <Runs path={path} os={os} editPath={editPath} /> : null}
     </>
   );
 }

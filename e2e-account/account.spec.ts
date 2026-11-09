@@ -263,3 +263,28 @@ test('B1: Lab progress alone does not start a "two versions" choice, and survive
   await expect.poll(async () => (await state()).row.data.lab?.tools?.git?.marked, { timeout: 15_000 }).toBe(true);
   expect((await state()).row.data.steps.title.work).toBe('Work already in the account');
 });
+
+// ---------- Experiment runs (Phase B2) ----------
+
+test('B2: a reported run is saved with the thesis and appears on a second device', async ({ page, browser }) => {
+  await seedLocal(page, started('Thesis work that must stay'));
+  await signIn(page);
+  await expect(page.getByText('The work from this browser is saved to your account.')).toBeVisible();
+  await page.goto('/lab');
+  await page.getByRole('button', { name: 'Add a run' }).click();
+  await page.getByLabel('Run name').fill('Baseline, seed 1');
+  await page.getByRole('button', { name: 'Add a result' }).click();
+  await page.getByLabel('Result 1 name').fill('accuracy');
+  await page.getByLabel('Result 1 value').fill('0.912');
+  await page.getByRole('button', { name: 'Save run' }).click();
+  await expect.poll(async () => (await state()).row?.data?.runs?.[0]?.name, { timeout: 15_000 }).toBe('Baseline, seed 1');
+  const row = (await state()).row.data;
+  expect(row.runs[0]).toMatchObject({ source: 'student', metrics: [{ name: 'accuracy', value: 0.912, split: 'test' }] });
+  expect(row.steps.title.work).toBe('Thesis work that must stay');
+
+  const other = await (await browser.newContext()).newPage();
+  await signIn(other);
+  await other.goto('/lab');
+  await expect(other.getByTestId('run-card').getByRole('heading', { name: 'Baseline, seed 1' })).toBeVisible();
+  await other.context().close();
+});

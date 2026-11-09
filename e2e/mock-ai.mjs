@@ -7,6 +7,17 @@ function reply(messages) {
   if (system.includes('like a chef leading a recipe')) {
     return { reply: `Mock chef reply. ${Array(300).fill('word').join(' ')}`, suggestions: ['Mock suggestion', 'Second idea'], step: user.includes('open method') ? 'method' : 'not_a_step' };
   }
+  if (system.includes('experiment run record')) {
+    // One sentence repeats a submitted number, one invents a number. The app must drop the invented one.
+    const first = user.match(/= ([\d.]+)/)?.[1] ?? '1';
+    return {
+      summary: `Mock run review. The reported value ${first} comes from one seed. A better model would reach 0.987 accuracy.`,
+      can_support: ['Mock: the pipeline runs end to end.'],
+      cannot_support: ['Mock: a claim that the method beats the baseline.'],
+      missing: ['Mock: more seeds.'],
+      next_action: 'Mock: run two more seeds.',
+    };
+  }
   if (system.includes('writing guide')) {
     if (user.includes('<student_paragraph>')) return { missing: ['Mock missing evidence'], question: 'Mock review question?' };
     if (user.includes('Build a plan')) return { points: [{ point: 'Mock point from answers', evidence: 'Mock evidence' }, { point: Array(40).fill('word').join(' '), evidence: '' }] };

@@ -1,5 +1,6 @@
 import type { Coverage } from './limits';
 import type { LabState } from './lab';
+import type { RunRecord } from './runs';
 import type { DegreeType, Profile, Rule, Stage } from './types';
 
 export type Task = { do: string; how: string; stuck?: string };
@@ -421,6 +422,8 @@ export type PathState = {
   parts?: Record<string, string>;
   /** Lab setup progress. Optional, so older saved copies stay valid. */
   lab?: LabState;
+  /** Experiment runs the student reported by hand. Optional, so older saved copies stay valid. */
+  runs?: RunRecord[];
 };
 
 export type Verdict = 'not_ready' | 'almost' | 'ready';
