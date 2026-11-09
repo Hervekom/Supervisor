@@ -1,0 +1,91 @@
+{
+  "id": "venv",
+  "name": "Python virtual environment (venv)",
+  "kind": "application",
+  "purpose": "Keeps the libraries for this project separate from other projects, so versions do not clash and your setup can be repeated.",
+  "work_types": [
+    "any"
+  ],
+  "level": "required",
+  "publisher_domain": "packaging.python.org",
+  "official_download_url": "https://packaging.python.org/guides/installing-using-pip-and-virtual-environments/",
+  "official_docs_url": "https://docs.python.org/3/library/venv.html",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "venv is part of Python. No separate download is needed.",
+  "prerequisites": [
+    "python"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "In your project folder, create the environment.",
+        "command": "python -m venv .venv"
+      },
+      {
+        "text": "Activate it. Do this each time you open a new terminal.",
+        "command": ".venv\\Scripts\\activate"
+      }
+    ],
+    "macos": [
+      {
+        "text": "In your project folder, create the environment.",
+        "command": "python3 -m venv .venv"
+      },
+      {
+        "text": "Activate it. Do this each time you open a new terminal.",
+        "command": "source .venv/bin/activate"
+      }
+    ],
+    "linux": [
+      {
+        "text": "In your project folder, create the environment.",
+        "command": "python3 -m venv .venv"
+      },
+      {
+        "text": "Activate it. Do this each time you open a new terminal.",
+        "command": "source .venv/bin/activate"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "where python",
+      "expected": "The first line ends with .venv\\Scripts\\python.exe inside your project folder"
+    },
+    "macos": {
+      "command": "which python",
+      "expected": "A path ending with .venv/bin/python inside your project folder"
+    },
+    "linux": {
+      "command": "which python",
+      "expected": "A path ending with .venv/bin/python inside your project folder"
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "Windows PowerShell says running scripts is disabled when you activate",
+      "solution": "Use Command Prompt instead of PowerShell for the activate command. Ask your supervisor or IT before changing any security setting."
+    },
+    {
+      "problem": "Linux: \"ensurepip is not available\" when creating the environment",
+      "solution": "Install the python3-venv package for your distribution, then try again."
+    },
+    {
+      "problem": "Your terminal prompt does not show (.venv)",
+      "solution": "The environment is not active. Run the activate command again from the project folder."
+    }
+  ],
+  "manual_review": [
+    "The verification commands (where and which) are standard shell commands, not quoted from the Python pages."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://scikit-learn.org/stable/install.html",
+    "https://docs.python.org/3/library/venv.html"
+  ],
+  "condition": null
+}

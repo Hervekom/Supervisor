@@ -1,0 +1,87 @@
+{
+  "id": "matplotlib",
+  "name": "Matplotlib",
+  "kind": "python_package",
+  "purpose": "Draws the figures and charts you will put in your thesis.",
+  "work_types": [
+    "statistics",
+    "data_science",
+    "machine_learning",
+    "deep_learning",
+    "computer_vision"
+  ],
+  "level": "required",
+  "publisher_domain": "matplotlib.org",
+  "official_download_url": "https://matplotlib.org/stable/install/index.html",
+  "official_docs_url": "https://matplotlib.org/stable/",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the latest release that supports your Python version. Record the installed version in your research log.",
+  "prerequisites": [
+    "python",
+    "pip",
+    "venv"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install Matplotlib.",
+        "command": "python -m pip install matplotlib"
+      }
+    ],
+    "macos": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install Matplotlib.",
+        "command": "python -m pip install matplotlib"
+      }
+    ],
+    "linux": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install Matplotlib.",
+        "command": "python -m pip install matplotlib"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "python -c \"import matplotlib; print(matplotlib.__version__)\"",
+      "expected": "A version number, for example 2.1.0. An error such as ModuleNotFoundError means it is not installed in the active environment."
+    },
+    "macos": {
+      "command": "python -c \"import matplotlib; print(matplotlib.__version__)\"",
+      "expected": "A version number, for example 2.1.0. An error such as ModuleNotFoundError means it is not installed in the active environment."
+    },
+    "linux": {
+      "command": "python -c \"import matplotlib; print(matplotlib.__version__)\"",
+      "expected": "A version number, for example 2.1.0. An error such as ModuleNotFoundError means it is not installed in the active environment."
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "ModuleNotFoundError when importing it",
+      "solution": "Your virtual environment is probably not active, or the package went into another Python. Activate the environment, then install again with python -m pip install."
+    },
+    {
+      "problem": "No window appears when you plot from a script",
+      "solution": "Add plt.show() at the end, or save the figure with plt.savefig(\"figure.png\")."
+    }
+  ],
+  "manual_review": [],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://matplotlib.org/stable/install/index.html"
+  ],
+  "condition": null
+}

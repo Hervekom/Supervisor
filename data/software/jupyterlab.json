@@ -1,0 +1,106 @@
+{
+  "id": "jupyterlab",
+  "name": "JupyterLab",
+  "kind": "python_package",
+  "purpose": "Notebooks let you run code step by step and keep results, charts and notes together, which helps when exploring data.",
+  "work_types": [
+    "statistics",
+    "data_science",
+    "machine_learning",
+    "deep_learning",
+    "computer_vision",
+    "nlp"
+  ],
+  "level": "required",
+  "publisher_domain": "jupyter.org",
+  "official_download_url": "https://jupyter.org/install",
+  "official_docs_url": "https://jupyter.org/install",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the latest release that supports your Python version. Record the installed version in your research log.",
+  "prerequisites": [
+    "python",
+    "pip",
+    "venv"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Activate your virtual environment first."
+      },
+      {
+        "text": "Install JupyterLab.",
+        "command": "python -m pip install jupyterlab"
+      },
+      {
+        "text": "Start it. It opens in your browser.",
+        "command": "jupyter lab"
+      }
+    ],
+    "macos": [
+      {
+        "text": "Activate your virtual environment first."
+      },
+      {
+        "text": "Install JupyterLab.",
+        "command": "python -m pip install jupyterlab"
+      },
+      {
+        "text": "Start it. It opens in your browser.",
+        "command": "jupyter lab"
+      }
+    ],
+    "linux": [
+      {
+        "text": "Activate your virtual environment first."
+      },
+      {
+        "text": "Install JupyterLab.",
+        "command": "python -m pip install jupyterlab"
+      },
+      {
+        "text": "Start it. It opens in your browser.",
+        "command": "jupyter lab"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "jupyter lab --version",
+      "expected": "A version number such as 4.x.y. Start it with: jupyter lab"
+    },
+    "macos": {
+      "command": "jupyter lab --version",
+      "expected": "A version number such as 4.x.y. Start it with: jupyter lab"
+    },
+    "linux": {
+      "command": "jupyter lab --version",
+      "expected": "A version number such as 4.x.y. Start it with: jupyter lab"
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "ModuleNotFoundError when importing it",
+      "solution": "Your virtual environment is probably not active, or the package went into another Python. Activate the environment, then install again with python -m pip install."
+    },
+    {
+      "problem": "jupyter is not recognized",
+      "solution": "Activate your virtual environment, or run python -m jupyter lab instead."
+    },
+    {
+      "problem": "A notebook cannot find a library you installed",
+      "solution": "The notebook uses another Python. Start JupyterLab from the terminal where your .venv is active."
+    }
+  ],
+  "manual_review": [
+    "The install command is the official pip command, run as python -m pip."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://jupyter.org/install"
+  ],
+  "condition": null
+}

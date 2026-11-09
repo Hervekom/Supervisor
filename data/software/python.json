@@ -1,0 +1,87 @@
+{
+  "id": "python",
+  "name": "Python",
+  "kind": "application",
+  "purpose": "The programming language most research code in computer science is written in. Every other tool here runs on it.",
+  "work_types": [
+    "any"
+  ],
+  "level": "required",
+  "publisher_domain": "www.python.org",
+  "official_download_url": "https://www.python.org/downloads/",
+  "official_docs_url": "https://docs.python.org/3/using/windows.html",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Choose a version that your key libraries support. At the last review, the PyTorch install page listed Python 3.10 to 3.14 and also said the latest PyTorch needs 3.11 or later, and scikit-learn 1.7 needs 3.10 or later. A version from 3.11 to 3.13 fits all of these. Ask your supervisor if your lab uses a set version.",
+  "prerequisites": [],
+  "install": {
+    "windows": [
+      {
+        "text": "Install the Python install manager from python.org or the Microsoft Store. Both are the same program."
+      },
+      {
+        "text": "Open a new terminal, then install a Python version, for example 3.13.",
+        "command": "py install 3.13"
+      },
+      {
+        "text": "List the versions you have.",
+        "command": "py list"
+      }
+    ],
+    "macos": [
+      {
+        "text": "Download the macOS installer from python.org/downloads and run it."
+      },
+      {
+        "text": "Open a new Terminal window to use it."
+      }
+    ],
+    "linux": [
+      {
+        "text": "Python 3 is usually already installed. Check first with the command below."
+      },
+      {
+        "text": "If it is missing on Debian or Ubuntu, install Python with venv and pip support.",
+        "command": "sudo apt install python3 python3-venv python3-pip"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "python --version",
+      "expected": "Python 3.x.y, for example Python 3.13.9"
+    },
+    "macos": {
+      "command": "python3 --version",
+      "expected": "Python 3.x.y"
+    },
+    "linux": {
+      "command": "python3 --version",
+      "expected": "Python 3.x.y"
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "Windows: python opens the Microsoft Store or says the command is not found",
+      "solution": "Open \"Manage app execution aliases\" from the Start menu and make sure the Python aliases are on. Then open a new terminal."
+    },
+    {
+      "problem": "Several Python versions are installed and you are unsure which one runs",
+      "solution": "On Windows run py list. On macOS or Linux run which python3. Always create your virtual environment with the version you chose."
+    }
+  ],
+  "manual_review": [
+    "The Linux package names come from Debian and Ubuntu. Other distributions use different names."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://www.python.org/downloads/windows/",
+    "https://docs.python.org/3/using/windows.html",
+    "https://pytorch.org/get-started/locally/",
+    "https://scikit-learn.org/stable/install.html"
+  ],
+  "condition": null
+}

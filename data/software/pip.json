@@ -1,0 +1,73 @@
+{
+  "id": "pip",
+  "name": "pip",
+  "kind": "application",
+  "purpose": "Installs Python libraries such as NumPy or PyTorch from the official Python package index.",
+  "work_types": [
+    "any"
+  ],
+  "level": "required",
+  "publisher_domain": "pip.pypa.io",
+  "official_download_url": "https://pip.pypa.io/en/stable/installation/",
+  "official_docs_url": "https://pip.pypa.io/en/stable/getting-started/",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "pip normally comes with Python. Use the version that comes with your Python, and upgrade it inside your virtual environment if a library asks you to.",
+  "prerequisites": [
+    "python"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Check whether pip is already there with the command below. If it is missing, install it.",
+        "command": "py -m ensurepip --upgrade"
+      }
+    ],
+    "macos": [
+      {
+        "text": "Check whether pip is already there with the command below. If it is missing, install it.",
+        "command": "python3 -m ensurepip --upgrade"
+      }
+    ],
+    "linux": [
+      {
+        "text": "Check whether pip is already there with the command below. If it is missing on Debian or Ubuntu, install python3-pip with apt, as in the Python card."
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "py -m pip --version",
+      "expected": "pip X.Y from ... (python 3.x)"
+    },
+    "macos": {
+      "command": "python3 -m pip --version",
+      "expected": "pip X.Y from ... (python 3.x)"
+    },
+    "linux": {
+      "command": "python3 -m pip --version",
+      "expected": "pip X.Y from ... (python 3.x)"
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "\"externally-managed-environment\" error on Linux or macOS",
+      "solution": "Do not install into the system Python. Create and activate a virtual environment first, then install there."
+    },
+    {
+      "problem": "pip installs into a different Python than the one you run",
+      "solution": "Always call it as python -m pip, from inside your activated virtual environment."
+    }
+  ],
+  "manual_review": [
+    "The ensurepip page did not list a version check command. The python -m pip --version check is standard pip usage and should be confirmed in a review."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://pip.pypa.io/en/stable/installation/"
+  ],
+  "condition": null
+}

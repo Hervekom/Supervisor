@@ -1,0 +1,90 @@
+{
+  "id": "vscode",
+  "name": "Visual Studio Code",
+  "kind": "application",
+  "purpose": "A free code editor that runs Python, notebooks and Git in one place. You can use another editor if your lab prefers one.",
+  "work_types": [
+    "any"
+  ],
+  "level": "recommended",
+  "publisher_domain": "code.visualstudio.com",
+  "official_download_url": "https://code.visualstudio.com/download",
+  "official_docs_url": "https://code.visualstudio.com/docs/python/python-tutorial",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the current stable release, not Insiders.",
+  "prerequisites": [
+    "python"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Download Visual Studio Code for your system from code.visualstudio.com and install it."
+      },
+      {
+        "text": "Open it, go to Extensions, and install the Python extension published by Microsoft."
+      },
+      {
+        "text": "Open your project folder, then run \"Python: Select Interpreter\" from the Command Palette and choose your .venv."
+      }
+    ],
+    "macos": [
+      {
+        "text": "Download Visual Studio Code for your system from code.visualstudio.com and install it."
+      },
+      {
+        "text": "Open it, go to Extensions, and install the Python extension published by Microsoft."
+      },
+      {
+        "text": "Open your project folder, then run \"Python: Select Interpreter\" from the Command Palette and choose your .venv."
+      }
+    ],
+    "linux": [
+      {
+        "text": "Download Visual Studio Code for your system from code.visualstudio.com and install it."
+      },
+      {
+        "text": "Open it, go to Extensions, and install the Python extension published by Microsoft."
+      },
+      {
+        "text": "Open your project folder, then run \"Python: Select Interpreter\" from the Command Palette and choose your .venv."
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "code --version",
+      "expected": "Three lines: a version number such as 1.x.y, a commit code and your processor type"
+    },
+    "macos": {
+      "command": "code --version",
+      "expected": "Three lines: a version number such as 1.x.y, a commit code and your processor type"
+    },
+    "linux": {
+      "command": "code --version",
+      "expected": "Three lines: a version number such as 1.x.y, a commit code and your processor type"
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "macOS: code: command not found",
+      "solution": "In VS Code, open the Command Palette and run \"Shell Command: Install 'code' command in PATH\", then open a new terminal."
+    },
+    {
+      "problem": "VS Code runs the wrong Python",
+      "solution": "Run \"Python: Select Interpreter\" again and pick the one inside your .venv folder."
+    }
+  ],
+  "manual_review": [
+    "The code --version check and the macOS PATH fix are standard VS Code behavior, not quoted from the pages read."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://code.visualstudio.com/download",
+    "https://code.visualstudio.com/docs/python/python-tutorial"
+  ],
+  "condition": null
+}

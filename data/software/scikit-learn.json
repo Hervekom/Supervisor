@@ -1,0 +1,85 @@
+{
+  "id": "scikit-learn",
+  "name": "scikit-learn",
+  "kind": "python_package",
+  "purpose": "Classic machine learning methods, data splitting and evaluation metrics. Useful for baselines even in deep learning work.",
+  "work_types": [
+    "data_science",
+    "machine_learning",
+    "nlp"
+  ],
+  "level": "required",
+  "publisher_domain": "scikit-learn.org",
+  "official_download_url": "https://scikit-learn.org/stable/install.html",
+  "official_docs_url": "https://scikit-learn.org/stable/",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the latest release. scikit-learn 1.7 and later need Python 3.10 or newer.",
+  "prerequisites": [
+    "python",
+    "pip",
+    "venv"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install scikit-learn.",
+        "command": "python -m pip install scikit-learn"
+      }
+    ],
+    "macos": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install scikit-learn.",
+        "command": "python -m pip install scikit-learn"
+      }
+    ],
+    "linux": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install scikit-learn.",
+        "command": "python -m pip install scikit-learn"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "python -c \"import sklearn; sklearn.show_versions()\"",
+      "expected": "A list of versions for Python, scikit-learn and its dependencies"
+    },
+    "macos": {
+      "command": "python -c \"import sklearn; sklearn.show_versions()\"",
+      "expected": "A list of versions for Python, scikit-learn and its dependencies"
+    },
+    "linux": {
+      "command": "python -c \"import sklearn; sklearn.show_versions()\"",
+      "expected": "A list of versions for Python, scikit-learn and its dependencies"
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "ModuleNotFoundError when importing it",
+      "solution": "Your virtual environment is probably not active, or the package went into another Python. Activate the environment, then install again with python -m pip install."
+    },
+    {
+      "problem": "Windows: OSError: [Errno 2] No such file or directory during install",
+      "solution": "The install path is too long for Windows. The official guide explains how to enable long paths. Ask your supervisor or IT before changing the registry."
+    }
+  ],
+  "manual_review": [],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://scikit-learn.org/stable/install.html"
+  ],
+  "condition": null
+}

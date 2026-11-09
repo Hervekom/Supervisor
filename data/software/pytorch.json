@@ -1,0 +1,98 @@
+{
+  "id": "pytorch",
+  "name": "PyTorch",
+  "kind": "python_package",
+  "purpose": "The main library for building and training deep learning models, including vision and language models.",
+  "work_types": [
+    "deep_learning",
+    "computer_vision",
+    "nlp"
+  ],
+  "level": "required",
+  "publisher_domain": "pytorch.org",
+  "official_download_url": "https://pytorch.org/get-started/locally/",
+  "official_docs_url": "https://docs.pytorch.org/get-started/locally/",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Do not guess the command. Use the selector on the official page: choose your system, pip, Python, and either CPU or a CUDA version. At the last review it offered CPU, CUDA 11.8, 12.6 and 12.8, and ROCm. Use a CUDA option only if you have an NVIDIA GPU with a recent driver.",
+  "prerequisites": [
+    "python",
+    "pip",
+    "venv"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Activate your virtual environment first."
+      },
+      {
+        "text": "Open the PyTorch “Get started” page and select your system, pip, Python and compute platform."
+      },
+      {
+        "text": "Copy the command the page shows, and run it in your activated environment."
+      }
+    ],
+    "macos": [
+      {
+        "text": "Activate your virtual environment first."
+      },
+      {
+        "text": "Open the PyTorch “Get started” page and select your system, pip, Python and compute platform."
+      },
+      {
+        "text": "Copy the command the page shows, and run it in your activated environment."
+      }
+    ],
+    "linux": [
+      {
+        "text": "Activate your virtual environment first."
+      },
+      {
+        "text": "Open the PyTorch “Get started” page and select your system, pip, Python and compute platform."
+      },
+      {
+        "text": "Copy the command the page shows, and run it in your activated environment."
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "python -c \"import torch; print(torch.__version__); print(torch.cuda.is_available())\"",
+      "expected": "A version number, then True if your NVIDIA GPU can be used, or False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
+    },
+    "macos": {
+      "command": "python -c \"import torch; print(torch.__version__); print(torch.cuda.is_available())\"",
+      "expected": "A version number, then True if your NVIDIA GPU can be used, or False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
+    },
+    "linux": {
+      "command": "python -c \"import torch; print(torch.__version__); print(torch.cuda.is_available())\"",
+      "expected": "A version number, then True if your NVIDIA GPU can be used, or False for a CPU-only setup. False is normal on a computer without an NVIDIA GPU."
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "torch.cuda.is_available() prints False on a PC with an NVIDIA GPU",
+      "solution": "You may have installed the CPU version, or your driver is too old. Check the driver with nvidia-smi, then reinstall PyTorch with a CUDA option from the official selector."
+    },
+    {
+      "problem": "The download is very large or slow",
+      "solution": "This is normal for GPU versions. Use a stable connection, and do not install it on a phone hotspot."
+    },
+    {
+      "problem": "ModuleNotFoundError: No module named torch",
+      "solution": "Activate your virtual environment and run the install command again inside it."
+    }
+  ],
+  "manual_review": [
+    "The Python range on the PyTorch page conflicts (3.10 to 3.14 in the system notes, 3.11 or later in the top note). Confirm before each review.",
+    "The page does not mention Apple GPU (MPS) support, so this card makes no claim about it."
+  ],
+  "last_reviewed": "2026-11-09",
+  "sources": [
+    "https://pytorch.org/get-started/locally/"
+  ],
+  "condition": null
+}

@@ -246,3 +246,22 @@ blockquote { margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--r
   .chef { right: 8px; left: 8px; bottom: 8px; width: auto; height: calc(100dvh - 16px); }
   .chef-open { right: 12px; bottom: 12px; }
 }
+
+/* Lab */
+fieldset.field { border: 0; padding: 0; margin: 0; min-width: 0; }
+.choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-top: 8px; }
+.choices.row { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.choice { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 14px; cursor: pointer; min-height: 44px; }
+.choice input { margin-top: 3px; width: auto; flex: none; padding: 0; border-radius: 0; accent-color: var(--pen); }
+.choice > span { display: grid; gap: 2px; }
+.lab-list { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 14px; }
+.lab-card { padding: clamp(16px, 2.4vw, 26px); display: grid; gap: 8px; }
+.lab-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.lab-links { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.cmd { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 6px 0; }
+.cmd code { flex: 1 1 220px; min-width: 0; padding: 8px 10px; border-radius: 10px; background: var(--blush); font-size: .86rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+.cmd .btn { padding: 6px 14px; font-size: .84rem; }
+.lab-status { border-top: 1px solid var(--rule); padding-top: 10px; display: grid; gap: 4px; }
+.pc-note { display: none; margin-top: 14px; }
+@media (max-width: 720px) { .pc-note { display: block; } }
+@media (max-width: 640px) { .topbar nav { display: grid; grid-template-columns: repeat(3, 1fr); } .topbar nav a { white-space: nowrap; } }
