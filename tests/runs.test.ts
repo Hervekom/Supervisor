@@ -131,7 +131,7 @@ describe('AI feedback on a run', () => {
 
   it('cleans the whole reply and counts what it removed', () => {
     const fb = normalizeRunFeedback({ summary: 'One seed gave 0.912. Others report 0.97.', can_support: ['The RMSE of 12.4 on validation.', 'An improvement to 11.0 RMSE.'], cannot_support: 'not a list', missing: [1, 'Seeds'], next_action: 'Run seeds 2 and 3.' }, run);
-    expect(fb).toEqual({ summary: 'One seed gave 0.912.', can_support: ['The RMSE of 12.4 on validation.'], cannot_support: [], missing: ['Seeds'], next_action: 'Run seeds 2 and 3.', removed: 2 });
+    expect(fb).toEqual({ summary: 'One seed gave 0.912.', can_support: ['The RMSE of 12.4 on validation.'], cannot_support: [], missing: ['Seeds'], next_action: 'Run seeds 2 and 3.', removed: 2, kinds: ['decimal'] });
   });
 });
 

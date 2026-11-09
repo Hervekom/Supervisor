@@ -1,8 +1,10 @@
 // Experiment run records that the student reports by hand. Stored inside PathState, so no database change.
 // Supervisor never runs anything and never invents a number: every value here was typed or imported by the student.
 
+import { fill, STEP_TITLES_FR, t, type Lang } from './i18n';
 import { findSensitive, type Sensitive } from './labVerify';
 import type { LabState } from './lab';
+import { STEPS } from './path';
 
 export const SOURCE_LABEL = 'Reported by the student';
 export const MAX_RUNS = 40;
@@ -21,6 +23,8 @@ export type RunRecord = {
   id: string;
   source: 'student';
   step: RunStep;
+  /** The thesis step this run belongs to. Optional: older runs and unassigned runs have none. */
+  stepId?: string;
   outcome: RunOutcome;
   name: string;
   purpose: string;
@@ -83,6 +87,7 @@ export function cleanDraft(d: Partial<RunDraft>): RunDraft {
   const t = (k: keyof typeof LIMITS) => redact(clip((d as Record<string, unknown>)[k], LIMITS[k]).trim()).text;
   return {
     step: d.step === 'research' ? 'research' : 'experiments',
+    ...(isStepId(d.stepId) ? { stepId: d.stepId } : {}),
     outcome: d.outcome === 'failed' ? 'failed' : 'completed',
     name: t('name'),
     purpose: t('purpose'),
@@ -101,15 +106,16 @@ export function cleanDraft(d: Partial<RunDraft>): RunDraft {
 }
 
 /** Problems that stop a run from being saved, in plain words. */
-export function runProblems(d: RunDraft): string[] {
+export function runProblems(d: RunDraft, lang: Lang = 'en'): string[] {
+  const m = t(lang).problems;
   const p: string[] = [];
-  if (!d.name.trim()) p.push('Give the run a name, for example "Baseline, seed 1".');
-  if (d.outcome === 'completed' && !d.metrics.length) p.push('Add at least one result, or mark the run as failed.');
-  if (d.outcome === 'failed' && !d.notes.trim() && !d.log.trim()) p.push('Say what went wrong in the notes or the log, so the failed run is still useful.');
+  if (!d.name.trim()) p.push(m.name);
+  if (d.outcome === 'completed' && !d.metrics.length) p.push(m.noResult);
+  if (d.outcome === 'failed' && !d.notes.trim() && !d.log.trim()) p.push(m.failedNoReason);
   const seen = new Set<string>();
-  for (const m of d.metrics) {
-    const key = `${m.name.toLowerCase()}|${m.split}`;
-    if (seen.has(key)) p.push(`"${m.name}" on ${m.split} appears twice.`);
+  for (const x of d.metrics) {
+    const key = `${x.name.toLowerCase()}|${x.split}`;
+    if (seen.has(key)) p.push(fill(m.duplicate, { name: x.name, split: lang === 'en' ? x.split : t(lang).splits[x.split].toLowerCase() }));
     seen.add(key);
   }
   return p;
@@ -161,15 +167,16 @@ const splitOf = (v: unknown): Split => {
  * JSON: {"accuracy": 0.91} or [{"name": "accuracy", "value": 0.91, "split": "test"}].
  * CSV: a "metric,value[,split]" table, or one header row of names with one row of values.
  */
-export function parseMetricsFile(fileName: string, text: string): { metrics: Metric[]; problems: string[] } {
+export function parseMetricsFile(fileName: string, text: string, lang: Lang = 'en'): { metrics: Metric[]; problems: string[] } {
+  const fp = t(lang).fileProblems;
   const problems: string[] = [];
-  if (text.length > MAX_METRICS_FILE) return { metrics: [], problems: ['This file is larger than 50 KB. Keep only the final metrics in it.'] };
+  if (text.length > MAX_METRICS_FILE) return { metrics: [], problems: [fp.tooLarge] };
   const out: Metric[] = [];
   const push = (name: unknown, value: unknown, split?: unknown) => {
     const n = typeof value === 'number' ? (Number.isFinite(value) ? value : null) : typeof value === 'string' ? parseNumber(value) : null;
     const label = typeof name === 'string' ? name.trim().slice(0, LIMITS.metricName) : '';
     if (!label) return;
-    if (n === null) return void problems.push(`"${label}" has no number and was skipped.`);
+    if (n === null) return void problems.push(fill(fp.noNumber, { name: label }));
     out.push({ name: label, value: n, split: splitOf(split) });
   };
   const lower = fileName.toLowerCase();
@@ -178,7 +185,7 @@ export function parseMetricsFile(fileName: string, text: string): { metrics: Met
     try {
       data = JSON.parse(text);
     } catch {
-      return { metrics: [], problems: ['This JSON file could not be read.'] };
+      return { metrics: [], problems: [fp.badJson] };
     }
     if (Array.isArray(data)) for (const row of data) push((row as Record<string, unknown>)?.name ?? (row as Record<string, unknown>)?.metric, (row as Record<string, unknown>)?.value, (row as Record<string, unknown>)?.split);
     else if (data && typeof data === 'object') {
@@ -186,13 +193,13 @@ export function parseMetricsFile(fileName: string, text: string): { metrics: Met
         if (v && typeof v === 'object' && !Array.isArray(v)) for (const [k2, v2] of Object.entries(v)) push(k2, v2, k);
         else push(k, v);
       }
-    } else problems.push('This JSON file has no metrics.');
+    } else problems.push(fp.noJsonMetrics);
   } else if (lower.endsWith('.csv')) {
     const lines = text.replace(/\r\n?/g, '\n').split('\n').map((l) => l.trim()).filter(Boolean);
     // Files saved with a comma as the decimal mark use a semicolon or a tab between columns.
     const sep = lines[0]?.includes('\t') ? '\t' : lines[0]?.includes(';') ? ';' : ',';
     const rows = lines.map((l) => l.split(sep).map((c) => c.trim().replace(/^"|"$/g, '')));
-    if (!rows.length) return { metrics: [], problems: ['This CSV file is empty.'] };
+    if (!rows.length) return { metrics: [], problems: [fp.emptyCsv] };
     const head = rows[0].map((h) => h.toLowerCase());
     const ni = head.findIndex((h) => ['metric', 'name', 'measure'].includes(h));
     const vi = head.findIndex((h) => ['value', 'score', 'result'].includes(h));
@@ -200,10 +207,10 @@ export function parseMetricsFile(fileName: string, text: string): { metrics: Met
       const si = head.findIndex((h) => h === 'split' || h === 'set');
       for (const r of rows.slice(1)) push(r[ni], r[vi], si >= 0 ? r[si] : undefined);
     } else if (rows.length === 2) rows[0].forEach((h, i) => push(h, rows[1][i]));
-    else problems.push('Use a "metric,value" table, or one row of names and one row of values.');
-  } else return { metrics: [], problems: ['Choose a .csv or .json file.'] };
-  if (out.length > MAX_METRICS) problems.push(`Only the first ${MAX_METRICS} metrics were kept.`);
-  if (!out.length && !problems.length) problems.push('No metrics were found in this file.');
+    else problems.push(fp.csvShape);
+  } else return { metrics: [], problems: [fp.notCsvJson] };
+  if (out.length > MAX_METRICS) problems.push(fill(fp.onlyFirst, { n: MAX_METRICS }));
+  if (!out.length && !problems.length) problems.push(fp.noneFound);
   return { metrics: out.slice(0, MAX_METRICS), problems };
 }
 
@@ -244,21 +251,33 @@ export function versionsFromLab(lab: LabState | undefined, os: string | null): s
     .join('; ');
 }
 
+/** A step's title in the chosen language. Unknown IDs have no title. */
+export function stepTitle(id: string | undefined, lang: Lang = 'en') {
+  const step = STEPS.find((x) => x.id === id);
+  if (!step) return '';
+  return lang === 'fr' ? STEP_TITLES_FR[step.id] ?? step.title : step.title;
+}
+export const isStepId = (v: unknown): v is string => typeof v === 'string' && STEPS.some((x) => x.id === v);
+
 /** Plain text for the results sheet. It always says who reported it. */
-export function runToText(r: RunRecord): string {
+export function runToText(r: RunRecord, lang: Lang = 'en'): string {
+  const m = t(lang).sheet;
+  const splits = t(lang).splits;
+  const num = (n: number) => (lang === 'fr' ? fmt(n, 12).replace('.', ',') : fmt(n, 12));
   const lines = [
-    `Run: ${r.name} (${SOURCE_LABEL.toLowerCase()}, ${r.createdAt.slice(0, 10)}${r.outcome === 'failed' ? ', failed' : ''})`,
-    r.purpose && `Purpose: ${r.purpose}`,
-    r.dataset && `Data: ${r.dataset}`,
-    r.split && `Split: ${r.split}`,
-    r.model && `Method or model: ${r.model}`,
-    r.settings && `Settings: ${r.settings}`,
-    r.seeds && `Seeds: ${r.seeds}`,
-    r.versions && `Software: ${r.versions}`,
-    r.hardware && `Hardware: ${r.hardware}`,
-    r.duration && `Time: ${r.duration}`,
-    r.metrics.length ? `Results: ${r.metrics.map((m) => `${m.name} (${m.split}) = ${fmt(m.value, 12)}`).join('; ')}` : '',
-    r.notes && `Notes: ${r.notes}`,
+    `${m.run}: ${r.name} (${m.reported}, ${r.createdAt.slice(0, 10)}${r.outcome === 'failed' ? `, ${m.failed}` : ''})`,
+    r.stepId && stepTitle(r.stepId, lang) && `${m.step}: ${stepTitle(r.stepId, lang)}`,
+    r.purpose && `${m.purpose}: ${r.purpose}`,
+    r.dataset && `${m.dataset}: ${r.dataset}`,
+    r.split && `${m.split}: ${r.split}`,
+    r.model && `${m.model}: ${r.model}`,
+    r.settings && `${m.settings}: ${r.settings}`,
+    r.seeds && `${m.seeds}: ${r.seeds}`,
+    r.versions && `${m.versions}: ${r.versions}`,
+    r.hardware && `${m.hardware}: ${r.hardware}`,
+    r.duration && `${m.duration}: ${r.duration}`,
+    r.metrics.length ? `${m.results}: ${r.metrics.map((x) => `${x.name} (${lang === 'en' ? x.split : splits[x.split].toLowerCase()}) = ${num(x.value)}`).join('; ')}` : '',
+    r.notes && `${m.notes}: ${r.notes}`,
   ];
   return lines.filter(Boolean).join('\n');
 }

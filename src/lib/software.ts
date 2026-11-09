@@ -25,7 +25,38 @@ export type Software = {
   manual_review: string[];
   last_reviewed: string;
   sources: string[];
+  /** Translated texts. Commands, links, names and versions are never translated. */
+  i18n?: { fr?: SoftwareText };
 };
+
+/** The parts of an entry a student reads, in one language. */
+export type SoftwareText = {
+  purpose: string;
+  version_guidance: string;
+  install: Partial<Record<Os, string[]>>;
+  expected: Partial<Record<Os, string>>;
+  common_problems: { problem: string; solution: string }[];
+};
+
+/** The entry's text in the chosen language. Falls back to English for anything missing. */
+export function textOf(e: Software, lang: 'en' | 'fr'): SoftwareText {
+  const en: SoftwareText = {
+    purpose: e.purpose,
+    version_guidance: e.version_guidance,
+    install: Object.fromEntries(Object.entries(e.install).map(([o, steps]) => [o, steps!.map((s) => s.text)])),
+    expected: Object.fromEntries(Object.entries(e.verify).map(([o, v]) => [o, v!.expected])),
+    common_problems: e.common_problems,
+  };
+  const fr = lang === 'fr' ? e.i18n?.fr : undefined;
+  if (!fr) return en;
+  return {
+    purpose: fr.purpose || en.purpose,
+    version_guidance: fr.version_guidance || en.version_guidance,
+    install: Object.fromEntries(Object.entries(en.install).map(([o, steps]) => [o, steps!.map((t, i) => fr.install[o as Os]?.[i] || t)])),
+    expected: Object.fromEntries(Object.entries(en.expected).map(([o, t]) => [o, fr.expected[o as Os] || t])),
+    common_problems: en.common_problems.map((p, i) => fr.common_problems[i] ?? p),
+  };
+}
 
 export const OS_LABELS: Record<Os, string> = { windows: 'Windows', macos: 'macOS', linux: 'Linux' };
 
@@ -103,6 +134,15 @@ export function auditEntry(e: Software, known: Set<string>): string[] {
   for (const os of Object.keys({ ...e.install, ...e.verify }) as Os[]) if (!e.os.includes(os)) errors.push(`${e.id}: instructions for ${os}, which it does not support`);
   for (const p of e.prerequisites) if (!known.has(p)) errors.push(`${e.id}: unknown prerequisite ${p}`);
   if (e.condition === 'nvidia_gpu' && e.level !== 'conditional') errors.push(`${e.id}: a conditional entry must use level "conditional"`);
+  const fr = e.i18n?.fr;
+  if (fr) {
+    for (const os of e.os) {
+      if (fr.install[os]?.length !== e.install[os]?.length) errors.push(`${e.id}: French installation steps for ${os} do not match the English steps`);
+      if (!fr.expected[os]) errors.push(`${e.id}: no French expected output for ${os}`);
+    }
+    for (const os of Object.keys({ ...fr.install, ...fr.expected }) as Os[]) if (!e.os.includes(os)) errors.push(`${e.id}: French text for ${os}, which it does not support`);
+    if (fr.common_problems.length !== e.common_problems.length) errors.push(`${e.id}: French common problems do not match the English list`);
+  }
   return errors;
 }
 

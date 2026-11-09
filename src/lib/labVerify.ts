@@ -2,6 +2,7 @@
 // No AI is involved. Each tool has its own rule. The pasted text is never stored: only the result,
 // the version found and a short reason code are kept.
 
+import { fill, t, type Lang } from './i18n';
 import type { GpuAnswer, Os } from './software';
 
 /** Raise this when a rule changes, so older results are shown as needing a new check. */
@@ -197,34 +198,11 @@ export function verifyOutput(toolId: string, raw: string, ctx: Context): CheckRe
 
 // ---------- What to tell the student ----------
 
-const INSTALL = (pkg: string) => `Activate your project environment (.venv), then run: python -m pip install ${pkg}`;
-
-/** Plain explanation and next step for each reason code. */
-export function explain(reason: string, command: string): { text: string; next?: string } {
-  if (reason.startsWith('missing_module:')) {
-    const pkg = reason.split(':')[1];
-    return { text: 'Python could not find this package in the active environment.', next: `${INSTALL(pkg)} Then run the check again.` };
-  }
-  const t: Record<string, { text: string; next?: string }> = {
-    ok: { text: 'The output matches what this check expects.' },
-    empty: { text: 'Paste the output first.', next: `Run ${command} in a terminal and copy everything it prints.` },
-    too_long: { text: 'This is much longer than the output of this check.', next: `Paste only what ${command} prints.` },
-    secret: { text: 'This looks like it contains a password, key or token. It was not checked.', next: 'Remove it, then paste only the output of the check.' },
-    command_only: { text: 'Only the command was pasted, not its result.', next: 'Copy the lines printed after the command.' },
-    not_found: { text: 'The terminal could not find this program.', next: 'Follow the installation steps, close and reopen the terminal, then run the check again.' },
-    unrelated: { text: `This does not look like the output of ${command}.`, next: `Run exactly ${command} and paste what it prints, without other text.` },
-    no_rule: { text: 'There is no automatic check for this tool on this system yet.', next: 'Ask your supervisor or a lab member to look at your setup.' },
-    python_store_stub: { text: 'Windows opened its Microsoft Store shortcut instead of Python.', next: 'Install Python from python.org, or turn off the "python.exe" App execution alias in Windows settings, then open a new terminal.' },
-    python_2: { text: 'This is Python 2, which current research libraries do not support.', next: 'Install Python 3 from python.org and use python3 (macOS, Linux) or py (Windows).' },
-    python_too_old: { text: 'This Python is older than 3.10. Current scikit-learn needs 3.10 or later.', next: 'Install a newer Python 3 from python.org, unless your supervisor asks for this exact version.' },
-    python_prerelease: { text: 'This is a test release of Python, not a final release.', next: 'Prefer a final release from python.org, or ask your supervisor if this test release is intended.' },
-    pip_missing: { text: 'pip is not installed for this Python.', next: 'Follow the pip steps on the official pip page, then run the check again.' },
-    venv_no_python: { text: 'No Python was found. The project environment is not active.', next: 'Open your project folder, activate .venv, then run the check again.' },
-    venv_not_active: { text: 'Python runs from outside a project environment.', next: 'Activate .venv in your project folder first, then run the check again.' },
-    venv_other_name: { text: 'An environment is active, but it is not named .venv, so this check cannot confirm it.', next: 'If you created it on purpose, ask your supervisor to confirm. Otherwise follow the steps to create .venv.' },
-    git_xcode: { text: 'macOS asked to install its developer tools first.', next: 'Accept the developer tools installation, then run the check again.' },
-    torch_no_cuda: { text: 'PyTorch works, but it cannot use your NVIDIA GPU.', next: 'If you need the GPU, check nvidia-smi, then install the CUDA build from the official PyTorch selector. If CPU is enough for now, ask your supervisor to confirm.' },
-    nvidia_no_driver: { text: 'nvidia-smi is present, but the NVIDIA driver is not working.', next: 'Install or update the driver from the official NVIDIA page and restart the computer.' },
-  };
-  return t[reason] ?? { text: 'This result could not be read.', next: `Run ${command} again and paste its output.` };
+/** Plain explanation and next step for each reason code, in the chosen language. */
+export function explain(reason: string, command: string, lang: Lang = 'en'): { text: string; next?: string } {
+  const m = t(lang);
+  const [code, pkg] = reason.split(':');
+  const [text, next] = m.reasons[code] ?? m.reasons.unknown;
+  const v = { cmd: command, pkg: pkg ?? '' };
+  return { text: fill(text, v), ...(next ? { next: fill(next, v) } : {}) };
 }

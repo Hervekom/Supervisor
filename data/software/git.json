@@ -68,5 +68,37 @@
     "https://git-scm.com/book/en/v2/Getting-Started-Installing-Git",
     "https://git-scm.com/install/windows"
   ],
-  "condition": null
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Enregistre chaque version de votre code et de vos réglages, pour pouvoir refaire une expérience et montrer exactement ce que vous avez lancé.",
+      "version_guidance": "Installez la dernière version stable proposée pour votre système.",
+      "install": {
+        "windows": [
+          "Téléchargez et lancez l’installateur Git for Windows depuis git-scm.com. Les options par défaut conviennent à la plupart des étudiants."
+        ],
+        "macos": [
+          "Lancez la commande ci-dessous. Si Git manque, macOS propose d’installer les Command Line Tools, qui contiennent Git."
+        ],
+        "linux": [
+          "Sur Debian ou Ubuntu, installez-le avec apt. Sur Fedora, utilisez dnf."
+        ]
+      },
+      "expected": {
+        "windows": "git version 2.x.y",
+        "macos": "git version 2.x.y",
+        "linux": "git version 2.x.y"
+      },
+      "common_problems": [
+        {
+          "problem": "Windows : git n’est pas reconnu après l’installation",
+          "solution": "Fermez le terminal et ouvrez-en un nouveau, pour qu’il prenne en compte le nouveau chemin."
+        },
+        {
+          "problem": "Vous enregistrez par erreur un gros jeu de données dans Git",
+          "solution": "Gardez les jeux de données hors de Git. Ajoutez le dossier des données à un fichier .gitignore avant votre premier commit."
+        }
+      ]
+    }
+  }
 }

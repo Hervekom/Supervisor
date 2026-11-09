@@ -305,3 +305,16 @@ fieldset.field { border: 0; padding: 0; margin: 0; min-width: 0; }
   .run-table { font-size: .84rem; }
   .run-summary-wrap, .runs .sheet { overflow-x: auto; }
 }
+.lab-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.lang-switch { display: inline-flex; gap: 6px; }
+.lang-switch .btn { padding: 6px 14px; font-size: .86rem; }
+.lang-switch .btn.on { background: var(--pen); border-color: var(--pen); color: var(--on-stock); }
+.btn.danger { background: var(--stop); border-color: var(--stop); color: #fff; }
+.table-wrap { overflow-x: auto; max-width: 100%; }
+.confirm { display: grid; gap: 8px; }
+.confirm p { margin: 0; }
+.run-filter { margin-top: 16px; max-width: 520px; }
+.run-filter select, .run-form select#run-step { width: 100%; background: #fff; border: 1px solid var(--rule); border-radius: 12px; padding: 9px 10px; }
+.research-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 10px; }
+.research-grid h3 { font-size: 1.02rem; }
+.research-counts { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 2px; }

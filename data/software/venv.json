@@ -87,5 +87,44 @@
     "https://scikit-learn.org/stable/install.html",
     "https://docs.python.org/3/library/venv.html"
   ],
-  "condition": null
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Sépare les bibliothèques de ce projet de celles des autres projets, pour éviter les conflits de versions et pouvoir refaire votre installation.",
+      "version_guidance": "venv fait partie de Python. Aucun téléchargement séparé n’est nécessaire.",
+      "install": {
+        "windows": [
+          "Dans le dossier de votre projet, créez l’environnement.",
+          "Activez-le. Faites-le à chaque nouveau terminal."
+        ],
+        "macos": [
+          "Dans le dossier de votre projet, créez l’environnement.",
+          "Activez-le. Faites-le à chaque nouveau terminal."
+        ],
+        "linux": [
+          "Dans le dossier de votre projet, créez l’environnement.",
+          "Activez-le. Faites-le à chaque nouveau terminal."
+        ]
+      },
+      "expected": {
+        "windows": "La première ligne se termine par .venv\\Scripts\\python.exe dans le dossier de votre projet",
+        "macos": "Un chemin qui se termine par .venv/bin/python dans le dossier de votre projet",
+        "linux": "Un chemin qui se termine par .venv/bin/python dans le dossier de votre projet"
+      },
+      "common_problems": [
+        {
+          "problem": "Windows PowerShell indique que l’exécution de scripts est désactivée quand vous activez",
+          "solution": "Utilisez l’Invite de commandes au lieu de PowerShell pour la commande d’activation. Demandez à votre encadrant ou au service informatique avant de modifier un réglage de sécurité."
+        },
+        {
+          "problem": "Linux : « ensurepip is not available » à la création de l’environnement",
+          "solution": "Installez le paquet python3-venv de votre distribution, puis réessayez."
+        },
+        {
+          "problem": "L’invite du terminal n’affiche pas (.venv)",
+          "solution": "L’environnement n’est pas actif. Relancez la commande d’activation depuis le dossier du projet."
+        }
+      ]
+    }
+  }
 }

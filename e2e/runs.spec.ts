@@ -135,7 +135,8 @@ test('AI feedback reads only the run, drops invented numbers and is recorded', a
   await card.getByRole('button', { name: 'Ask for feedback' }).click();
   await expect(card.getByText('Mock run review. The reported value 0.912 comes from one seed.')).toBeVisible();
   await expect(card.getByText(/0\.987/)).toHaveCount(0);
-  await expect(card.getByText('1 sentence was removed because it stated numbers you did not report.')).toBeVisible();
+  await expect(card.getByText(/15%/)).toHaveCount(0);
+  await expect(card.getByText('2 statements were removed because they made a numerical or comparative claim that could not be checked against your run.', { exact: false })).toBeVisible();
   await expect(card.getByText('Next: Mock: run two more seeds.')).toBeVisible();
   const log = (await stored(page, 'path:v1')).log as { tool: string }[];
   expect(log.at(-1)!.tool).toBe('Run feedback: comments on the reported run "Baseline, seed 1"');

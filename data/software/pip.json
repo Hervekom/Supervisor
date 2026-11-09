@@ -69,5 +69,37 @@
   "sources": [
     "https://pip.pypa.io/en/stable/installation/"
   ],
-  "condition": null
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Installe des bibliothèques Python comme NumPy ou PyTorch depuis l’index officiel des paquets Python.",
+      "version_guidance": "pip est normalement fourni avec Python. Utilisez la version fournie avec votre Python, et mettez-la à jour dans votre environnement virtuel si une bibliothèque le demande.",
+      "install": {
+        "windows": [
+          "Vérifiez si pip est déjà présent avec la commande ci-dessous. S’il manque, installez-le."
+        ],
+        "macos": [
+          "Vérifiez si pip est déjà présent avec la commande ci-dessous. S’il manque, installez-le."
+        ],
+        "linux": [
+          "Vérifiez si pip est déjà présent avec la commande ci-dessous. S’il manque sur Debian ou Ubuntu, installez python3-pip avec apt, comme dans la fiche Python."
+        ]
+      },
+      "expected": {
+        "windows": "pip X.Y from ... (python 3.x)",
+        "macos": "pip X.Y from ... (python 3.x)",
+        "linux": "pip X.Y from ... (python 3.x)"
+      },
+      "common_problems": [
+        {
+          "problem": "Erreur « externally-managed-environment » sur Linux ou macOS",
+          "solution": "N’installez rien dans le Python du système. Créez et activez d’abord un environnement virtuel, puis installez dedans."
+        },
+        {
+          "problem": "pip installe dans un autre Python que celui que vous lancez",
+          "solution": "Appelez-le toujours avec python -m pip, depuis votre environnement virtuel activé."
+        }
+      ]
+    }
+  }
 }

@@ -5,22 +5,16 @@ import { useAccount } from '@/components/useAccount';
 import { put } from '@/components/useProfiles';
 import { Runs } from '@/components/Runs';
 import { usePathSync } from '@/components/usePathSync';
-import { cleanLab, currentCheck, emptyLab, fromLabV1, hasLabProgress, newerLab, recordCheck, setMarked, STATUS_LABEL, statusOf, update, type LabState, type LabStatus } from '@/lib/lab';
-import { explain, findSensitive, VERIFY_COMMANDS, verifyOutput, type CheckResult, type Sensitive } from '@/lib/labVerify';
+import { useLang } from '@/components/useLang';
+import { LANGS, t as messages, type Lang, type Messages } from '@/lib/i18n';
+import { cleanLab, currentCheck, emptyLab, fromLabV1, hasLabProgress, newerLab, recordCheck, setMarked, statusOf, update, type LabState, type LabStatus } from '@/lib/lab';
+import { explain, findSensitive, VERIFY_COMMANDS, verifyOutput, type CheckResult } from '@/lib/labVerify';
 import { emptyPath, isPathState, type PathState } from '@/lib/path';
 import { hasWork, LAB_MIRROR_KEY, LAB_V1_KEY, PATH_KEY, readLocalPath } from '@/lib/pathSync';
-import { guessOs, OS_LABELS, selectTools, WORK_TYPES, type GpuAnswer, type Os, type Software, type WorkType } from '@/lib/software';
+import { guessOs, OS_LABELS, selectTools, textOf, WORK_TYPES, type GpuAnswer, type Os, type Software, type WorkType } from '@/lib/software';
 
 const GPU_TYPES: (WorkType | 'python')[] = ['deep_learning', 'computer_vision', 'nlp'];
 const PYTHON_ENV = new Set(['venv', 'jupyterlab', 'numpy', 'pandas', 'matplotlib', 'scikit-learn', 'pytorch']);
-const WHERE: Record<Os, string> = { windows: 'Command Prompt or PowerShell', macos: 'Terminal', linux: 'a terminal' };
-const VERIFY_LINE: Record<LabStatus, string> = { not_started: 'Not checked yet.', marked: 'Not checked yet.', pending: 'Pending.', verified: 'Verified.', failed: 'Failed.', manual_review: 'Manual review required.' };
-const SENSITIVE_TEXT: Record<Sensitive, string> = {
-  user_path: 'a file path that may show your user name',
-  email: 'an email address',
-  ip: 'what looks like an IP address',
-  secret: 'what looks like a password, key or token',
-};
 
 function readJson(key: string): unknown {
   try {
@@ -40,7 +34,7 @@ function withLab(p: PathState, mirror: LabState | undefined): PathState {
   return { ...p, lab: best, savedAt: new Date().toISOString() };
 }
 
-function CopyCommand({ command }: { command: string }) {
+export function CopyCommand({ command, m }: { command: string; m: Messages }) {
   const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
   async function copy() {
     try {
@@ -54,23 +48,24 @@ function CopyCommand({ command }: { command: string }) {
   return (
     <div className="cmd">
       <code>{command}</code>
-      <button type="button" className="btn ghost" onClick={copy} aria-label={`Copy command: ${command}`}>{state === 'copied' ? 'Copied' : 'Copy'}</button>
-      {state === 'failed' ? <span className="hint" role="status">Select the text and copy it yourself.</span> : null}
+      <button type="button" className="btn ghost" onClick={copy} aria-label={m.copyAria(command)}>{state === 'copied' ? m.copied : m.copy}</button>
+      {state === 'failed' ? <span className="hint" role="status">{m.copyFailed}</span> : null}
     </div>
   );
 }
 
-function Verify({ tool, os, gpu, lab, draft, setDraft, onResult }: { tool: Software; os: Os; gpu: GpuAnswer; lab: LabState; draft: string; setDraft: (v: string) => void; onResult: (r: CheckResult) => void }) {
+function Verify({ tool, os, gpu, lab, draft, setDraft, onResult, lang }: { tool: Software; os: Os; gpu: GpuAnswer; lab: LabState; draft: string; setDraft: (v: string) => void; onResult: (r: CheckResult) => void; lang: Lang }) {
+  const m = messages(lang);
   const [last, setLast] = useState<CheckResult | null>(null);
   const command = VERIFY_COMMANDS[tool.id]?.[os] ?? tool.verify[os]?.command ?? '';
-  const expected = tool.verify[os]?.expected ?? '';
+  const expected = textOf(tool, lang).expected[os] ?? '';
   const sensitive = findSensitive(draft);
   const saved = currentCheck(lab.tools[tool.id], os);
   const stale = !saved ? lab.tools[tool.id]?.check : undefined;
   const status: LabStatus = statusOf(lab.tools[tool.id], os, draft);
   // Empty or blocked input is never saved, so its message comes from this visit only.
-  const notice = last && (last.status === 'empty' || last.status === 'blocked') ? explain(last.reason, command) : null;
-  const why = saved && saved.status !== 'verified' && status !== 'pending' ? explain(saved.reason, command) : null;
+  const notice = last && (last.status === 'empty' || last.status === 'blocked') ? explain(last.reason, command, lang) : null;
+  const why = saved && saved.status !== 'verified' && status !== 'pending' ? explain(saved.reason, command, lang) : null;
   const fieldId = `out-${tool.id}`;
 
   function check() {
@@ -83,30 +78,28 @@ function Verify({ tool, os, gpu, lab, draft, setDraft, onResult }: { tool: Softw
 
   return (
     <div className="lab-verify">
-      <p><b>Check it worked.</b> On your research computer, open {WHERE[os]}{PYTHON_ENV.has(tool.id) ? ' in your project folder, with .venv active,' : ''} and run:</p>
-      <CopyCommand command={command} />
-      <p className="hint"><b>You should see:</b> {expected}</p>
-      <label htmlFor={fieldId}><b>Paste what the command printed</b></label>
-      <p className="hint" id={`${fieldId}-hint`}>Remove names, emails, passwords and keys first. The check runs in your browser. Only the result and the version are kept, never the text you paste.</p>
-      <textarea id={fieldId} aria-describedby={`${fieldId}-hint`} value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} spellCheck={false} autoCapitalize="off" autoCorrect="off" placeholder={`Output of ${command}`} />
+      <p><b>{m.checkItWorked}</b> {m.runThis(m.where[os], PYTHON_ENV.has(tool.id))}</p>
+      <CopyCommand command={command} m={m} />
+      <p className="hint"><b>{m.youShouldSee}</b> {expected}</p>
+      <label htmlFor={fieldId}><b>{m.pasteLabel}</b></label>
+      <p className="hint" id={`${fieldId}-hint`}>{m.pasteHint}</p>
+      <textarea id={fieldId} aria-describedby={`${fieldId}-hint`} value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} spellCheck={false} autoCapitalize="off" autoCorrect="off" placeholder={m.pastePlaceholder(command)} />
       {sensitive.length ? (
         <p className="notice" role="alert">
-          {sensitive.includes('secret')
-            ? 'This contains what looks like a password, key or token. Remove it before checking.'
-            : `This contains ${sensitive.map((k) => SENSITIVE_TEXT[k]).join(' and ')}. It stays in this browser and is not saved, but remove it before sharing this output with anyone.`}
+          {sensitive.includes('secret') ? m.sensitiveSecret : m.sensitiveOther(sensitive.map((k) => m.sensitive[k]).join(m.and))}
         </p>
       ) : null}
       <div className="lab-actions">
-        <button type="button" className="btn" onClick={check}>Check output</button>
+        <button type="button" className="btn" onClick={check}>{m.checkOutput}</button>
       </div>
       <div className={`lab-result ${status}`} role="status" aria-live="polite">
-        <p><b>Verification:</b> {VERIFY_LINE[status]}{saved?.found && status !== 'pending' ? ` Found ${saved.found} on ${OS_LABELS[saved.os]}.` : ''}</p>
-        {status === 'pending' ? <p className="hint">Press Check output to check what you pasted.</p> : null}
+        <p><b>{m.verificationLabel}</b> {m.verifyLine[status]}{saved?.found && status !== 'pending' ? m.found(saved.found, OS_LABELS[saved.os]) : ''}</p>
+        {status === 'pending' ? <p className="hint">{m.pressCheck}</p> : null}
         {notice ? <p>{notice.text}{notice.next ? ` ${notice.next}` : ''}</p> : null}
         {why ? <p>{why.text}</p> : null}
-        {why?.next ? <p><b>Next:</b> {why.next}</p> : null}
-        {stale ? <p className="hint">{stale.os !== os ? `Your earlier result was for ${OS_LABELS[stale.os]}. Run the check again on ${OS_LABELS[os]}.` : 'This check has been updated since your last result. Run it again.'}</p> : null}
-        {saved?.status === 'verified' && status !== 'pending' ? <p className="hint">This confirms the output you pasted, not your whole computer.</p> : null}
+        {why?.next ? <p><b>{m.next}</b> {why.next}</p> : null}
+        {stale ? <p className="hint">{stale.os !== os ? m.staleOs(OS_LABELS[stale.os], OS_LABELS[os]) : m.staleRule}</p> : null}
+        {saved?.status === 'verified' && status !== 'pending' ? <p className="hint">{m.verifiedNote}</p> : null}
       </div>
     </div>
   );
@@ -120,6 +113,8 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
   const [wide, setWide] = useState(false);
   // Pasted text lives only in memory while the page is open. It is never written to storage.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [lang, saveLang] = useLang();
+  const m = messages(lang);
 
   useEffect(() => {
     setPath(withLab(readLocalPath() ?? emptyPath(), readMirror()));
@@ -176,29 +171,36 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
   const synced = !!user && hasWork(path);
 
   return (
-    <>
-      <h1>Lab</h1>
-      <p className="lede">Set up your computer for the experiments in your research. Tell us what your project involves, and you get only the tools you need, with official links and checks.</p>
-      <p className="hint" style={{ marginTop: 6 }}>If your research has no code or data analysis, you do not need this page.</p>
-      <p className="notice pc-note" role="note">Installing happens on a computer, not on a phone. Read the steps here, then continue on your PC. You can paste check results here from either.</p>
-      {sync.conflict ? <p className="notice" role="alert" style={{ marginTop: 12 }}>Two versions of your work exist. <Link href="/">Open My thesis</Link> to choose one.</p> : null}
+    <div lang={lang}>
+      <div className="lab-top">
+        <h1>{m.labTitle}</h1>
+        <div className="lang-switch" role="group" aria-label={m.language}>
+          {LANGS.map((l) => (
+            <button key={l.id} type="button" lang={l.id} className={`btn ghost${lang === l.id ? ' on' : ''}`} aria-pressed={lang === l.id} onClick={() => saveLang(l.id)}>{l.label}</button>
+          ))}
+        </div>
+      </div>
+      <p className="lede">{m.labLede}</p>
+      <p className="hint" style={{ marginTop: 6 }}>{m.noCodeHint}</p>
+      <p className="notice pc-note" role="note">{m.pcNote}</p>
+      {sync.conflict ? <p className="notice" role="alert" style={{ marginTop: 12 }}>{m.twoVersions} <Link href="/">{m.openMyThesis}</Link> {m.toChooseOne}</p> : null}
 
       <div className="sheet" style={{ marginTop: 20 }}>
         <fieldset className="field">
-          <legend><b>1. What does your research involve?</b></legend>
-          <p className="hint">Choose all that apply.</p>
+          <legend><b>{m.q1}</b></legend>
+          <p className="hint">{m.chooseAll}</p>
           <div className="choices">
             {WORK_TYPES.map((w) => (
               <label key={w.id} className="choice">
                 <input type="checkbox" checked={lab.workTypes.includes(w.id)} onChange={() => toggleType(w.id)} />
-                <span><b>{w.label}</b><span className="hint">{w.hint}</span></span>
+                <span><b>{m.workTypes[w.id][0]}</b><span className="hint">{m.workTypes[w.id][1]}</span></span>
               </label>
             ))}
           </div>
         </fieldset>
 
         <fieldset className="field" style={{ marginTop: 18 }}>
-          <legend><b>2. Which system is your research computer?</b></legend>
+          <legend><b>{m.q2}</b></legend>
           <div className="choices row">
             {(Object.keys(OS_LABELS) as Os[]).map((o) => (
               <label key={o} className="choice">
@@ -207,58 +209,57 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
               </label>
             ))}
           </div>
-          {os && !lab.osConfirmed && os === suggested ? <p className="hint" role="status">Suggested from your browser. Change it if your research computer is different.</p> : null}
-          {!os ? <p className="hint">Choose the system of the computer where you will run experiments.</p> : null}
+          {os && !lab.osConfirmed && os === suggested ? <p className="hint" role="status">{m.suggested}</p> : null}
+          {!os ? <p className="hint">{m.chooseSystemHint}</p> : null}
         </fieldset>
 
         {askGpu ? (
           <fieldset className="field" style={{ marginTop: 18 }}>
-            <legend><b>3. Does that computer have an NVIDIA graphics card?</b></legend>
+            <legend><b>{m.q3}</b></legend>
             <div className="choices row">
-              {([['yes', 'Yes'], ['no', 'No'], ['not_sure', 'Not sure']] as [GpuAnswer, string][]).map(([v, l]) => (
+              {([['yes', m.yes], ['no', m.no], ['not_sure', m.notSure]] as [GpuAnswer, string][]).map(([v, l]) => (
                 <label key={v} className="choice">
                   <input type="radio" name="gpu" checked={lab.gpu === v} onChange={() => edit((x) => update(x, { gpu: v }))} />
                   <span>{l}</span>
                 </label>
               ))}
             </div>
-            {lab.gpu === 'not_sure' ? <p className="hint">The NVIDIA card below shows how to check. Without one, you can still learn and test on the CPU.</p> : null}
+            {lab.gpu === 'not_sure' ? <p className="hint">{m.gpuNotSureHint}</p> : null}
           </fieldset>
         ) : null}
       </div>
 
       {tools.length ? (
         <>
-          <h2 style={{ marginTop: 28 }}>Your setup checklist</h2>
-          <p className="hint" role="status" data-testid="lab-summary">
-            {tools.length} tools. {n('verified')} verified. {n('marked')} marked complete by you, not yet checked. {n('failed') + n('manual_review')} need attention.
-          </p>
-          <p className="hint">Follow them in order. Supervisor never runs commands on your computer: you run them, then paste what they print so Supervisor can check it.</p>
+          <h2 style={{ marginTop: 28 }}>{m.checklist}</h2>
+          <p className="hint" role="status" data-testid="lab-summary">{m.summary(tools.length, n('verified'), n('marked'), n('failed') + n('manual_review'))}</p>
+          <p className="hint">{m.followInOrder}</p>
           <ol className="lab-list">
             {tools.map((t, i) => {
               const st = statuses[i];
               const tool = lab.tools[t.id];
               const steps = t.install[os!] ?? [];
+              const text = textOf(t, lang);
               return (
                 <li key={t.id} className="sheet lab-card">
                   <div className="lab-head">
                     <h3>{t.name}</h3>
-                    <span className="tag">{t.level === 'recommended' ? 'Recommended' : t.level === 'conditional' ? 'Only if it applies' : 'Needed'}</span>
+                    <span className="tag">{t.level === 'recommended' ? m.levelRecommended : t.level === 'conditional' ? m.levelConditional : m.levelRequired}</span>
                   </div>
-                  <p className={`lab-badge ${st}`} data-testid={`status-${t.id}`}>{STATUS_LABEL[st]}</p>
-                  <p>{t.purpose}</p>
-                  <p className="hint"><b>Version:</b> {t.version_guidance}</p>
+                  <p className={`lab-badge ${st}`} data-testid={`status-${t.id}`}>{m.status[st]}</p>
+                  <p>{text.purpose}</p>
+                  <p className="hint"><b>{m.versionLabel}</b> {text.version_guidance}</p>
                   <p className="lab-links">
-                    <a href={t.official_download_url} target="_blank" rel="noopener noreferrer">Official download page ↗</a>
-                    <a href={t.official_docs_url} target="_blank" rel="noopener noreferrer">Official documentation ↗</a>
+                    <a href={t.official_download_url} target="_blank" rel="noopener noreferrer">{m.downloadLink}</a>
+                    <a href={t.official_docs_url} target="_blank" rel="noopener noreferrer">{m.docsLink}</a>
                   </p>
                   <details open={wide}>
-                    <summary>Installation steps for {OS_LABELS[os!]}</summary>
+                    <summary>{m.installSteps(OS_LABELS[os!])}</summary>
                     <ol className="todo">
                       {steps.map((s, k) => (
                         <li key={k}>
-                          {s.text}
-                          {s.command ? <CopyCommand command={s.command} /> : null}
+                          {text.install[os!]?.[k] ?? s.text}
+                          {s.command ? <CopyCommand command={s.command} m={m} /> : null}
                         </li>
                       ))}
                     </ol>
@@ -266,33 +267,28 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
                   <div className="lab-status">
                     <label className="choice">
                       <input type="checkbox" checked={!!tool?.marked} onChange={() => edit((l) => setMarked(l, t.id, !l.tools[t.id]?.marked))} />
-                      <span>I followed the installation steps</span>
+                      <span>{m.followedSteps}</span>
                     </label>
-                    <p className="hint"><b>Installation:</b> {tool?.marked ? 'Marked complete by you.' : 'Not started.'} A tick alone does not verify anything.</p>
+                    <p className="hint"><b>{m.installationLabel}</b> {tool?.marked ? m.installMarked : m.installNotStarted} {m.tickNote}</p>
                   </div>
-                  <Verify tool={t} os={os!} gpu={lab.gpu} lab={lab} draft={drafts[t.id] ?? ''} setDraft={(v) => setDrafts((d) => ({ ...d, [t.id]: v }))} onResult={(r) => edit((l) => recordCheck(l, t.id, os!, r))} />
+                  <Verify tool={t} os={os!} gpu={lab.gpu} lab={lab} draft={drafts[t.id] ?? ''} setDraft={(v) => setDrafts((d) => ({ ...d, [t.id]: v }))} onResult={(r) => edit((l) => recordCheck(l, t.id, os!, r))} lang={lang} />
                   <details>
-                    <summary>Common problems</summary>
-                    <ul className="todo">{t.common_problems.map((p) => <li key={p.problem}><b>{p.problem}.</b> {p.solution}</li>)}</ul>
+                    <summary>{m.commonProblems}</summary>
+                    <ul className="todo">{text.common_problems.map((p) => <li key={p.problem}><b>{p.problem}.</b> {p.solution}</li>)}</ul>
                   </details>
                 </li>
               );
             })}
           </ol>
           <p className="hint" style={{ marginTop: 12 }}>
-            {synced
-              ? 'Your Lab progress is saved with your thesis in your account.'
-              : user
-                ? 'Your Lab progress is saved in this browser. It is saved to your account once you start your thesis.'
-                : 'Your Lab progress is saved in this browser. Sign in and start your thesis to keep it in your account.'}{' '}
-            Links were last reviewed on {tools[0].last_reviewed}. If a page looks different, follow the official page.
+            {synced ? m.savedAccount : user ? m.savedHereSignedIn : m.savedHere} {m.linksReviewed(tools[0].last_reviewed)}
           </p>
         </>
       ) : loaded ? (
-        <p className="empty" style={{ marginTop: 24 }}>{!lab.workTypes.length ? 'Choose what your research involves to see your checklist.' : 'Choose your system to see your checklist.'}</p>
+        <p className="empty" style={{ marginTop: 24 }}>{!lab.workTypes.length ? m.emptyTypes : m.emptySystem}</p>
       ) : null}
 
-      {loaded ? <Runs path={path} os={os} editPath={editPath} /> : null}
-    </>
+      {loaded ? <Runs path={path} os={os} editPath={editPath} lang={lang} /> : null}
+    </div>
   );
 }

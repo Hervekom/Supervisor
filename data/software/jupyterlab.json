@@ -103,5 +103,47 @@
   "sources": [
     "https://jupyter.org/install"
   ],
-  "condition": null
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Les notebooks permettent de lancer le code pas à pas et de garder ensemble résultats, graphiques et notes, ce qui aide à explorer les données.",
+      "version_guidance": "Installez la dernière version compatible avec votre version de Python. Notez la version installée dans votre journal de recherche.",
+      "install": {
+        "windows": [
+          "Activez d’abord votre environnement virtuel.",
+          "Installez JupyterLab.",
+          "Lancez-le. Il s’ouvre dans votre navigateur."
+        ],
+        "macos": [
+          "Activez d’abord votre environnement virtuel.",
+          "Installez JupyterLab.",
+          "Lancez-le. Il s’ouvre dans votre navigateur."
+        ],
+        "linux": [
+          "Activez d’abord votre environnement virtuel.",
+          "Installez JupyterLab.",
+          "Lancez-le. Il s’ouvre dans votre navigateur."
+        ]
+      },
+      "expected": {
+        "windows": "Une ligne : jupyterlab et sa version, par exemple jupyterlab 4.x.y. Pour le lancer : jupyter lab",
+        "macos": "Une ligne : jupyterlab et sa version, par exemple jupyterlab 4.x.y. Pour le lancer : jupyter lab",
+        "linux": "Une ligne : jupyterlab et sa version, par exemple jupyterlab 4.x.y. Pour le lancer : jupyter lab"
+      },
+      "common_problems": [
+        {
+          "problem": "ModuleNotFoundError à l’import",
+          "solution": "Votre environnement virtuel n’est sans doute pas actif, ou le paquet est allé dans un autre Python. Activez l’environnement, puis réinstallez avec python -m pip install."
+        },
+        {
+          "problem": "jupyter n’est pas reconnu",
+          "solution": "Activez votre environnement virtuel, ou lancez plutôt python -m jupyter lab."
+        },
+        {
+          "problem": "Un notebook ne trouve pas une bibliothèque que vous avez installée",
+          "solution": "Le notebook utilise un autre Python. Lancez JupyterLab depuis le terminal où votre .venv est actif."
+        }
+      ]
+    }
+  }
 }

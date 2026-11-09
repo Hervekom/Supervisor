@@ -95,5 +95,47 @@
   "sources": [
     "https://pytorch.org/get-started/locally/"
   ],
-  "condition": null
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "La principale bibliothèque pour construire et entraîner des modèles d’apprentissage profond, y compris pour l’image et le langage.",
+      "version_guidance": "Ne devinez pas la commande. Utilisez le sélecteur de la page officielle : choisissez votre système, pip, Python, puis CPU ou une version de CUDA. Lors de la dernière vérification, il proposait CPU, CUDA 11.8, 12.6 et 12.8, et ROCm. Choisissez une option CUDA seulement si vous avez un GPU NVIDIA avec un pilote récent.",
+      "install": {
+        "windows": [
+          "Activez d’abord votre environnement virtuel.",
+          "Ouvrez la page « Get started » de PyTorch et choisissez votre système, pip, Python et la plateforme de calcul.",
+          "Copiez la commande affichée par la page et lancez-la dans votre environnement activé."
+        ],
+        "macos": [
+          "Activez d’abord votre environnement virtuel.",
+          "Ouvrez la page « Get started » de PyTorch et choisissez votre système, pip, Python et la plateforme de calcul.",
+          "Copiez la commande affichée par la page et lancez-la dans votre environnement activé."
+        ],
+        "linux": [
+          "Activez d’abord votre environnement virtuel.",
+          "Ouvrez la page « Get started » de PyTorch et choisissez votre système, pip, Python et la plateforme de calcul.",
+          "Copiez la commande affichée par la page et lancez-la dans votre environnement activé."
+        ]
+      },
+      "expected": {
+        "windows": "Une ligne : torch, sa version, puis cuda True si votre GPU NVIDIA peut être utilisé, ou cuda False pour une configuration CPU seulement. False est normal sur un ordinateur sans GPU NVIDIA.",
+        "macos": "Une ligne : torch, sa version, puis cuda True si votre GPU NVIDIA peut être utilisé, ou cuda False pour une configuration CPU seulement. False est normal sur un ordinateur sans GPU NVIDIA.",
+        "linux": "Une ligne : torch, sa version, puis cuda True si votre GPU NVIDIA peut être utilisé, ou cuda False pour une configuration CPU seulement. False est normal sur un ordinateur sans GPU NVIDIA."
+      },
+      "common_problems": [
+        {
+          "problem": "torch.cuda.is_available() affiche False sur un PC avec un GPU NVIDIA",
+          "solution": "Vous avez peut-être installé la version CPU, ou votre pilote est trop ancien. Vérifiez le pilote avec nvidia-smi, puis réinstallez PyTorch avec une option CUDA du sélecteur officiel."
+        },
+        {
+          "problem": "Le téléchargement est très lourd ou lent",
+          "solution": "C’est normal pour les versions GPU. Utilisez une connexion stable, et évitez le partage de connexion d’un téléphone."
+        },
+        {
+          "problem": "ModuleNotFoundError: No module named torch",
+          "solution": "Activez votre environnement virtuel et relancez la commande d’installation dedans."
+        }
+      ]
+    }
+  }
 }

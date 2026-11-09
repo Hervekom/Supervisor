@@ -86,5 +86,43 @@
     "https://code.visualstudio.com/download",
     "https://code.visualstudio.com/docs/python/python-tutorial"
   ],
-  "condition": null
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Un éditeur de code gratuit qui réunit Python, les notebooks et Git. Vous pouvez utiliser un autre éditeur si votre laboratoire en préfère un.",
+      "version_guidance": "Installez la version stable actuelle, pas Insiders.",
+      "install": {
+        "windows": [
+          "Téléchargez Visual Studio Code pour votre système sur code.visualstudio.com et installez-le.",
+          "Ouvrez-le, allez dans Extensions et installez l’extension Python publiée par Microsoft.",
+          "Ouvrez le dossier de votre projet, puis lancez « Python: Select Interpreter » depuis la palette de commandes et choisissez votre .venv."
+        ],
+        "macos": [
+          "Téléchargez Visual Studio Code pour votre système sur code.visualstudio.com et installez-le.",
+          "Ouvrez-le, allez dans Extensions et installez l’extension Python publiée par Microsoft.",
+          "Ouvrez le dossier de votre projet, puis lancez « Python: Select Interpreter » depuis la palette de commandes et choisissez votre .venv."
+        ],
+        "linux": [
+          "Téléchargez Visual Studio Code pour votre système sur code.visualstudio.com et installez-le.",
+          "Ouvrez-le, allez dans Extensions et installez l’extension Python publiée par Microsoft.",
+          "Ouvrez le dossier de votre projet, puis lancez « Python: Select Interpreter » depuis la palette de commandes et choisissez votre .venv."
+        ]
+      },
+      "expected": {
+        "windows": "Trois lignes : un numéro de version comme 1.x.y, un code de commit et le type de votre processeur",
+        "macos": "Trois lignes : un numéro de version comme 1.x.y, un code de commit et le type de votre processeur",
+        "linux": "Trois lignes : un numéro de version comme 1.x.y, un code de commit et le type de votre processeur"
+      },
+      "common_problems": [
+        {
+          "problem": "macOS : code: command not found",
+          "solution": "Dans VS Code, ouvrez la palette de commandes et lancez « Shell Command: Install 'code' command in PATH », puis ouvrez un nouveau terminal."
+        },
+        {
+          "problem": "VS Code lance le mauvais Python",
+          "solution": "Relancez « Python: Select Interpreter » et choisissez celui qui se trouve dans votre dossier .venv."
+        }
+      ]
+    }
+  }
 }

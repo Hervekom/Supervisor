@@ -288,3 +288,36 @@ test('B2: a reported run is saved with the thesis and appears on a second device
   await expect(other.getByTestId('run-card').getByRole('heading', { name: 'Baseline, seed 1' })).toBeVisible();
   await other.context().close();
 });
+
+// ---------- Phase B2.1 ----------
+
+test('B2.1: a run step reaches a second device, and changing language saves nothing to the account', async ({ page, browser }) => {
+  await seedLocal(page, started('Thesis work that must stay'));
+  await signIn(page);
+  await expect(page.getByText('The work from this browser is saved to your account.')).toBeVisible();
+  await page.goto('/lab');
+  await page.getByRole('button', { name: 'Add a run' }).click();
+  await page.getByLabel('Research step').selectOption('experiments');
+  await page.getByLabel('Run name').fill('Baseline, seed 1');
+  await page.getByRole('button', { name: 'Add a result' }).click();
+  await page.getByLabel('Result 1 name').fill('accuracy');
+  await page.getByLabel('Result 1 value').fill('0.912');
+  await page.getByRole('button', { name: 'Save run' }).click();
+  await expect.poll(async () => (await state()).row?.data?.runs?.[0]?.stepId, { timeout: 15_000 }).toBe('experiments');
+
+  const writes = (await state()).writes;
+  await page.getByRole('button', { name: 'Français' }).click();
+  await expect(page.getByRole('heading', { name: 'Expériences' })).toBeVisible();
+  await page.waitForTimeout(2500);
+  expect((await state()).writes).toBe(writes);
+  expect((await state()).row.data.steps.title.work).toBe('Thesis work that must stay');
+
+  const other = await (await browser.newContext()).newPage();
+  await signIn(other);
+  await other.goto('/lab');
+  const card = other.getByTestId('run-card').filter({ has: other.getByRole('heading', { name: 'Baseline, seed 1' }) });
+  await expect(card.getByText('Train your models')).toBeVisible();
+  await other.goto('/document');
+  await expect(other.getByTestId('research-evidence').getByText('1 linked to a step')).toBeVisible();
+  await other.context().close();
+});

@@ -80,5 +80,36 @@
   "sources": [
     "https://pandas.pydata.org/docs/getting_started/install.html"
   ],
-  "condition": null
+  "condition": null,
+  "i18n": {
+    "fr": {
+      "purpose": "Charge, nettoie et résume des tableaux de données, comme des fichiers CSV ou Excel.",
+      "version_guidance": "Installez la dernière version compatible avec votre version de Python. Notez la version installée dans votre journal de recherche.",
+      "install": {
+        "windows": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez pandas."
+        ],
+        "macos": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez pandas."
+        ],
+        "linux": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez pandas."
+        ]
+      },
+      "expected": {
+        "windows": "Une ligne : pandas et sa version, par exemple pandas 2.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif.",
+        "macos": "Une ligne : pandas et sa version, par exemple pandas 2.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif.",
+        "linux": "Une ligne : pandas et sa version, par exemple pandas 2.x.y. ModuleNotFoundError signifie qu’il n’est pas installé dans l’environnement actif."
+      },
+      "common_problems": [
+        {
+          "problem": "ModuleNotFoundError à l’import",
+          "solution": "Votre environnement virtuel n’est sans doute pas actif, ou le paquet est allé dans un autre Python. Activez l’environnement, puis réinstallez avec python -m pip install."
+        }
+      ]
+    }
+  }
 }

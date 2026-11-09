@@ -1,6 +1,7 @@
 // Lab progress: what the student chose, what they marked, and the results of output checks.
 // Stored as an optional field of PathState, so it syncs with the thesis without any database change.
 
+import { t, type Lang } from './i18n';
 import { LAB_RULES_VERSION, type CheckResult, type CheckStatus } from './labVerify';
 import type { GpuAnswer, Os, WorkType } from './software';
 
@@ -26,14 +27,8 @@ export type LabState = {
 
 /** The six statuses a student can see. A checkbox alone can never reach "verified". */
 export type LabStatus = 'not_started' | 'marked' | 'pending' | 'verified' | 'failed' | 'manual_review';
-export const STATUS_LABEL: Record<LabStatus, string> = {
-  not_started: 'Not started',
-  marked: 'Installation marked complete by you',
-  pending: 'Verification pending',
-  verified: 'Verified',
-  failed: 'Verification failed',
-  manual_review: 'Manual review required',
-};
+export const STATUS_LABEL: Record<LabStatus, string> = t('en').status;
+export const statusLabel = (s: LabStatus, lang: Lang = 'en') => t(lang).status[s];
 
 export const emptyLab = (): LabState => ({ workTypes: [], os: null, gpu: 'not_sure', osConfirmed: false, tools: {}, updatedAt: '' });
 
