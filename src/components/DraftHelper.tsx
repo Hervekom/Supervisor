@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { loadAi } from '@/lib/aiSettings';
 import { FORM_EXAMPLE, MAX_QUESTIONS, STARTERS, type DraftAnswer, type PlanPoint } from '@/lib/draftHelp';
-import { errorText, request } from '@/lib/request';
+import { canRetry, errorText, requestAi } from '@/lib/request';
 import { authHeaders } from '@/lib/supabase';
 
 type Review = { missing: string[]; question: string };
@@ -17,9 +17,10 @@ export function DraftHelper({ stepId, degree, topic, discipline, history, langua
   const [review, setReview] = useState<Review | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [retry, setRetry] = useState<(() => void) | null>(null);
 
   async function call<T>(extra: object) {
-    return request<T>('/api/draft-help', {
+    return requestAi<T>('/api/draft-help', {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify({ stepId, degree, topic, discipline, history, language, llm: loadAi() ?? undefined, ...extra }),
@@ -29,6 +30,7 @@ export function DraftHelper({ stepId, degree, topic, discipline, history, langua
   async function advance(next: DraftAnswer[]) {
     setBusy(true);
     setError('');
+    setRetry(null);
     try {
       const j = await call<{ question?: string; plan?: PlanPoint[] }>({ answers: next });
       setAnswers(next);
@@ -43,6 +45,7 @@ export function DraftHelper({ stepId, degree, topic, discipline, history, langua
       }
     } catch (x) {
       setError(errorText(x));
+      if (canRetry(x)) setRetry(() => () => advance(next));
     } finally {
       setBusy(false);
     }
@@ -51,12 +54,14 @@ export function DraftHelper({ stepId, degree, topic, discipline, history, langua
   async function check() {
     setBusy(true);
     setError('');
+    setRetry(null);
     try {
       const j = await call<{ review: Review }>({ paragraph: lastParagraph });
       setReview(j.review);
       onUse('Guided writing: paragraph check');
     } catch (x) {
       setError(errorText(x));
+      if (canRetry(x)) setRetry(() => check);
     } finally {
       setBusy(false);
     }
@@ -103,7 +108,7 @@ export function DraftHelper({ stepId, degree, topic, discipline, history, langua
         </>
       ) : null}
 
-      {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account|Sign in/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}</p> : null}
+      {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account|Sign in/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}{retry ? <> <button type="button" className="linklike" disabled={busy} onClick={() => retry()}>Try again</button></> : null}</p> : null}
     </div>
   );
 }

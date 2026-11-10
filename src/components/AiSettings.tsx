@@ -4,6 +4,7 @@ import { clearAi, loadAi, saveAi } from '@/lib/aiSettings';
 import { CRITIC_NAME } from '@/lib/brand';
 import { PROVIDERS } from '@/lib/providers';
 import { errorText, request } from '@/lib/request';
+import { AiLimitsNote } from './AiStatus';
 import { authHeaders } from '@/lib/supabase';
 
 export function AiSettings() {
@@ -97,6 +98,7 @@ export function AiSettings() {
       </div>
       {error ? <p className="error" role="alert">{error}</p> : null}
       {message ? <p className="notice" role="status">{message}</p> : null}
+      <AiLimitsNote ownKey={saved} />
       <p className="hint">Your key stays in this browser, not in your account. Each critique sends it through Supervisor’s server to your provider, and it is not stored there. Your work goes to the provider you choose, so check its data policy. Use this only on your own device.</p>
     </form>
   );

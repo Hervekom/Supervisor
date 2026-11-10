@@ -53,6 +53,8 @@ function reply(messages) {
   };
 }
 
+const counts = new Map();
+
 http
   .createServer((req, res) => {
     let body = '';
@@ -61,6 +63,19 @@ http
       res.setHeader('content-type', 'application/json');
       if (req.url !== '/chat/completions') return res.end('{}');
       const { messages } = JSON.parse(body);
+      // Phase P4: provider failures on demand, triggered by a marker in the student's synthetic text.
+      const user = messages[1]?.content ?? '';
+      const marker = user.match(/P4-(MALFORMED-ONCE|STATUS-\d{3})-([\w-]+)/);
+      if (marker) {
+        const seen = (counts.get(marker[0]) ?? 0) + 1;
+        counts.set(marker[0], seen);
+        if (marker[1] === 'MALFORMED-ONCE' && seen === 1) return res.end(JSON.stringify({ choices: [{ message: { content: 'Sorry, here is prose instead of JSON.' } }] }));
+        if (marker[1].startsWith('STATUS-')) {
+          res.statusCode = Number(marker[1].slice(7));
+          if (res.statusCode === 429) res.setHeader('retry-after', '1');
+          return res.end('{"error":{"message":"mock provider detail"}}');
+        }
+      }
       res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reply(messages)) } }] }));
     });
   })

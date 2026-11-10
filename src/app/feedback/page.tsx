@@ -1,16 +1,17 @@
 'use client';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { AiErrorNote, AiLimitsNote } from '@/components/AiStatus';
 import { useAccount } from '@/components/useAccount';
 import { put, useProfiles } from '@/components/useProfiles';
 import { usePathSync } from '@/components/usePathSync';
-import { addReport, buildReport, compareReports, exportReports, removeReport, reportsOf, type ChapterReport } from '@/lib/chapterFeedback';
+import { addReport, buildReport, compareReports, exportReports, newId, removeReport, reportsOf, type ChapterReport } from '@/lib/chapterFeedback';
 import type { Feedback } from '@/lib/feedback';
 import { loadAi } from '@/lib/aiSettings';
 import { count, FEEDBACK_LIMIT, MAX_UPLOAD_LABEL } from '@/lib/limits';
 import { emptyPath, isPathState, type PathState } from '@/lib/path';
 import { PATH_KEY, readLocalPath } from '@/lib/pathSync';
-import { errorText, fileProblem, request } from '@/lib/request';
+import { canRetry, errorText, fileProblem, request, requestAi } from '@/lib/request';
 import { authHeaders } from '@/lib/supabase';
 import type { RefResult } from '@/lib/references';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
@@ -124,6 +125,11 @@ export default function FeedbackPage() {
   const [pickB, setPickB] = useState('');
   const [comparing, setComparing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState('');
+  // Phase P4: what a failed request asked for, so "Try again" sends exactly the same thing.
+  type Ask = { requestId: string; chapter: string; text: string; file: string; degree: string; discipline: string; language: string; body: unknown };
+  const [failedAsk, setFailedAsk] = useState<Ask | null>(null);
+  const [retryable, setRetryable] = useState(false);
+  const [ownKey, setOwnKey] = useState(false);
   const pathRef = useRef(path);
   pathRef.current = path;
 
@@ -132,6 +138,7 @@ export default function FeedbackPage() {
     if (p) setPath(p);
     const m = /^#report-(.+)$/.exec(window.location.hash);
     if (m) setViewId(decodeURIComponent(m[1]));
+    setOwnKey(!!loadAi());
     setLoaded(true);
   }, []);
   useEffect(() => {
@@ -165,13 +172,13 @@ export default function FeedbackPage() {
     return true;
   };
 
-  function keep(f: Feedback, analysed: { chapter: string; text: string; file: string; degree: string; discipline: string; language: string }) {
+  function keep(f: Feedback, analysed: { requestId?: string; chapter: string; text: string; file: string; degree: string; discipline: string; language: string }) {
     const base = latestPath();
     if (!base.started) {
       setSaveNote({ kind: 'warn', text: 'This feedback is not kept after you leave the page, because no thesis is started in this browser. Start your thesis on My thesis to keep a history of your chapter feedback.' });
       return;
     }
-    const r = addReport(base, buildReport({ chapter: analysed.chapter, text: analysed.text, file: analysed.file || undefined, feedback: f, settings: { degree: analysed.degree, discipline: analysed.discipline, language: analysed.language } }));
+    const r = addReport(base, buildReport({ chapter: analysed.chapter, text: analysed.text, file: analysed.file || undefined, feedback: f, requestId: analysed.requestId, settings: { degree: analysed.degree, discipline: analysed.discipline, language: analysed.language } }));
     if (r.status === 'duplicate') {
       setViewId(r.report.id);
       setSaveNote({ kind: 'ok', text: 'This report is already in your history. It was not saved twice.' });
@@ -234,27 +241,35 @@ export default function FeedbackPage() {
     }
   }
 
-  async function post<T>(url: string, body: unknown, done: (j: T) => void) {
+  async function post<T>(url: string, body: unknown, done: (j: T) => void, onFail?: (x: unknown) => void) {
     setBusy(true);
     setError('');
+    setRetryable(false);
     try {
-      done(await request<T>(url, { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify(body) }));
+      done(await requestAi<T>(url, { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify(body) }));
     } catch (x) {
       setError(errorText(x));
+      setRetryable(canRetry(x));
+      onFail?.(x);
     } finally {
       setBusy(false);
     }
   }
 
-  function askFeedback() {
+  function send(ask: Ask) {
     setSaveNote(null);
-    // What is analysed is fixed when the student asks, so the saved version is exactly the text that was sent.
-    const analysed = { chapter: title, text, file: chapters.some((c) => c.title === title) ? loadedFile : '', degree, discipline, language };
-    post<Feedback>('/api/feedback', { degree, discipline, title, text, language, llm: loadAi() ?? undefined }, (f) => {
+    setFailedAsk(null);
+    post<Feedback>('/api/feedback', ask.body, (f) => {
       setFeedback(f);
       setViewId('');
-      keep(f, analysed);
-    });
+      keep(f, ask);
+    }, () => setFailedAsk(ask));
+  }
+
+  function askFeedback() {
+    // What is analysed is fixed when the student asks, so the saved version is exactly the text that was sent.
+    // The text stays in the form whatever happens.
+    send({ requestId: newId(), chapter: title, text, file: chapters.some((c) => c.title === title) ? loadedFile : '', degree, discipline, language, body: { degree, discipline, title, text, language, llm: loadAi() ?? undefined } });
   }
 
   const reports = reportsOf(path);
@@ -329,6 +344,7 @@ export default function FeedbackPage() {
               {text.length > FEEDBACK_LIMIT ? <p className="hint">Feedback reads the first {count(FEEDBACK_LIMIT)} of these {count(text.length)} characters.</p> : null}
             </div>
             <div><button className="btn" disabled={busy || loading} onClick={askFeedback}>{busy ? 'Reading…' : 'Get feedback'}</button></div>
+            {loaded ? <AiLimitsNote ownKey={ownKey} /> : null}
           </>
         ) : (
           <>
@@ -339,7 +355,7 @@ export default function FeedbackPage() {
             <div><button className="btn" disabled={busy || loading} onClick={() => post<{ results: RefResult[] }>('/api/references', { entries: refs.split('\n') }, (j) => setRefResults(j.results))}>{busy ? 'Checking…' : 'Check references'}</button></div>
           </>
         )}
-        {error ? <p className="error" role="alert">{error}</p> : null}
+        <AiErrorNote message={error} busy={busy} retryable={retryable && tab === 'chapter' && !!failedAsk} onRetry={() => failedAsk && send(failedAsk)} />
       </div>
       {tab === 'chapter' && saveNote ? <p className={saveNote.kind === 'error' ? 'error' : saveNote.kind === 'warn' ? 'notice' : 'hint ok'} role={saveNote.kind === 'ok' ? 'status' : 'alert'} style={{ marginTop: 12 }}>{saveNote.text}</p> : null}
       {tab === 'chapter' && viewed ? (

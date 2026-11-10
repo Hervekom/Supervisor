@@ -295,7 +295,7 @@ describe('site AI limit', () => {
     const { AI_PER_MINUTE, limitSiteAi } = await import('@/lib/aiLimit');
     const t = 1_000_000_000_000;
     for (let i = 0; i < AI_PER_MINUTE; i++) limitSiteAi('a', false, t);
-    expect(() => limitSiteAi('a', false, t)).toThrow('Please wait a minute');
+    expect(() => limitSiteAi('a', false, t)).toThrow(/Please wait about \d+ seconds/);
     expect(() => limitSiteAi('b', false, t)).not.toThrow();
     expect(() => limitSiteAi('a', false, t + 60_000)).not.toThrow();
   });

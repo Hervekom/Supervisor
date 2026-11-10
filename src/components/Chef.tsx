@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { loadAi } from '@/lib/aiSettings';
 import { chefContext, nextMove, type ChefMessage, type ChefReply } from '@/lib/chef';
 import { CHEF_KEY, readLocalPath, writeLocalPath, PATH_KEY } from '@/lib/pathSync';
-import { errorText, request } from '@/lib/request';
+import { canRetry, errorText, requestAi } from '@/lib/request';
 import { authHeaders } from '@/lib/supabase';
 
 type Line = ChefMessage & { step?: string };
@@ -38,6 +38,7 @@ export function Chef() {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [retry, setRetry] = useState<(() => void) | null>(null);
   const end = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,10 +63,11 @@ export function Chef() {
     setDraft('');
     setSuggestions([]);
     setError('');
+    setRetry(null);
     setBusy(true);
     try {
       const path = readLocalPath();
-      const j = await request<ChefReply>('/api/chef', {
+      const j = await requestAi<ChefReply>('/api/chef', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ context: chefContext(path), messages: next.map(({ role, content: c }) => ({ role, content: c })), llm: loadAi() ?? undefined }),
@@ -78,7 +80,12 @@ export function Chef() {
         savePath({ ...path, savedAt: new Date().toISOString(), log: [...path.log, { at: new Date().toISOString(), step: path.current, tool: 'Conversation with Supervisor' }] });
       }
     } catch (x) {
+      // Phase P4: the message was not answered, so it goes back into the box, ready to send again.
+      setLines(lines);
+      saveChat(lines);
+      setDraft(content);
       setError(errorText(x));
+      if (canRetry(x)) setRetry(() => () => send(content));
     } finally {
       setBusy(false);
     }
@@ -119,7 +126,7 @@ export function Chef() {
           </div>
         ))}
         {busy ? <p className="hint" role="status">Supervisor is thinking…</p> : null}
-        {error ? <p className="error" role="alert">{error}{/Account|Sign in/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}</p> : null}
+        {error ? <p className="error" role="alert">{error}{/Account|Sign in/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}{retry ? <> <button type="button" className="linklike" disabled={busy} onClick={() => retry()}>Try again</button></> : null}</p> : null}
         <div ref={end} />
       </div>
       {suggestions.length ? <div className="chef-chips">{suggestions.map((s) => <button key={s} className="btn ghost" disabled={busy} onClick={() => send(s)}>{s}</button>)}</div> : null}

@@ -16,7 +16,7 @@ import { readLocalPath, setAsideFor } from '@/lib/pathSync';
 import { SetAsideList } from '@/components/SetAsideList';
 import { planRunMerge } from '@/lib/runMerge';
 import { withResultsTemplate } from '@/lib/runs';
-import { errorText, fileProblem, request } from '@/lib/request';
+import { canRetry, errorText, fileProblem, request, requestAi } from '@/lib/request';
 import { authHeaders } from '@/lib/supabase';
 import { DEGREE_LABELS, type DegreeType } from '@/lib/types';
 
@@ -52,6 +52,8 @@ export default function PathPage() {
   const [language, setLanguage] = useState('English');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Phase P4: "Try again" for an AI failure that may pass. The work and the question stay as they are.
+  const [retry, setRetry] = useState<(() => void) | null>(null);
   const [panel, setPanel] = useState<'do' | 'write' | 'critique'>('do');
   const [situation, setSituation] = useState('');
   const [startTitle, setStartTitle] = useState('');
@@ -171,7 +173,7 @@ export default function PathPage() {
     setTailoring(true);
     const id = step.id;
     try {
-      const guide = await request<StepGuide>('/api/guide', {
+      const guide = await requestAi<StepGuide>('/api/guide', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ stepId: id, degree, title: path.title, topic: path.topic, discipline: path.discipline, history: historyOf(path, id), language, llm: loadAi() ?? undefined }),
@@ -213,8 +215,9 @@ export default function PathPage() {
   async function askCritic() {
     setBusy(true);
     setError('');
+    setRetry(null);
     try {
-      const j = await request<CoachReply>('/api/coach', {
+      const j = await requestAi<CoachReply>('/api/coach', {
         method: 'POST',
         headers: { 'content-type': 'application/json', ...(await authHeaders()) },
         body: JSON.stringify({ stepId: step.id, degree, topic: path.topic, discipline: path.discipline, work: state.work, question, language, history: historyOf(path, step.id), llm: loadAi() ?? undefined }),
@@ -230,6 +233,7 @@ export default function PathPage() {
       setQuestion('');
     } catch (x) {
       setError(errorText(x));
+      if (canRetry(x)) setRetry(() => askCritic);
     } finally {
       setBusy(false);
     }
@@ -526,7 +530,7 @@ export default function PathPage() {
                 </div>
               ) : null}
               {busy ? <p role="status">Reading your work…</p> : null}
-              {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account|Sign in/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}</p> : null}
+              {error ? <p className="error" role="alert" style={{ marginTop: 8 }}>{error}{/Account|Sign in/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}{retry ? <> <button type="button" className="linklike" disabled={busy} onClick={() => retry()}>Try again</button></> : null}</p> : null}
               {state.coach && !busy ? (
                 <div className="pen">
                   <p className="verdict">
