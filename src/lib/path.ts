@@ -1,4 +1,5 @@
 import type { ChapterReport } from './chapterFeedback';
+import type { Library } from './library';
 import type { Coverage } from './limits';
 import type { LabState } from './lab';
 import type { RunRecord } from './runs';
@@ -427,6 +428,8 @@ export type PathState = {
   runs?: RunRecord[];
   /** Chapter AI feedback reports, oldest first. Optional, so older saved copies stay valid. */
   chapterFeedback?: ChapterReport[];
+  /** The reference library and citation style. Optional, so older saved copies stay valid. */
+  library?: Library;
 };
 
 export type Verdict = 'not_ready' | 'almost' | 'ready';

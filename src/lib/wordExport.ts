@@ -13,6 +13,7 @@
 //   **bold**, *italic*                     inline emphasis
 // Lines in References become reference entries with a hanging indent, exactly as typed, never reformatted or completed.
 
+import { buildBibliography, CITE, libraryOf, STYLE_LABELS, type Seg } from './library';
 import { STEPS, stepState, type PathState } from './path';
 import { runToText } from './runs';
 import { REQUIRED_EXTRAS, structureOf } from './structures';
@@ -24,6 +25,7 @@ export type Block =
   | { kind: 'table'; rows: string[][]; header: boolean; caption?: string; number?: string; padded?: boolean }
   | { kind: 'figure'; caption: string; number?: string }
   | { kind: 'equation'; source: string; number?: string }
+  | { kind: 'bib'; label: string; segs: Seg[] }
   | { kind: 'toc' };
 
 /** Characters Word cannot store (XML 1.0), and lone surrogates, are removed. Everything else is kept as typed. */
@@ -152,6 +154,26 @@ function numberPart(blocks: Block[], prefix: string | null): Block[] {
   });
 }
 
+/** Superscript markers inside paragraph text (private-use characters, never typed by students). */
+export const SUP_OPEN = '\uE000';
+export const SUP_CLOSE = '\uE001';
+
+/** The bibliography for this thesis, when it cites at least one reference of its library. */
+export function bibliographyFor(p: PathState) {
+  const lib = libraryOf(p);
+  if (!lib.refs.length) return null;
+  const parts = structureOf(p).parts.filter((x) => x.id !== 'references').map((x) => p.parts?.[x.id] ?? '');
+  const bib = buildBibliography(lib, parts, lib.style ?? 'apa7');
+  return bib.cited.length || bib.missingKeys.length ? bib : null;
+}
+
+export function renderCitations(text: string, bib: NonNullable<ReturnType<typeof bibliographyFor>>) {
+  return text.replace(CITE, (m) => {
+    const r = bib.render(m);
+    return r.superscript ? `${SUP_OPEN}${r.text}${SUP_CLOSE}` : r.text;
+  });
+}
+
 const dateText = (iso: string) => {
   const d = new Date(/^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T12:00:00Z` : iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -173,15 +195,25 @@ export function exportBlocks(p: PathState, now = new Date()): Block[] {
     { kind: 'note', text: `Next, in Word: apply your university’s template, insert your figures in the marked places, then add what Supervisor does not hold: ${REQUIRED_EXTRAS.join(', ').toLowerCase()}. Confirm the exact order and format with your school’s rules.` },
     { kind: 'toc' },
   );
+  // Phase P6: citations [@key] become in-text citations in the chosen style, and References lists the cited records.
+  const bib = bibliographyFor(p);
   let chapter = 0;
   for (const part of structure.parts) {
     const front = FRONT_PARTS.has(part.id);
     const back = BACK_PARTS.has(part.id);
     const number = front || back ? undefined : ++chapter;
-    const text = p.parts?.[part.id] ?? '';
+    const raw = p.parts?.[part.id] ?? '';
+    const text = bib && part.id !== 'references' ? renderCitations(raw, bib) : raw;
     // Appendices that are empty are left out: they are optional. Every other part is always present.
     if (part.id === 'appendices' && !text.trim()) continue;
     blocks.push({ kind: 'h1', text: part.title, pageBreak: true, ...(number ? { number } : {}) });
+    if (part.id === 'references' && bib) {
+      blocks.push(...bib.entries.map((e) => ({ kind: 'bib', label: e.label, segs: e.segs }) as Block));
+      if (bib.missingKeys.length) blocks.push({ kind: 'note', text: `These citations in your text match no reference in your library, so they are shown as typed: ${bib.missingKeys.map((k) => `[@${k}]`).join(', ')}. Add the references or correct the keys.` });
+      const typed = textBlocks(raw, { references: true });
+      if (typed.length) blocks.push({ kind: 'note', text: 'The entries below were typed in References and are not linked to your library. They are kept exactly as typed: check that none repeats an entry above, and that they follow the same style.' }, ...typed);
+      continue;
+    }
     const body = numberPart(textBlocks(text, { references: part.id === 'references' }), number ? String(number) : part.id === 'appendices' ? 'A' : null);
     blocks.push(...(body.length ? body : [{ kind: 'note', text: 'Not written yet in Supervisor.' } as Block]));
   }
@@ -224,6 +256,9 @@ export type ExportSummary = {
   equations: number;
   references: number;
   appendices: boolean;
+  citations: number;
+  citedReferences: number;
+  style?: string;
   emptyParts: string[];
   limitations: string[];
 };
@@ -244,13 +279,29 @@ export function exportSummary(p: PathState): ExportSummary {
     equations: n('equation'),
     references: n('ref'),
     appendices: !!(p.parts?.appendices ?? '').trim(),
+    citations: structure.parts.filter((x) => x.id !== 'references').reduce((k, x) => k + [...(p.parts?.[x.id] ?? '').matchAll(CITE)].length, 0),
+    citedReferences: 0,
     emptyParts: structure.parts.filter((x) => x.id !== 'appendices' && !(p.parts?.[x.id] ?? '').trim()).map((x) => x.title),
     limitations: [],
   };
   if (s.figures) s.limitations.push(`Supervisor does not store images: each of your ${s.figures} figure${s.figures === 1 ? '' : 's'} has its caption and a marked place, and you insert the image in Word.`);
   if (s.equations) s.limitations.push(`Your ${s.equations} equation${s.equations === 1 ? ' is' : 's are'} kept exactly as you typed ${s.equations === 1 ? 'it' : 'them'}, inside a Word equation. If you typed LaTeX, convert it in Word (Equation, then Convert, Professional), and check the result.`);
   if (s.paddedTables) s.limitations.push(`${s.paddedTables} table${s.paddedTables === 1 ? ' has' : 's have'} rows with fewer cells than others: empty cells were added at the end of those rows. Nothing was moved or filled in.`);
-  s.limitations.push('Citations and references are exported exactly as you typed them. They are plain text, not linked to Zotero, EndNote or Word’s citation tool, and Supervisor does not check or complete them.');
+  const bib = bibliographyFor(p);
+  const lib = libraryOf(p);
+  if (bib) {
+    s.citedReferences = bib.cited.length;
+    s.references = bib.entries.length + n('ref');
+    s.style = STYLE_LABELS[bib.style];
+    if (bib.missingKeys.length) s.limitations.push(`${bib.missingKeys.length} citation key${bib.missingKeys.length === 1 ? ' matches' : 's match'} no reference in your library (${bib.missingKeys.map((k) => `[@${k}]`).join(', ')}): ${bib.missingKeys.length === 1 ? 'it stays' : 'they stay'} as typed in the Word file.`);
+    if (bib.uncited.length) s.limitations.push(`${bib.uncited.length} reference${bib.uncited.length === 1 ? ' in your library is' : 's in your library are'} not cited in your text, so ${bib.uncited.length === 1 ? 'it is' : 'they are'} not in the reference list.`);
+    if (n('ref')) s.limitations.push(`${n('ref')} reference${n('ref') === 1 ? ' was' : 's were'} typed in References and ${n('ref') === 1 ? 'is' : 'are'} not linked to your library: ${n('ref') === 1 ? 'it is' : 'they are'} kept as typed after the formatted list.`);
+    if (bib.style === 'gbt7714') s.limitations.push('GB/T 7714 follows the 2015 rules. If your university requires the 2025 edition, check the reference list against it.');
+    s.limitations.push('Citations and the reference list are text in the Word file, not Zotero, EndNote or Word citation fields: add or move citations in Supervisor, then export again.');
+  } else {
+    if (lib.refs.length) s.limitations.push(`Your library has ${lib.refs.length} reference${lib.refs.length === 1 ? '' : 's'}, but your text cites none, so References keeps what you typed there. Cite with [@key] to build the list from your library.`);
+    s.limitations.push('Citations and references are exported exactly as you typed them. They are plain text, not linked to Zotero, EndNote or Word’s citation tool, and Supervisor does not check or complete them.');
+  }
   s.limitations.push('Lists of figures and tables, the cover and your university’s exact template are added in Word.');
   return s;
 }
@@ -280,6 +331,12 @@ const textRuns = (t: string, rPr = '') =>
 
 /** **bold** and *italic*, only when the markers are paired around text. Anything else stays as typed. */
 export function inlineRuns(t: string): string {
+  if (t.includes(SUP_OPEN)) {
+    return t
+      .split(new RegExp(`${SUP_OPEN}([^${SUP_CLOSE}]*)${SUP_CLOSE}`))
+      .map((part, i) => (i % 2 ? textRuns(part, '<w:vertAlign w:val="superscript"/>') : inlineRuns(part)))
+      .join('');
+  }
   let out = '';
   const re = /\*\*(\S(?:[^*]*?\S)?)\*\*|\*(\S(?:[^*]*?\S)?)\*/g; // no look-behind: older Safari cannot parse it
   let last = 0;
@@ -322,6 +379,7 @@ function blockXml(b: Block): string {
     case 'p': return para('BodyText', inlineRuns(b.text));
     case 'li': return para('ListText', inlineRuns(b.text));
     case 'ref': return para('Reference', textRuns(b.text));
+    case 'bib': return para('Reference', (b.label ? textRuns(`${b.label} `) : '') + b.segs.map((x) => textRuns(x.text, x.italic ? '<w:i/><w:iCs/>' : '')).join(''));
     case 'h1': return heading('Heading1', b.text, b.number ? `Chapter ${b.number}` : undefined, b.pageBreak ? '<w:pageBreakBefore/>' : '');
     case 'h2': return heading('Heading2', b.text, b.number);
     case 'h3': return heading('Heading3', b.text, b.number);
