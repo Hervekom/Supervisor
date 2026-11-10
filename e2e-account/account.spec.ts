@@ -650,3 +650,27 @@ test('B2.3.2 D-M1: kept progress survives closing the browser tab, and stays wit
   await again.goto('/lab');
   await expect(again.getByTestId('status-python')).toHaveText('Verified');
 });
+
+// ---------- Phase P3 ----------
+
+test('P3: chapter feedback history is saved to the account and survives sign-out and sign-in', async ({ page }) => {
+  const report = {
+    id: 'r-synthetic-p3', stepId: 'draft', chapter: 'Chapter 3 Method', analyzedAt: '2026-11-10T08:00:00.000Z', status: 'current', fingerprint: 'fp-p3',
+    snapshot: { version: '0123456789abcdef', text: 'Synthetic method chapter.', totalChars: 25, words: 3 },
+    feedback: { summary: 'Synthetic account feedback.', strengths: [], issues: [], next_steps: [] },
+    settings: { degree: 'master_academic', discipline: '', language: 'English' },
+  };
+  await seedLocal(page, started('Thesis work', { chapterFeedback: [report] }));
+  await signIn(page);
+  await expect(page.getByText('The work from this browser is saved to your account.')).toBeVisible();
+  expect((await state()).row.data.chapterFeedback).toEqual([report]);
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByText('Signed out. Your work is saved to your account.')).toBeVisible();
+  expect(await local(page)).toBeNull();
+  await signIn(page);
+  await page.goto('/feedback');
+  await expect(page.locator('#history').getByText('1 report on 1 chapter.')).toBeVisible();
+  await page.locator('#history').getByRole('button', { name: /^Open the report/ }).click();
+  await expect(page.getByText('Synthetic account feedback.')).toBeVisible();
+  expect((await state()).row.data.chapterFeedback).toEqual([report]);
+});

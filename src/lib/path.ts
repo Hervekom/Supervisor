@@ -1,3 +1,4 @@
+import type { ChapterReport } from './chapterFeedback';
 import type { Coverage } from './limits';
 import type { LabState } from './lab';
 import type { RunRecord } from './runs';
@@ -424,6 +425,8 @@ export type PathState = {
   lab?: LabState;
   /** Experiment runs the student reported by hand. Optional, so older saved copies stay valid. */
   runs?: RunRecord[];
+  /** Chapter AI feedback reports, oldest first. Optional, so older saved copies stay valid. */
+  chapterFeedback?: ChapterReport[];
 };
 
 export type Verdict = 'not_ready' | 'almost' | 'ready';

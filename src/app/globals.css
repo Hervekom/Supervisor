@@ -324,3 +324,13 @@ main:focus { outline: none; }
 .swipe-hint { display: none; }
 @media (max-width: 640px) { .swipe-hint { display: block; } }
 .table-wrap:focus-visible { outline: 3px solid var(--pen); outline-offset: 2px; }
+
+/* Phase P3: chapter feedback history and comparison */
+.history-row { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; padding: 9px 0; border-top: 1px solid var(--rule); }
+.history-row .when { font-weight: 500; }
+.history-row .acts { display: flex; flex-wrap: wrap; gap: 12px; margin-left: auto; }
+.tag.latest { color: var(--pen); font-weight: 600; }
+.compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 12px; }
+.compare-grid > div { min-width: 0; overflow-wrap: anywhere; }
+.compare-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.compare-pick select { width: 100%; }
