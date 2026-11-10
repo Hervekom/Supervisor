@@ -6,7 +6,7 @@ import { fill, PHASES_FR, t as messages, type Lang, type Messages } from '@/lib/
 import { cleanLab } from '@/lib/lab';
 import { findSensitive } from '@/lib/labVerify';
 import { stepState, STEPS, type PathState } from '@/lib/path';
-import { errorText, request } from '@/lib/request';
+import { canRetry, errorText, requestAi } from '@/lib/request';
 import type { RunFeedback } from '@/lib/runFeedback';
 import { maybePii } from '@/lib/pii';
 import { appendToResultsSheet, cleanDraft, cleanRuns, emptyDraft, fmt, isStepId, newRun, parseMetricsFile, parseNumber, runProblems, runToText, SPLITS, stepTitle, summarize, versionsFromLab, type Metric, type RunDraft, type RunRecord, type Split } from '@/lib/runs';
@@ -210,15 +210,18 @@ function RunCard({ run, onEdit, onDelete, onSheet, topic, onAi, lang, signedOut 
   const [fb, setFb] = useState<RunFeedback | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [retry, setRetry] = useState<(() => void) | null>(null);
 
   async function ask() {
     setBusy(true);
     setError('');
+    setRetry(null);
     try {
-      setFb(await request<RunFeedback>('/api/runs/feedback', { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ run, topic, language: lang, llm: loadAi() ?? undefined }) }));
+      setFb(await requestAi<RunFeedback>('/api/runs/feedback', { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ run, topic, language: lang, llm: loadAi() ?? undefined }) }));
       onAi();
     } catch (e) {
       setError(errorText(e));
+      if (canRetry(e)) setRetry(() => ask);
     } finally {
       setBusy(false);
     }
@@ -270,7 +273,7 @@ function RunCard({ run, onEdit, onDelete, onSheet, topic, onAi, lang, signedOut 
       ) : null}
       {run.addedToSheet ? <p className="hint">{m.addedOn(run.addedToSheet.slice(0, 10), stepTitle('evidence', lang))}</p> : null}
       {busy ? <p className="hint" id={`busy-${run.id}`} role="status">{m.readingRun}</p> : null}
-      {error ? <p className="notice" role="alert">{error}{/sign in/i.test(error) ? <> <Link href="/account">{m.signInLink}</Link></> : null}</p> : null}
+      {error ? <p className="notice" role="alert">{error}{/sign in/i.test(error) ? <> <Link href="/account">{m.signInLink}</Link></> : null}{retry ? <> <button type="button" className="linklike" disabled={busy} onClick={() => retry()}>{m.tryAgain}</button></> : null}</p> : null}
       {fb ? <Feedback fb={fb} m={m} /> : null}
     </li>
   );

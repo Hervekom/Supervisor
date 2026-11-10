@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { parseDocx } from './docx';
 import { MAX_UPLOAD_BYTES } from './limits';
-import { LlmNotConfigured } from './llm';
+import { AiError, LlmNotConfigured } from './llm';
 import { MESSAGES } from './messages';
 import { PublicError } from './publicError';
 
@@ -12,7 +12,14 @@ export function fail(error: string, status = 400) {
 }
 
 export function handle(e: unknown) {
-  if (e instanceof LlmNotConfigured) return fail(e.message, 503);
+  if (e instanceof LlmNotConfigured) return NextResponse.json({ error: e.message, code: 'not_configured', retryable: false }, { status: 503 });
+  // The page uses `code` and `retryable` to offer "Try again". The message is the only text shown.
+  if (e instanceof AiError) {
+    return NextResponse.json(
+      { error: e.message, code: e.code, retryable: e.retryable, ...(e.retryAfter ? { retryAfter: e.retryAfter } : {}) },
+      { status: e.status, headers: e.retryAfter ? { 'retry-after': String(e.retryAfter) } : undefined },
+    );
+  }
   if (e instanceof PublicError) return fail(e.message, e.status);
   return fail(MESSAGES.server, 500);
 }

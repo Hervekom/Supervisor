@@ -67,7 +67,9 @@ test('a lost connection keeps the message and explains', async ({ page }) => {
   await page.getByLabel('Your message').fill('Hello');
   await page.getByRole('button', { name: 'Send' }).click();
   await expect(page.locator('.chef .error')).toContainText("We couldn't reach Supervisor.");
-  await expect(page.getByRole('log')).toContainText('Hello');
+  // Phase P4: the unanswered message goes back into the box, so sending it again does not repeat it in the conversation.
+  await expect(page.getByLabel('Your message')).toHaveValue('Hello');
+  await expect(page.locator('.chef-line.student')).toHaveCount(0);
 });
 
 test('the panel fits a phone', async ({ page }) => {

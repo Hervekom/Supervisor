@@ -36,6 +36,8 @@ export type ChapterReport = {
   status: ReportStatus;
   /** Same chapter text, same settings and same feedback: a retried response is not stored twice. */
   fingerprint: string;
+  /** The request that produced it. "Try again" reuses it, so one request is never saved twice. */
+  requestId?: string;
 };
 
 /** FNV-1a, twice with different seeds, for a short stable fingerprint. Not a security hash. */
@@ -78,6 +80,7 @@ export type NewReport = {
   file?: string;
   feedback: Feedback;
   settings: { degree: string; discipline: string; language: string };
+  requestId?: string;
 };
 
 export function buildReport(input: NewReport, now = new Date().toISOString(), id = newId()): ChapterReport {
@@ -94,6 +97,7 @@ export function buildReport(input: NewReport, now = new Date().toISOString(), id
     settings,
     status: 'current',
     fingerprint: fingerprintOf(JSON.stringify([chapterKey(chapter), version, settings, input.feedback])),
+    ...(input.requestId ? { requestId: input.requestId } : {}),
   };
 }
 
@@ -119,7 +123,7 @@ export const sizeOf = (p: PathState) => new TextEncoder().encode(JSON.stringify(
  */
 export function addReport(p: PathState, report: ChapterReport, limit = MAX_PATH_BYTES): AddResult {
   const raw = Array.isArray(p.chapterFeedback) ? (p.chapterFeedback as unknown[]) : [];
-  const same = raw.filter(isReport).find((r) => r.fingerprint === report.fingerprint);
+  const same = raw.filter(isReport).find((r) => r.fingerprint === report.fingerprint || (!!report.requestId && r.requestId === report.requestId));
   if (same) return { status: 'duplicate', path: p, report: same };
   const key = chapterKey(report.chapter);
   const kept = raw.map((r) => (isReport(r) && r.status === 'current' && chapterKey(r.chapter) === key ? { ...r, status: 'superseded' as const } : r));

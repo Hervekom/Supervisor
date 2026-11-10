@@ -14,7 +14,7 @@ describe('llm', () => {
   });
   it('reads fenced JSON', () => expect(extractJson('x ```json\n{"a":1}\n``` y')).toEqual({ a: 1 }));
   it('reports service errors', async () => {
-    await expect(chatJson([], { baseUrl: 'http://x', apiKey: 'k', model: 'm', fetchImpl: (async () => new Response('', { status: 503 })) as typeof fetch })).rejects.toThrow(/503/);
+    await expect(chatJson([], { baseUrl: 'http://x', apiKey: 'k', model: 'm', fetchImpl: (async () => new Response('', { status: 503 })) as typeof fetch })).rejects.toThrow(/AI service is having problems/);
   });
 });
 
