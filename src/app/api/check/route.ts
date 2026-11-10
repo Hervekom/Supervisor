@@ -1,23 +1,8 @@
-import { NextResponse } from 'next/server';
-import { fail, handle, openDocx, uploaded } from '@/lib/api';
-import { checkDocument } from '@/lib/check';
-import { getProfile } from '@/lib/profiles';
-import type { DegreeType } from '@/lib/types';
+import { fail } from '@/lib/api';
 
-export async function POST(req: Request) {
-  try {
-    const form = await req.formData();
-    const u = await uploaded(form);
-    if ('error' in u) return fail(u.error as string, u.status);
-    if (!u.file.name.toLowerCase().endsWith('.docx')) return fail('Save the thesis as .docx, then upload it again.');
-    const profile = await getProfile(String(form.get('profileId')));
-    if (!profile) return fail('Choose a university profile.');
-    const degree = String(form.get('degree')) as DegreeType;
-    if (!profile.scope.degree_types.includes(degree)) return fail('This profile does not cover that degree.');
-    const mode = form.get('mode') === 'blind' ? 'blind' : 'final';
-    const names = String(form.get('names') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-    return NextResponse.json(checkDocument(await openDocx(u.bytes), profile, { degree, mode, names }));
-  } catch (e) {
-    return handle(e);
-  }
+// Phase P2: Word Check runs in the student's browser (src/lib/browserCheck.ts). The server no longer accepts thesis
+// files for checking, so no document, image or text is ever uploaded for it. A page still open from an earlier version
+// that posts here is told to reload. The body is never read.
+export async function POST() {
+  return fail('Word Check now runs in your browser, and your file is no longer uploaded. Reload this page, then check your thesis again.', 410);
 }

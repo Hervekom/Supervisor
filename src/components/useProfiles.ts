@@ -30,6 +30,7 @@ export function useProfiles() {
   }, []);
 
   const reload = useCallback(async () => {
+    setLoadError('');
     try {
       const r = await fetch('/api/profiles');
       const j = await r.json();

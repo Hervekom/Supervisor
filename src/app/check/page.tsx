@@ -1,10 +1,45 @@
 'use client';
 import { useState } from 'react';
 import type { Report, Result } from '@/lib/check';
-import { MAX_UPLOAD_LABEL } from '@/lib/limits';
+import { checkInBrowser, CheckProblem, type Extraction, type Stage, type Stages } from '@/lib/browserCheck';
+import { MESSAGES } from '@/lib/messages';
 import { DEGREE_LABELS, type DegreeType, type Profile } from '@/lib/types';
 import { useProfiles } from '@/components/useProfiles';
-import { errorText, fileProblem, request } from '@/lib/request';
+
+const STAGE_LABEL: Record<Stage, string> = {
+  reading: 'Open the file in this browser',
+  extracting: 'Read the text, headings, tables and formatting',
+  checking: 'Apply your university’s rules to the whole thesis',
+};
+const STATE_LABEL = { pending: 'Waiting', active: 'In progress…', done: 'Done', failed: 'Failed' };
+const mb = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1000))} KB`);
+
+/** What the browser read, so the student can see that nothing is missing. */
+function Progress({ stages, extraction }: { stages: Stages; extraction: Extraction | null }) {
+  return (
+    <div className="sheet" aria-live="polite" style={{ marginBottom: 16 }}>
+      <h2>Checking in this browser</h2>
+      <ol className="todo">
+        {(Object.keys(STAGE_LABEL) as Stage[]).map((s) => (
+          <li key={s}><span className={stages[s] === 'done' ? 'ok' : undefined}>{STAGE_LABEL[s]}</span>: <b>{STATE_LABEL[stages[s]]}</b></li>
+        ))}
+      </ol>
+      {extraction ? (
+        <>
+          <p className="hint">
+            Read from a {mb(extraction.fileBytes)} file: {extraction.words.toLocaleString('en')} words in {extraction.paragraphs.toLocaleString('en')} paragraphs, {extraction.tables} table{extraction.tables === 1 ? '' : 's'}, {extraction.chapters.length} chapter{extraction.chapters.length === 1 ? '' : 's'}. {extraction.figures ? `${extraction.figures} figure${extraction.figures === 1 ? '' : 's'} found; images are not read. ` : 'Images are not read. '}Your file stayed in this browser: nothing was uploaded.
+          </p>
+          {extraction.chapters.length ? (
+            <details>
+              <summary>Chapters found ({extraction.chapters.length})</summary>
+              <ol className="todo">{extraction.chapters.map((c, i) => <li key={i}>{c.title}: {c.words.toLocaleString('en')} words</li>)}</ol>
+            </details>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
 
 function Source({ r, profile }: { r: Result['source']; profile: Profile | null }) {
   const title = profile?.sources.find((s) => s.id === r.source_id)?.title ?? r.source_id;
@@ -120,7 +155,7 @@ function ReportView({ report, profile }: { report: Report; profile: Profile | nu
 }
 
 export default function CheckPage() {
-  const { profiles, profile, profileId, choose, degree, setDegree, loadError } = useProfiles();
+  const { profiles, profile, profileId, choose, degree, setDegree, loadError, reload } = useProfiles();
   const [file, setFile] = useState<File | null>(null);
   const [mode, setMode] = useState<'final' | 'blind'>('final');
   const [names, setNames] = useState('');
@@ -128,25 +163,27 @@ export default function CheckPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [over, setOver] = useState(false);
+  const [stages, setStages] = useState<Stages | null>(null);
+  const [extraction, setExtraction] = useState<Extraction | null>(null);
 
-  async function run(e: React.FormEvent) {
-    e.preventDefault();
+  /** Everything happens in this browser: the file is read here and the rules are applied here. */
+  async function run(e?: React.FormEvent) {
+    e?.preventDefault();
     if (!file) return setError('Choose your thesis file first.');
-    const tooBig = fileProblem(file);
-    if (tooBig) return setError(tooBig);
+    if (!profile || !degree) return setError(loadError || 'University profiles are still loading. Wait a moment, then try again.');
+    if (!file.name.toLowerCase().endsWith('.docx')) return setError('Save the thesis as .docx, then choose it again.');
     setBusy(true);
     setError('');
-    const f = new FormData();
-    f.set('file', file);
-    f.set('profileId', profileId);
-    f.set('degree', degree);
-    f.set('mode', mode);
-    f.set('names', names);
+    setReport(null);
+    setExtraction(null);
     try {
-      setReport(await request<Report>('/api/check', { method: 'POST', body: f }));
+      const out = await checkInBrowser(file, profile, { degree, mode, names: names.split(',').map((x) => x.trim()).filter(Boolean) }, (s, x) => {
+        setStages(s);
+        if (x) setExtraction(x);
+      });
+      setReport(out.report);
     } catch (x) {
-      setReport(null);
-      setError(errorText(x));
+      setError(x instanceof CheckProblem ? x.message : MESSAGES.documentUnreadable);
     } finally {
       setBusy(false);
     }
@@ -184,13 +221,16 @@ export default function CheckPage() {
         <label className={`drop${over ? ' over' : ''}`} onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
           onDrop={(e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer.files[0]; if (f) { setFile(f); setError(''); } }}>
           <input type="file" accept=".docx" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setError(''); }} />
-          <span>{file ? file.name : `Drop your .docx here, or choose a file (up to ${MAX_UPLOAD_LABEL})`}</span>
+          <span>{file ? file.name : 'Drop your .docx here, or choose a file. It is read in this browser and never uploaded.'}</span>
         </label>
         {error || loadError ? <p className="error" role="alert">{error || loadError}</p> : null}
+        {loadError ? <button type="button" className="btn ghost" onClick={() => reload()}>Load the university profiles again</button> : null}
         <button className="btn" disabled={busy}>{busy ? 'Checking…' : 'Check my thesis'}</button>
+        {!busy && error && stages && Object.values(stages).includes('failed') ? <button type="button" className="btn ghost" onClick={() => run()}>Try again</button> : null}
       </form>
       <div>
-        {report ? <ReportView report={report} profile={profile} /> : (
+        {stages ? <Progress stages={stages} extraction={extraction} /> : null}
+        {report ? <ReportView report={report} profile={profile} /> : stages ? null : (
           <div className="empty">
             <h2>See what a reviewer would send back</h2>
             <p className="lede">Supervisor reads your Word file against your university’s written rules. Every result shows the rule it comes from.</p>
