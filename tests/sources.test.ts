@@ -102,6 +102,12 @@ describe('finding what applies', () => {
     expect(search(docs, 'protein folding molecular dynamics simulation')).toEqual([]);
     expect(search(docs, 'stock market volatility')).toEqual([]);
   });
+  it('the title block (authors, institution) is never suggested or searched', async () => {
+    const d = await load('paper-en.pdf');
+    expect(d.passages.filter((p) => p.front).map((p) => p.text)).toEqual(['Alice Fiction and Bob Example Department of Imaginary Science, Example University of Lanterns 2023']);
+    expect(search([d], 'Alice Fiction Example University Imaginary Science')).toEqual([]);
+    expect(search([d], 'lantern network flood forecast', { limit: 20 }).some((h) => h.passage.front)).toBe(false);
+  });
   it('every step that uses sources names sections that exist', () => {
     for (const id of Object.keys(STEP_SECTIONS)) expect(STEPS.some((s) => s.id === id)).toBe(true);
   });
