@@ -43,12 +43,12 @@ test('C7: a damaged PDF hides every technical detail', async ({ page }) => {
   await expect(page.locator('.error')).not.toContainText(/worker|node_modules|var\/task/);
 });
 
-test('C7: a file over the real limit is explained before uploading', async ({ page }) => {
+test('C7 (P2): Word Check has no 4 MB limit any more; a file that is not a Word file gets the plain message instead', async ({ page }) => {
   await page.goto('/check');
   await expect(page.locator('#uni option')).not.toHaveCount(0);
   await page.locator('input[type=file]').setInputFiles({ name: 'large.docx', mimeType: 'application/octet-stream', buffer: Buffer.alloc(4_100_000) });
   await page.getByRole('button', { name: 'Check my thesis' }).click();
-  await expect(page.locator('.error')).toContainText('larger than 4 MB');
+  await expect(page.locator('.error')).toHaveText("We couldn't open this document. Please save it again as DOCX and try again.");
 });
 
 test('C11: Feedback shows the platform 413 instead of failing silently', async ({ page }) => {
