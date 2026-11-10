@@ -9,6 +9,7 @@ import { usePathSync } from '@/components/usePathSync';
 import { count } from '@/lib/limits';
 import { emptyPath, isPathState, type PathState, type StructureId } from '@/lib/path';
 import { PATH_KEY, readLocalPath } from '@/lib/pathSync';
+import { buildThesisDocx, exportFileName } from '@/lib/wordExport';
 import { ingredientStatus, partViews, REQUIRED_EXTRAS, stepTitle, STRUCTURES, structureOf, wordCount, type IngredientStatus } from '@/lib/structures';
 
 const LABEL: Record<IngredientStatus, string> = { missing: 'Missing', started: 'In progress', ready: 'Ready', set_aside: 'Set aside' };
@@ -22,6 +23,29 @@ export default function DocumentPage() {
   const [path, setPath] = useState<PathState>(emptyPath);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+
+  /** Builds the Word file in this browser from what this page shows: nothing is sent anywhere. */
+  async function downloadWord() {
+    setExporting(true);
+    setExportError('');
+    try {
+      const now = new Date();
+      const bytes = await buildThesisDocx(path, now);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }));
+      a.download = exportFileName(path, now);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+    } catch {
+      setExportError('The Word file could not be prepared in this browser. Nothing was changed. Try again, or save a backup from My thesis.');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     const p = readLocalPath();
@@ -90,6 +114,11 @@ export default function DocumentPage() {
         </div>
         <div className="meter" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} aria-label="Main text length" style={{ marginTop: 14 }}><span style={{ width: `${percent}%` }} /></div>
         <p className="hint">{count(mainWords)} of at least {count(minWords)} words in the main text</p>
+        <div className="ask" style={{ marginTop: 12 }}>
+          <button type="button" className="btn" disabled={exporting} onClick={downloadWord}>{exporting ? 'Preparing your Word file…' : 'Download Word'}</button>
+        </div>
+        <p className="hint">Your text, part by part, as an editable Word file (.docx), with your step notes in an appendix. Parts you have not written are marked, never filled in. Add your university’s template, figures, tables and equations in Word or LibreOffice.</p>
+        {exportError ? <p className="error" role="alert">{exportError}</p> : null}
       </div>
 
       <div className="sheet" style={{ marginTop: 16 }}>
@@ -115,7 +144,7 @@ export default function DocumentPage() {
               <div className="field" style={{ marginTop: 10 }}>
                 <label htmlFor={`part-${v.id}`}>Your text for {v.title}</label>
                 <textarea id={`part-${v.id}`} rows={14} value={path.parts?.[v.id] ?? ''} onChange={(e) => setText(v.id, e.target.value)} />
-                <p className="hint">{count(wordCount(path.parts?.[v.id] ?? ''))} words. This saves automatically.</p>
+                <p className="hint">{count(wordCount(path.parts?.[v.id] ?? ''))} words. This saves automatically. Start a line with ## for a subsection heading in the Word file.</p>
               </div>
             ) : null}
           </div>
