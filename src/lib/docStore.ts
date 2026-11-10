@@ -3,6 +3,7 @@
 // thesis_paths keeps its 5 MB limit for the thesis itself. One computer per student is assumed, as elsewhere.
 
 import type { Analysis, DocMeta } from './docAnalysis';
+import type { DeepAnalysis } from './deepAnalysis';
 
 export type DocStatus = 'ready' | 'no_text' | 'failed';
 export type SourceDoc = Analysis & {
@@ -20,7 +21,12 @@ export type SourceDoc = Analysis & {
   permission: { confirmedAt: string };
   /** Details the student corrected. They replace the detected ones. */
   corrected?: DocMeta;
+  /** Phase P8: the AI-assisted analysis, kept until the student runs it again. Older records have none. */
+  deep?: DeepAnalysis;
 };
+
+/** The details the AI analysis used. When they change, the analysis is marked as out of date. */
+export const metaKeyOf = (d: SourceDoc) => JSON.stringify(effectiveMeta(d));
 
 export const MAX_DOCS = 40;
 export const MAX_TOTAL_CHARS = 25_000_000;

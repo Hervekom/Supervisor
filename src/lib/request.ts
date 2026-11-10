@@ -18,6 +18,8 @@ export async function request<T>(url: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(url, init);
   } catch {
+    // The student cancelled: nothing to retry.
+    if (init?.signal?.aborted) throw new RequestError('Cancelled. Nothing was changed.', 'cancelled', false);
     throw new RequestError(MESSAGES.network, 'network', true);
   }
   if (res.status === 413) throw new RequestError(MESSAGES.fileTooLarge, 'too_large', false, 413);

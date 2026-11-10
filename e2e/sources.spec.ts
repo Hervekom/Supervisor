@@ -6,7 +6,7 @@ import { expect, seed, started, stored, test } from './fixtures';
 const DIR = path.join(process.cwd(), 'e2e/source-docs');
 const f = (n: string) => path.join(DIR, n);
 const docs = (page: Page) => page.getByTestId('source-doc');
-const doc = (page: Page, name: string) => page.getByRole('region', { name });
+const doc = (page: Page, name: string) => page.getByRole('region', { name, exact: true });
 
 async function importFiles(page: Page, names: string[]) {
   await page.goto('/sources');
@@ -103,7 +103,7 @@ test('a thesis step shows relevant passages with their source and reason, and AI
   await page.goto('/');
   const box = page.getByLabel('From your sources');
   await expect(box.getByTestId('source-hit').first()).toContainText('Lantern Networks for Fictional Flood Forecasting, page 2');
-  await expect(box).toContainText('Why it may apply: it shares');
+  await expect(box).toContainText('It may apply because it shares'); // P8 wording: Supervisor’s reading, apart from the evidence
   await expect(box).toContainText('It is someone else’s work: cite it if you use it.');
   await expect(box).not.toContainText('Fictional Lantern Thesis'); // the unrelated Word thesis is not offered
   await expect(box).toContainText(/Asking Supervisor sends these \d passages? \(\d+ characters\), your topic and this step’s goal to your AI service/);

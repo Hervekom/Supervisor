@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { loadAi } from '@/lib/aiSettings';
 import { CATEGORY_LABELS, excerpt, search, STEP_SECTIONS, where, type Hit } from '@/lib/docAnalysis';
+import { citationsNeeded, gapsFor, questionsFor } from '@/lib/docCompare';
+import { conceptLabel, WEAK_CONCEPTS } from '@/lib/thesaurus';
 import { effectiveMeta } from '@/lib/docStore';
 import { stepState, type PathState, type Step } from '@/lib/path';
 import { canRetry, errorText, requestAi } from '@/lib/request';
@@ -32,12 +34,16 @@ export function SourceSuggestions({ step, path, language, onAiUse }: { step: Ste
   }
   const boost = STEP_SECTIONS[step.id] ?? [];
   const query = researchQuery(path, step);
-  const hits: Hit[] = search(ready, query, { limit: 12, boost, minShare: 0.3 })
+  // Phase P8: by meaning too, so a passage that names the same concept in other words is found.
+  const hits: Hit[] = search(ready, query, { limit: 12, boost, minShare: 0.3, meaning: true })
     .sort((a, b) => Number(boost.includes(b.passage.category)) - Number(boost.includes(a.passage.category)) || b.score - a.score)
     .slice(0, 3);
   const picked = chosen ?? new Set(hits.map((_, i) => i));
   const sent = hits.filter((_, i) => picked.has(i));
   const chars = sent.reduce((n, h) => n + Math.min(1200, h.passage.text.length), 0);
+  const gaps = gapsFor(boost, ready);
+  const questions = questionsFor(boost, hits, gaps);
+  const needs = citationsNeeded(stepState(path, step.id).work, ready);
 
   async function ask() {
     setBusy(true);
@@ -69,13 +75,26 @@ export function SourceSuggestions({ step, path, language, onAiUse }: { step: Ste
                   <input type="checkbox" aria-label={`Include the passage from ${h.title}, ${where(h.passage)}`} checked={picked.has(i)} onChange={() => { const s = new Set(picked); if (s.has(i)) s.delete(i); else s.add(i); setChosen(s); setAdvice(null); }} />
                   <span>
                     <b>{h.title}</b>, {where(h.passage)}{h.passage.section ? `, ${h.passage.section}` : ''}
-                    <br />“{excerpt(h.passage.text, 40)}”
-                    <br /><span className="hint">Why it may apply: it shares “{h.matched.slice(0, 5).join('”, “')}” with your research{boost.includes(h.passage.category) ? `, and it comes from the ${CATEGORY_LABELS[h.passage.category].toLowerCase()} part, which this step (“${step.title}”) draws on` : ''}. It is someone else’s work: cite it if you use it.</span>
+                    <br /><span className="tag">Evidence, from the document</span> “{excerpt(h.passage.text, 40)}”
+                    <br /><span className="hint"><span className="tag blocking">Supervisor’s reading</span> It may apply because it shares {[...h.matched.slice(0, 4).map((w) => `“${w}”`), ...(h.concepts ?? []).filter((c) => !WEAK_CONCEPTS.has(c)).slice(0, 3).map((c) => `the idea of ${conceptLabel(c)}`)].join(', ') || 'terms'} with your research{boost.includes(h.passage.category) ? `, and it comes from the ${CATEGORY_LABELS[h.passage.category].toLowerCase()} part, which this step (“${step.title}”) draws on` : ''}. It is someone else’s work: cite it if you use it.</span>
                   </span>
                 </label>
               </li>
             ))}
           </ul>
+          {gaps.length ? <p className="notice">Your sources say nothing about: {gaps.join(', ').toLowerCase()}. This step needs it: find studies that cover it.</p> : null}
+          {questions.length ? (
+            <details open>
+              <summary>Questions to investigate</summary>
+              <ul className="todo">{questions.map((q) => <li key={q}>{q}</li>)}</ul>
+            </details>
+          ) : null}
+          {needs.length ? (
+            <div className="notice" aria-label="Citations needed">
+              <p><b>A citation seems needed</b> in your work for this step:</p>
+              <ul className="todo">{needs.slice(0, 5).map((n, i) => <li key={i}>“{excerpt(n.sentence, 25)}”: {n.reason} (“{n.title}”, {n.where}). Cite it, with the page.</li>)}</ul>
+            </div>
+          ) : null}
           <p className="hint">Asking Supervisor sends {sent.length ? `these ${sent.length} passage${sent.length === 1 ? '' : 's'} (${chars} characters)` : 'nothing yet: choose a passage'}, your topic and this step’s goal to your AI service. Nothing else from your documents is sent.</p>
           <div className="ask"><button type="button" className="btn ghost" disabled={busy || !sent.length} onClick={ask}>{busy ? 'Reading…' : 'Ask Supervisor how these apply'}</button></div>
           {error ? <p className="error" role="alert">{error}{/Account|Sign in/.test(error) ? <> <Link href="/account">Open Account</Link></> : null}{retry ? <> <button type="button" className="linklike" onClick={ask}>Try again</button></> : null}</p> : null}

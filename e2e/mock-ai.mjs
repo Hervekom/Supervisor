@@ -44,6 +44,26 @@ function reply(messages) {
       next_action: 'Mock next action.',
     };
   }
+  if (system.includes('You analyse a research document written by other people')) {
+    // Phase P8: honest items, plus items the app must drop or downgrade.
+    const ps = [...user.matchAll(/<passage id="(p\d+)"[^>]*>\n([\s\S]*?)\n<\/passage>/g)].map((m) => ({ id: m[1], text: m[2] }));
+    const find = (re) => ps.find((p) => re.test(p.text));
+    const quote = (p, re) => (p ? (p.text.match(re) ?? [''])[0] : '');
+    const prob = find(/open problem|仍然存在/);
+    const data = find(/12,000 fictional|一万二千/);
+    const res = find(/accuracy of 0\.\d+|准确率/);
+    const aspects = { theory: [] };
+    if (prob) aspects.problem = [{ text: 'Mock: sensors are sparse, which makes forecasting hard.', kind: 'stated', passage: prob.id, quote: quote(prob, /remains an open problem|仍然存在传感器稀疏的问题/) }];
+    if (data) aspects.data = [
+      { text: 'Mock: the dataset has 12,000 fictional samples.', kind: 'stated', passage: data.id, quote: quote(data, /12,000 fictional samples|一万二千个虚构样本/) },
+      { text: 'Mock: the dataset has 15,000 samples.', kind: 'stated', passage: data.id, quote: 'it has 15,000 samples' },
+      { text: 'Mock: a dataset from another passage.', kind: 'stated', passage: 'p999', quote: 'x' },
+      { text: 'Mock: the data seem collected hourly.', kind: 'stated', passage: data.id, quote: 'words that are not in the passage at all' },
+    ];
+    if (res) aspects.results_quant = [{ text: 'Mock: the lantern network reached an accuracy of 0.91.', kind: 'stated', passage: res.id, quote: quote(res, /accuracy of 0\.91/) }];
+    return { aspects };
+  }
+  if (system.includes('A student searches their own research documents')) return { terms: ['dataset', '数据集', 'corpus'] };
   if (system.includes('A student has collected research documents')) {
     // Phase P7: one honest point, one point that copies its excerpt (the app must drop it), one invented excerpt id.
     const ex = [...user.matchAll(/<excerpt id="(e\d+)"[^>]*>\n([\s\S]*?)\n<\/excerpt>/g)].map((m) => ({ id: m[1], text: m[2] }));
