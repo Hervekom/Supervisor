@@ -11,7 +11,10 @@ const texts = (b: Block[]) => b.map((x) => ('text' in x ? `${x.kind}:${x.text}` 
 const h1s = (b: Block[]) => b.filter((x): x is Extract<Block, { kind: 'h1' }> => x.kind === 'h1').map((x) => x.text);
 
 describe('order and honesty', () => {
-  for (const s of STRUCTURES) {
+  // Optional appendices are left out while empty (P5).
+  const written = (s: (typeof STRUCTURES)[number]) => s.parts.filter((x) => x.id !== 'appendices');
+  for (const st of STRUCTURES) {
+    const s = { ...st, parts: written(st) };
     it(`${s.name}: every part, in order, as a chapter heading starting on a new page; empty parts are marked, never filled`, () => {
       const parts = Object.fromEntries(s.parts.filter((_, i) => i % 2 === 0).map((x) => [x.id, `Student text for ${x.title}.`]));
       const b = exportBlocks(base({ structure: s.id, parts }), NOW);
@@ -19,11 +22,12 @@ describe('order and honesty', () => {
       expect(b.filter((x) => x.kind === 'h1').every((x) => x.kind === 'h1' && x.pageBreak)).toBe(true);
       for (const [i, part] of s.parts.entries()) {
         const at = b.findIndex((x) => x.kind === 'h1' && x.text === part.title);
-        expect(b[at + 1]).toEqual(i % 2 === 0 ? { kind: 'p', text: `Student text for ${part.title}.` } : { kind: 'note', text: 'Not written yet in Supervisor.' });
+        // References lines are reference entries (P5).
+        expect(b[at + 1]).toEqual(i % 2 === 0 ? { kind: part.id === 'references' ? 'ref' : 'p', text: `Student text for ${part.title}.` } : { kind: 'note', text: 'Not written yet in Supervisor.' });
       }
       // No paragraph that the student did not write: every body paragraph comes from their parts.
       const written = Object.values(parts);
-      expect(b.filter((x) => x.kind === 'p').every((x) => x.kind === 'p' && written.includes(x.text))).toBe(true);
+      expect(b.filter((x) => x.kind === 'p' || x.kind === 'ref').every((x) => (x.kind === 'p' || x.kind === 'ref') && written.includes(x.text))).toBe(true);
     });
   }
   it('an empty document exports every part as not written, with the title page and contents', () => {
@@ -31,7 +35,7 @@ describe('order and honesty', () => {
     expect(b[0]).toEqual({ kind: 'title', text: 'Untitled thesis' });
     expect(texts(b)).toContain('note:No title is recorded in Supervisor yet.');
     expect(b.filter((x) => x.kind === 'p')).toEqual([]);
-    expect(b.filter((x) => x.kind === 'note' && x.text === 'Not written yet in Supervisor.')).toHaveLength(STRUCTURES[0].parts.length);
+    expect(b.filter((x) => x.kind === 'note' && x.text === 'Not written yet in Supervisor.')).toHaveLength(written(STRUCTURES[0]).length);
     expect(b.some((x) => x.kind === 'toc')).toBe(true);
     expect(h1s(b)).not.toContain('Appendix: research notes from Supervisor');
   });
@@ -106,7 +110,7 @@ describe('the .docx file', () => {
     const p = base({ title: 'Lanterns & <models>', parts: { introduction: 'Bonjour « monde » 中文' } });
     const before = JSON.stringify(p);
     const zip = await JSZip.loadAsync(await buildThesisDocx(p, NOW));
-    expect(Object.keys(zip.files).sort()).toEqual(['[Content_Types].xml', '_rels/', '_rels/.rels', 'docProps/', 'docProps/app.xml', 'docProps/core.xml', 'word/', 'word/_rels/', 'word/_rels/document.xml.rels', 'word/document.xml', 'word/styles.xml'].sort());
+    expect(Object.keys(zip.files).sort()).toEqual(['[Content_Types].xml', '_rels/', '_rels/.rels', 'docProps/', 'docProps/app.xml', 'docProps/core.xml', 'word/', 'word/_rels/', 'word/_rels/document.xml.rels', 'word/document.xml', 'word/footer1.xml', 'word/styles.xml'].sort());
     const doc = await zip.file('word/document.xml')!.async('string');
     expect(doc).toContain('Bonjour « monde » 中文');
     expect(doc).toContain('Lanterns &amp; &lt;models&gt;');
