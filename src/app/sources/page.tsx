@@ -241,7 +241,7 @@ export default function SourcesPage() {
           return (
             <section className="group" key={d.id} data-testid="source-doc" aria-label={d.fileName}>
               <h3>{m.title ?? d.fileName}<span className={d.status === 'ready' ? 'tag' : 'tag blocking'}> {d.status === 'ready' ? 'Analysed' : d.status === 'no_text' ? 'No text found' : 'Could not be read'}</span></h3>
-              <p className="hint">{d.fileName} · {d.kind.toUpperCase()}{d.pages ? ` · ${d.pages} pages` : ''} · {mb(d.fileBytes)}{d.status === 'ready' ? ` · ${count(d.headings.length)} sections · ${count(d.findings.length)} details · ${count(d.bibliography)} references listed` : ''}</p>
+              <p className="hint">{d.fileName} · {d.kind.toUpperCase()}{d.pages ? ` · ${d.pages} ${d.pages === 1 ? 'page' : 'pages'}` : ''} · {mb(d.fileBytes)}{d.status === 'ready' ? ` · ${count(d.headings.length)} sections · ${count(d.findings.length)} details · ${count(d.bibliography)} references listed` : ''}</p>
               {d.statusNote ? <p className="notice">{d.statusNote}</p> : null}
               <ul className="todo">
                 {(Object.keys(META_LABELS) as (keyof DocMeta)[]).map((k) => {

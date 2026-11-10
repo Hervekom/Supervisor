@@ -15,7 +15,8 @@ export const CATEGORY_LABELS: Record<Category, string> = {
 };
 
 export type Location = { page?: number; para?: number };
-export type Passage = Location & { id: string; section: string; category: Category; text: string };
+/** `front`: the title block before the first section (title, authors, institution). It is not suggested or searched. */
+export type Passage = Location & { id: string; section: string; category: Category; text: string; front?: boolean };
 export type Heading = Location & { text: string; level: number; category: Category };
 export type Finding = Location & { category: Category; passageId: string; section: string; text: string };
 export type DocMeta = { title?: string; authors?: string; institution?: string; year?: string; docType?: 'thesis' | 'paper' | 'document' };
@@ -156,6 +157,15 @@ export function analyse(x: Extracted): Analysis {
   flush();
   // Before the first known heading, a passage starting with "Abstract" is the abstract.
   for (const p of passages) if (p.category === 'other' && /^(abstract|摘\s*要)[:：\s]/i.test(p.text)) p.category = 'abstract';
+  // The title block: passages before the second heading, under a first heading that is not a known section.
+  const second = headings[1];
+  if (headings[0] && headings[0].category === 'other') {
+    for (const p of passages) {
+      if (p.section !== headings[0].text || p.category !== 'other') continue;
+      if (second && ((p.page ?? 0) > (second.page ?? 0) || (p.para ?? 0) > (second.para ?? Infinity))) continue;
+      p.front = true;
+    }
+  }
 
   const findings: Finding[] = [];
   const add = (p: Passage, category: Category, text: string) => {
@@ -242,7 +252,7 @@ export type Hit = { docId: string; fileName: string; title: string; passage: Pas
 export function search(docs: DocLike[], query: string, opts: { limit?: number; boost?: Category[]; minShare?: number } = {}): Hit[] {
   const q = [...new Set(terms(query))];
   if (!q.length) return [];
-  const all = docs.flatMap((d) => d.passages.filter((p) => p.category !== 'references').map((p) => ({ d, p, t: terms(`${p.section} ${p.text}`) })));
+  const all = docs.flatMap((d) => d.passages.filter((p) => p.category !== 'references' && !p.front).map((p) => ({ d, p, t: terms(`${p.section} ${p.text}`) })));
   if (!all.length) return [];
   const avg = all.reduce((n, x) => n + x.t.length, 0) / all.length || 1;
   const df = new Map(q.map((w) => [w, all.filter((x) => x.t.includes(w)).length]));
