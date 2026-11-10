@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DraftHelper } from '@/components/DraftHelper';
+import { SourceSuggestions } from '@/components/SourceSuggestions';
 import { useAccount } from '@/components/useAccount';
 import { usePathSync, type SaveStatus } from '@/components/usePathSync';
 import { loadAi } from '@/lib/aiSettings';
@@ -493,6 +494,8 @@ export default function PathPage() {
               ) : null}
             </section>
           ) : null}
+
+          {panel === 'do' ? <SourceSuggestions step={step} path={path} language={language} onAiUse={(tool) => edit((p) => ({ ...p, log: [...p.log, { at: new Date().toISOString(), step: step.id, tool }] }))} /> : null}
 
           {panel === 'write' ? (
             <section className="group">

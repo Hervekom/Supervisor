@@ -44,6 +44,14 @@ function reply(messages) {
       next_action: 'Mock next action.',
     };
   }
+  if (system.includes('A student has collected research documents')) {
+    // Phase P7: one honest point, one point that copies its excerpt (the app must drop it), one invented excerpt id.
+    const ex = [...user.matchAll(/<excerpt id="(e\d+)"[^>]*>\n([\s\S]*?)\n<\/excerpt>/g)].map((m) => ({ id: m[1], text: m[2] }));
+    const points = [{ excerpt: 'e1', why: 'Mock: this passage describes how the authors chose their data.', how: 'Mock: compare their choice with yours and justify yours.', cite: 'Mock: cite the dataset choice with its page.' }];
+    if (ex[1]) points.push({ excerpt: 'e2', why: ex[1].text.split(/\s+/).slice(0, 14).join(' '), how: 'Copy this.', cite: 'x' });
+    points.push({ excerpt: 'e9', why: 'Mock invented excerpt.', how: '', cite: '' });
+    return { points, unrelated: ex[2] ? ['e3'] : [], caution: 'Mock caution: the results are the authors’ own.' };
+  }
   if (system.includes('guides a student')) return { intro: 'Mock tailored intro.', tasks: ['Mock tailored task.'] };
   return {
     summary: 'Mock chapter feedback.',
