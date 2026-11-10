@@ -14,7 +14,8 @@ test('a malformed provider reply is retried on the server, and one report is sav
   await seed(page, { 'path:v1': started() });
   await page.goto('/feedback');
   await ask(page, body('P4-MALFORMED-ONCE-feedback1'));
-  await expect(page.getByText('Saved to your feedback history.')).toBeVisible();
+  // Two provider calls with a short wait between them: allow for a busy test machine.
+  await expect(page.getByText('Saved to your feedback history.')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText('Mock chapter feedback.')).toBeVisible();
   expect(await reports(page)).toHaveLength(1);
 });

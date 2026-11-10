@@ -8,6 +8,7 @@ const LINKS = [
   ['/lab', 'Lab'],
   ['/check', 'Check'],
   ['/feedback', 'Feedback'],
+  ['/sources', 'Sources'],
   ['/account', 'Account'],
 ];
 
