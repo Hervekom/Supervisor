@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAccount } from '@/components/useAccount';
 import { put, useProfiles } from '@/components/useProfiles';
 import { ResearchEvidence } from '@/components/ResearchEvidence';
+import { CiteSelect, ReferenceLibrary } from '@/components/ReferenceLibrary';
 import { usePathSync } from '@/components/usePathSync';
 import { reportsOf } from '@/lib/chapterFeedback';
 import { count } from '@/lib/limits';
@@ -76,6 +77,16 @@ export default function DocumentPage() {
   const edit = (u: (p: PathState) => PathState) => setPath((p) => ({ ...u(p), savedAt: new Date().toISOString() }));
   const setStructure = (id: StructureId) => edit((p) => ({ ...p, structure: id }));
   const setText = (id: string, text: string) => edit((p) => ({ ...p, parts: { ...p.parts, [id]: text } }));
+  /** Phase P6: puts [@key] where the cursor is in the part's text box, and nowhere else. */
+  const insertCitation = (id: string, key: string) => {
+    const el = document.getElementById(`part-${id}`) as HTMLTextAreaElement | null;
+    const text = path.parts?.[id] ?? '';
+    const at = el ? el.selectionStart ?? text.length : text.length;
+    const end = el ? el.selectionEnd ?? at : at;
+    const cite = `${at > 0 && !/\s$/.test(text.slice(0, at)) ? ' ' : ''}[@${key}]`;
+    setText(id, text.slice(0, at) + cite + text.slice(end));
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(at + cite.length, at + cite.length); });
+  };
   const goToStep = (id: string) => {
     const next = { ...path, current: id, savedAt: new Date().toISOString() };
     put(PATH_KEY, JSON.stringify(next));
@@ -93,6 +104,8 @@ export default function DocumentPage() {
     );
   }
 
+  const citeRules = (profile?.rules ?? []).filter((r) => r.key === 'citation.standard' || r.key === 'citation.in_text_system');
+  const ruleNote = citeRules.length ? `Your university’s guide: ${citeRules.map((r) => (r.key === 'citation.standard' ? `references follow ${String(r.value)}` : String(r.value) === 'numeric_brackets' ? 'numbered citations in brackets' : String(r.value))).join('; ')}.${citeRules.some((r) => String(r.value).includes('2025')) ? ' Supervisor applies the 2015 rules of GB/T 7714: check the list against the 2025 edition.' : ''}` : '';
   const minWords = (profile?.rules.find((r) => r.key === 'length.main_text.min_words' && degree && r.applies_to.includes(degree))?.value as number | undefined) ?? DEFAULT_MIN_WORDS;
   const views = partViews(path, minWords);
   const structure = structureOf(path);
@@ -132,7 +145,8 @@ export default function DocumentPage() {
             <li><code>[Figure: caption]</code>: a numbered caption and a marked place where you insert the image in Word.</li>
             <li><code>$$ E = mc^2 $$</code>: a numbered equation, kept exactly as you type it.</li>
             <li><code>- item</code> or <code>1. item</code>: list items. <code>**bold**</code> and <code>*italic*</code>: emphasis.</li>
-            <li>In References, each line is one entry, exported exactly as you typed it.</li>
+            <li><code>[@key]</code> cites a reference from your library; <code>[@key, p. 12]</code> adds a page; <code>[@a; @b]</code> cites two. The Word file formats them in your chosen style and lists the cited references.</li>
+            <li>In References, each line you type is one entry, exported exactly as you typed it.</li>
           </ul>
         </details>
       </div>
@@ -162,11 +176,14 @@ export default function DocumentPage() {
                 <label htmlFor={`part-${v.id}`}>Your text for {v.title}</label>
                 <textarea id={`part-${v.id}`} rows={14} value={path.parts?.[v.id] ?? ''} onChange={(e) => setText(v.id, e.target.value)} />
                 <p className="hint">{count(wordCount(path.parts?.[v.id] ?? ''))} words. This saves automatically. Start a line with ## for a subsection heading in the Word file.</p>
+                {v.id !== 'references' ? <CiteSelect path={path} onInsert={(key) => insertCitation(v.id, key)} /> : <p className="hint">Each line is kept as typed. References in your library, below, are listed automatically when your text cites them.</p>}
               </div>
             ) : null}
           </div>
         ))}
       </div>
+
+      <ReferenceLibrary path={path} edit={edit} ruleNote={ruleNote} />
 
       <details style={{ marginTop: 16 }}>
         <summary>Also needed in the final thesis</summary>
