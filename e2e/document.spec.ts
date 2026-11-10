@@ -42,3 +42,44 @@ test('changing structure keeps written text', async ({ page }) => {
   await expect(page.getByRole('heading', { name: '4. Study 1' })).toBeVisible();
   expect((await stored(page, 'path:v1')).parts.introduction).toBe('Kept text here');
 });
+
+// ---------- Phase P1: Word export ----------
+
+const readDocx = async (path: string) => {
+  const { default: JSZip } = await import('jszip');
+  const { readFileSync } = await import('fs');
+  const zip = await JSZip.loadAsync(readFileSync(path));
+  return zip.file('word/document.xml')!.async('string');
+};
+
+for (const structure of ['classic', 'studies', 'system'] as const) {
+  test(`Download Word gives an editable .docx with every part in order (${structure})`, async ({ page }) => {
+    await seed(page, { 'path:v1': started({ title: 'Étude des lanternes & <réseaux>', structure, parts: { introduction: '## Contexte\nPremier paragraphe « écrit » par l’étudiant.\n中文 😀', conclusion: 'Final words.' } }) });
+    await page.goto('/document');
+    const before = await stored(page, 'path:v1');
+    const [d] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download Word' }).click()]);
+    expect(d.suggestedFilename()).toMatch(/^thesis-etude-des-lanternes-reseaux-\d{4}-\d{2}-\d{2}\.docx$/);
+    const xml = await readDocx((await d.path())!);
+    const headings = [...xml.matchAll(/<w:pStyle w:val="Heading1"\/>(?:<w:pageBreakBefore\/>)?<\/w:pPr><w:r><w:t xml:space="preserve">([^<]*)</g)].map((m) => m[1]);
+    const titles = await page.locator('.item h3 > span:first-child').allInnerTexts();
+    expect(headings).toEqual(titles.map((t) => t.replace(/^\d+\.\s*/, '')));
+    expect(xml).toContain('Premier paragraphe « écrit » par l’étudiant.');
+    expect(xml).toContain('中文 😀');
+    expect(xml).toContain('Étude des lanternes &amp; &lt;réseaux&gt;');
+    expect(xml).toContain('Not written yet in Supervisor.');
+    expect(await stored(page, 'path:v1')).toEqual(before); // nothing changed in the student's data
+  });
+}
+
+test('Download Word works on a phone', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, acceptDownloads: true });
+  const page = await ctx.newPage();
+  await page.addInitScript((p) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('path:v1', JSON.stringify(p)); sessionStorage.setItem('seeded', '1'); } }, started({ parts: { abstract: 'Short abstract.' } }));
+  await page.goto('/document');
+  const button = page.getByRole('button', { name: 'Download Word' });
+  await expect(button).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false);
+  const [d] = await Promise.all([page.waitForEvent('download'), button.tap()]);
+  expect(await readDocx((await d.path())!)).toContain('Short abstract.');
+  await ctx.close();
+});
