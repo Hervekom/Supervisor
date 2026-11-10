@@ -10,9 +10,9 @@ const check = (data: unknown, file = 'x.json') => validateCatalogue([{ file, dat
 const ids = (t: Software[]) => t.map((x) => x.id);
 
 describe('software catalogue', () => {
-  it('has the twelve reviewed entries, all valid', () => {
+  it('has the seventeen reviewed entries, all valid', () => {
     expect(validateCatalogue(files.map((file) => ({ file, data: JSON.parse(fs.readFileSync(`data/software/${file}`, 'utf8')) }))).errors).toEqual([]);
-    expect(ids(catalogue)).toEqual(['python', 'pip', 'venv', 'git', 'vscode', 'jupyterlab', 'numpy', 'pandas', 'matplotlib', 'scikit-learn', 'pytorch', 'nvidia-gpu']);
+    expect(ids(catalogue)).toEqual(['python', 'pip', 'venv', 'git', 'vscode', 'jupyterlab', 'numpy', 'pandas', 'matplotlib', 'scikit-learn', 'scipy', 'statsmodels', 'pytorch', 'nvidia-gpu', 'r', 'rstudio', 'taguette']);
   });
   it('records a review date and official sources for every entry', () => {
     for (const e of catalogue) {

@@ -32,7 +32,7 @@ export const statusLabel = (s: LabStatus, lang: Lang = 'en') => t(lang).status[s
 
 export const emptyLab = (): LabState => ({ workTypes: [], os: null, gpu: 'not_sure', osConfirmed: false, tools: {}, updatedAt: '' });
 
-const WORK = ['python', 'statistics', 'data_science', 'machine_learning', 'deep_learning', 'computer_vision', 'nlp'];
+const WORK = ['python', 'statistics', 'data_science', 'machine_learning', 'deep_learning', 'computer_vision', 'nlp', 'simulation', 'statistics_r', 'qualitative'];
 const OSES = ['windows', 'macos', 'linux'];
 const GPUS = ['yes', 'no', 'not_sure'];
 const STATUSES = ['verified', 'failed', 'manual_review'];

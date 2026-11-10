@@ -64,7 +64,8 @@ describe('French catalogue', () => {
       expect(fr, e.id).toBeTruthy();
       for (const os of e.os) {
         expect(fr!.install[os]?.length, `${e.id} ${os}`).toBe(e.install[os]?.length);
-        expect(fr!.expected[os], `${e.id} ${os}`).toBeTruthy();
+        if (e.verify_manual) expect(fr!.verify_manual, e.id).toBeTruthy();
+        else expect(fr!.expected[os], `${e.id} ${os}`).toBeTruthy();
       }
       expect(fr!.common_problems).toHaveLength(e.common_problems.length);
       expect(fr!.purpose).not.toBe(e.purpose);

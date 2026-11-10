@@ -2,6 +2,7 @@
   "id": "venv",
   "name": "Python virtual environment (venv)",
   "kind": "application",
+  "ecosystem": "python",
   "purpose": "Keeps the libraries for this project separate from other projects, so versions do not clash and your setup can be repeated.",
   "work_types": [
     "any"

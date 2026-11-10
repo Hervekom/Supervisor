@@ -26,8 +26,8 @@ test('suggests the system from the browser, and the student can change it', asyn
 test('statistics on Windows shows only the needed tools', async ({ page }) => {
   await page.goto('/lab');
   await pick(page, ['Statistical analysis'], 'Windows');
-  await expect(cards(page)).toHaveText(['Python', 'pip', 'Python virtual environment (venv)', 'Git', 'Visual Studio Code', 'JupyterLab', 'NumPy', 'pandas', 'Matplotlib']);
-  await expect(page.getByTestId('lab-summary')).toHaveText('9 tools. 0 verified. 0 marked complete by you, not yet checked. 0 need attention.');
+  await expect(cards(page)).toHaveText(['Python', 'pip', 'Python virtual environment (venv)', 'Git', 'Visual Studio Code', 'JupyterLab', 'NumPy', 'pandas', 'Matplotlib', 'SciPy', 'statsmodels']);
+  await expect(page.getByTestId('lab-summary')).toHaveText('11 tools. 0 verified. 0 marked complete by you, not yet checked. 0 need attention.');
   await expect(page.locator('.lab-card').first().locator('code').filter({ hasText: 'py install 3.13' })).toBeVisible();
 });
 

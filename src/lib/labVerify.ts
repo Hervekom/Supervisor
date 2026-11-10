@@ -35,7 +35,14 @@ export const VERIFY_COMMANDS: Record<string, Partial<Record<Os, string>>> = {
   'scikit-learn': all(pkgCommand('sklearn', 'scikit-learn')),
   pytorch: all(`python -c "import torch; print('torch', torch.__version__, 'cuda', torch.cuda.is_available())"`),
   'nvidia-gpu': { windows: 'nvidia-smi', linux: 'nvidia-smi' },
+  scipy: all(pkgCommand('scipy', 'scipy')),
+  statsmodels: all(pkgCommand('statsmodels', 'statsmodels')),
+  // Typed in the R console, not in a terminal: the Windows installer does not put R on the terminal path.
+  r: all('R.version.string'),
 };
+
+/** Tools checked by looking, because no command prints a reliable answer. They stay reported by the student. */
+export const MANUAL_TOOLS = new Set(['rstudio', 'taguette']);
 
 function all(command: string): Record<Os, string> {
   return { windows: command, macos: command, linux: command };
@@ -162,6 +169,18 @@ export const RULES: Record<string, Rule> = {
   pandas: pkgRule('pandas', 'pandas', 'pandas'),
   matplotlib: pkgRule('matplotlib', 'Matplotlib', 'matplotlib'),
   'scikit-learn': pkgRule('scikit-learn', 'scikit-learn', 'scikit-learn'),
+  scipy: pkgRule('scipy', 'SciPy', 'scipy'),
+  statsmodels: pkgRule('statsmodels', 'statsmodels', 'statsmodels'),
+
+  r(lines) {
+    if (lines.some((l) => /object 'R\.version\.string' not found|unexpected symbol/i.test(l))) return { status: 'failed', reason: 'unrelated' };
+    const m = lines.length === 1 ? lines[0].match(/^(?:\[1\]\s+)?"R version (\d+)\.(\d+)\.(\d+)(?: Patched| RC)? \(\d{4}-\d{2}-\d{2}(?: r\d+)?\)"$/) : null;
+    if (!m) return { status: 'failed', reason: 'unrelated' };
+    const found = `R ${m[1]}.${m[2]}.${m[3]}`;
+    // Current CRAN packages are built for R 4. An older R may be what a department requires, so a person decides.
+    if (+m[1] < 4) return { status: 'manual_review', found, reason: 'r_old' };
+    return { status: 'verified', found, reason: 'ok' };
+  },
 
   pytorch(lines, { gpu }) {
     if (lines.some((l) => MISSING_MODULE.test(l))) return { status: 'failed', reason: 'missing_module:torch' };
@@ -194,7 +213,7 @@ export function verifyOutput(toolId: string, raw: string, ctx: Context): CheckRe
   if (findSensitive(text).includes('secret')) return { status: 'blocked', reason: 'secret' };
   const lines = cleanLines(text, command);
   if (!lines.length) return { status: 'failed', reason: 'command_only' };
-  if (lines.some((l) => NOT_FOUND.some((r) => r.test(l))) && toolId !== 'venv') return { status: 'failed', reason: 'not_found' };
+  if (lines.some((l) => NOT_FOUND.some((r) => r.test(l))) && toolId !== 'venv') return { status: 'failed', reason: toolId === 'r' ? 'r_in_terminal' : 'not_found' };
   return rule(lines, ctx);
 }
 

@@ -2,6 +2,7 @@
   "id": "pip",
   "name": "pip",
   "kind": "application",
+  "ecosystem": "python",
   "purpose": "Installs Python libraries such as NumPy or PyTorch from the official Python package index.",
   "work_types": [
     "any"

@@ -2,6 +2,7 @@
   "id": "pytorch",
   "name": "PyTorch",
   "kind": "python_package",
+  "ecosystem": "python",
   "purpose": "The main library for building and training deep learning models, including vision and language models.",
   "work_types": [
     "deep_learning",

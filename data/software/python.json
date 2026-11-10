@@ -2,6 +2,7 @@
   "id": "python",
   "name": "Python",
   "kind": "application",
+  "ecosystem": "python",
   "purpose": "The programming language most research code in computer science is written in. Every other tool here runs on it.",
   "work_types": [
     "any"

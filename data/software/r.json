@@ -1,0 +1,137 @@
+{
+  "id": "r",
+  "name": "R",
+  "kind": "application",
+  "ecosystem": "r",
+  "verify_where": "r_console",
+  "purpose": "A language and environment for statistics and econometrics, used for regression, hypothesis tests, survey and panel data, and publication-quality graphs.",
+  "work_types": [
+    "statistics_r"
+  ],
+  "level": "required",
+  "condition": null,
+  "publisher_domain": "cran.r-project.org",
+  "official_download_url": "https://cran.r-project.org/",
+  "official_docs_url": "https://cran.r-project.org/manuals.html",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the current release of R 4 from CRAN. Record the version in your research log; packages are installed for one R version at a time.",
+  "prerequisites": [],
+  "install": {
+    "windows": [
+      {
+        "text": "On the CRAN site, choose Download R for Windows, then base, then download the installer."
+      },
+      {
+        "text": "Run the installer and keep the default options."
+      },
+      {
+        "text": "Open R from the Start menu."
+      }
+    ],
+    "macos": [
+      {
+        "text": "On the CRAN site, choose Download R for macOS."
+      },
+      {
+        "text": "Download the package for your Mac: arm64 for Apple silicon (M1 or later), x86_64 for Intel. Apple menu, About This Mac tells you which."
+      },
+      {
+        "text": "Open the .pkg file and follow the installer, then open R from Applications."
+      }
+    ],
+    "linux": [
+      {
+        "text": "On Ubuntu or Debian, install R from the system packages. The version may be older than the latest; the CRAN page Download R for Linux explains how to get the latest."
+      },
+      {
+        "text": "Install R.",
+        "command": "sudo apt install r-base"
+      },
+      {
+        "text": "Start R by typing R in a terminal."
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "R.version.string",
+      "expected": "One line starting with [1], for example [1] \"R version 4.x.y (date)\"."
+    },
+    "macos": {
+      "command": "R.version.string",
+      "expected": "One line starting with [1], for example [1] \"R version 4.x.y (date)\"."
+    },
+    "linux": {
+      "command": "R.version.string",
+      "expected": "One line starting with [1], for example [1] \"R version 4.x.y (date)\"."
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "R is not recognized in the Windows terminal",
+      "solution": "That is normal: the Windows installer does not add R to the terminal. Run the check in the R console (open R or RStudio), not in the terminal."
+    },
+    {
+      "problem": "A package fails to install because of compilation errors on Linux",
+      "solution": "Some packages need system libraries. Read the error message for the missing library name, or install the binary package from your distribution when one exists."
+    },
+    {
+      "problem": "Packages disappeared after updating R",
+      "solution": "Packages are installed per R version. Reinstall them in the new version, and record the versions you used for your thesis."
+    }
+  ],
+  "manual_review": [
+    "Install steps follow the CRAN download pages for each system; sudo apt install r-base installs the Debian/Ubuntu package of R.",
+    "The check runs in the R console because the Windows installer does not put R on the terminal path."
+  ],
+  "last_reviewed": "2026-11-10",
+  "sources": [
+    "https://cran.r-project.org/"
+  ],
+  "i18n": {
+    "fr": {
+      "purpose": "Un langage et un environnement pour la statistique et l’économétrie : régression, tests d’hypothèses, données d’enquête et de panel, graphiques de qualité publication.",
+      "version_guidance": "Installez la version actuelle de R 4 depuis le CRAN. Notez la version dans votre journal de recherche ; les paquets sont installés pour une version de R à la fois.",
+      "install": {
+        "windows": [
+          "Sur le site du CRAN, choisissez Download R for Windows, puis base, puis téléchargez l’installateur.",
+          "Lancez l’installateur et gardez les options par défaut.",
+          "Ouvrez R depuis le menu Démarrer."
+        ],
+        "macos": [
+          "Sur le site du CRAN, choisissez Download R for macOS.",
+          "Téléchargez le paquet adapté à votre Mac : arm64 pour Apple silicon (M1 ou plus récent), x86_64 pour Intel. Menu Pomme, À propos de ce Mac vous l’indique.",
+          "Ouvrez le fichier .pkg et suivez l’installateur, puis ouvrez R depuis Applications."
+        ],
+        "linux": [
+          "Sur Ubuntu ou Debian, installez R depuis les paquets du système. La version peut être plus ancienne que la dernière ; la page CRAN Download R for Linux explique comment obtenir la plus récente.",
+          "Installez R.",
+          "Lancez R en tapant R dans un terminal."
+        ]
+      },
+      "expected": {
+        "windows": "Une ligne commençant par [1], par exemple [1] \"R version 4.x.y (date)\".",
+        "macos": "Une ligne commençant par [1], par exemple [1] \"R version 4.x.y (date)\".",
+        "linux": "Une ligne commençant par [1], par exemple [1] \"R version 4.x.y (date)\"."
+      },
+      "common_problems": [
+        {
+          "problem": "R n’est pas reconnu dans le terminal Windows",
+          "solution": "C’est normal : l’installateur Windows n’ajoute pas R au terminal. Faites la vérification dans la console R (ouvrez R ou RStudio), pas dans le terminal."
+        },
+        {
+          "problem": "Un paquet ne s’installe pas à cause d’erreurs de compilation sous Linux",
+          "solution": "Certains paquets demandent des bibliothèques système. Lisez le message d’erreur pour trouver le nom de la bibliothèque manquante, ou installez le paquet binaire de votre distribution s’il existe."
+        },
+        {
+          "problem": "Les paquets ont disparu après une mise à jour de R",
+          "solution": "Les paquets sont installés par version de R. Réinstallez-les dans la nouvelle version, et notez les versions utilisées pour votre thèse."
+        }
+      ]
+    }
+  }
+}

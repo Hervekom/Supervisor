@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount } from '@/components/useAccount';
 import { put } from '@/components/useProfiles';
+import { CopyCommand } from '@/components/CopyCommand';
+import { ExecutionTasks } from '@/components/ExecutionTasks';
 import { Runs } from '@/components/Runs';
 import { usePathSync } from '@/components/usePathSync';
 import { supabase } from '@/lib/supabase';
@@ -16,7 +18,7 @@ import { hasWork, PATH_KEY, readLocalPath } from '@/lib/pathSync';
 import { guessOs, OS_LABELS, selectTools, textOf, WORK_TYPES, type GpuAnswer, type Os, type Software, type WorkType } from '@/lib/software';
 
 const GPU_TYPES: (WorkType | 'python')[] = ['deep_learning', 'computer_vision', 'nlp'];
-const PYTHON_ENV = new Set(['venv', 'jupyterlab', 'numpy', 'pandas', 'matplotlib', 'scikit-learn', 'pytorch']);
+const PYTHON_ENV = new Set(['venv', 'jupyterlab', 'numpy', 'pandas', 'matplotlib', 'scikit-learn', 'scipy', 'statsmodels', 'pytorch']);
 
 /** Puts the newer Lab progress into the path. Leaves the path untouched when nothing changes. */
 function withLab(p: PathState, mirror: LabState | undefined): PathState {
@@ -79,25 +81,6 @@ function UnownedLab({ items, m, onUse, onRemove }: { items: Unowned[]; m: Messag
   );
 }
 
-export function CopyCommand({ command, m }: { command: string; m: Messages }) {
-  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(command);
-      setState('copied');
-    } catch {
-      setState('failed');
-    }
-    setTimeout(() => setState('idle'), 2500);
-  }
-  return (
-    <div className="cmd">
-      <code>{command}</code>
-      <button type="button" className="btn ghost" onClick={copy} aria-label={m.copyAria(command)}>{state === 'copied' ? m.copied : m.copy}</button>
-      {state === 'failed' ? <span className="hint" role="status">{m.copyFailed}</span> : null}
-    </div>
-  );
-}
 
 function Verify({ tool, os, gpu, lab, draft, setDraft, onResult, lang }: { tool: Software; os: Os; gpu: GpuAnswer; lab: LabState; draft: string; setDraft: (v: string) => void; onResult: (r: CheckResult) => void; lang: Lang }) {
   const m = messages(lang);
@@ -121,9 +104,19 @@ function Verify({ tool, os, gpu, lab, draft, setDraft, onResult, lang }: { tool:
     if (r.status !== 'empty' && r.status !== 'blocked') setDraft('');
   }
 
+  if (tool.verify_manual) {
+    // No command prints a reliable answer for this tool: the student looks, and it stays reported by them.
+    return (
+      <div className="lab-verify">
+        <p><b>{m.checkItWorked}</b> {textOf(tool, lang).verify_manual}</p>
+        <p className="hint">{m.manualOnly}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="lab-verify">
-      <p><b>{m.checkItWorked}</b> {m.runThis(m.where[os], PYTHON_ENV.has(tool.id))}</p>
+      <p><b>{m.checkItWorked}</b> {tool.verify_where === 'r_console' ? m.runInR : m.runThis(m.where[os], PYTHON_ENV.has(tool.id))}</p>
       <CopyCommand command={command} m={m} />
       <p className="hint"><b>{m.youShouldSee}</b> {expected}</p>
       <label htmlFor={fieldId}><b>{m.pasteLabel}</b></label>
@@ -306,7 +299,7 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
 
       {tools.length ? (
         <>
-          <h2 style={{ marginTop: 28 }}>{m.checklist}</h2>
+          <h2 style={{ marginTop: 28 }} id="checklist">{m.checklist}</h2>
           <p className="hint" role="status" data-testid="lab-summary">{m.summary(tools.length, n('verified'), n('marked'), n('failed') + n('manual_review'))}</p>
           <p className="hint">{m.followInOrder}</p>
           <ol className="lab-list">
@@ -362,6 +355,8 @@ export function Lab({ catalogue }: { catalogue: Software[] }) {
       ) : loaded ? (
         <p className="empty" style={{ marginTop: 24 }}>{!lab.workTypes.length ? m.emptyTypes : m.emptySystem}</p>
       ) : null}
+
+      {loaded ? <ExecutionTasks path={path} lab={lab} os={os} names={Object.fromEntries(catalogue.map((c) => [c.id, c.name]))} editPath={editPath} lang={lang} /> : null}
 
       {loaded ? <Runs path={path} os={os} editPath={editPath} lang={lang} signedOut={ready && !!supabase() && !user} /> : null}
     </div>
