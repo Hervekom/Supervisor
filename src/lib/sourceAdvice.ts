@@ -63,7 +63,8 @@ export function normalizeAdvice(raw: unknown, excerpts: Excerpt[]): Advice {
     if (!e || seen.has(e.id)) continue;
     const why = clip(x.why, 500);
     const how = clip(x.how, 500);
-    if (!why || copiesSource(why, e.text) || copiesSource(how, e.text)) continue;
+    const n = /\p{Script=Han}/u.test(why + how) ? 20 : 10;
+    if (!why || copiesSource(why, e.text, n) || copiesSource(how, e.text, n)) continue;
     seen.add(e.id);
     points.push({ excerpt: e.id, why, how, cite: clip(x.cite, 300) || `Cite ${e.doc}, ${e.where}.` });
   }

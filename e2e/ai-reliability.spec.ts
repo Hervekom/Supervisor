@@ -5,6 +5,8 @@ import { expect, seed, started, stored, test } from './fixtures';
 const body = (marker = '') => `Chapter 3 studies the fictional lantern method ${marker}, a synthetic approach invented only for this test. It explains each design choice in plain words, compares it with two baselines under the same conditions, and states its limits for the examiners.`;
 const reports = async (page: Page) => ((await stored(page, 'path:v1'))?.chapterFeedback ?? []) as unknown[];
 async function ask(page: Page, text: string) {
+  // The degree list comes from the university profile: on a busy machine it can arrive after the page.
+  await expect(page.getByLabel('Degree')).toHaveValue(/.+/);
   await page.getByLabel('Chapter name').fill('Chapter 3 Method');
   await page.getByLabel('Chapter text').fill(text);
   await page.getByRole('button', { name: 'Get feedback' }).click();
