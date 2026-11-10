@@ -1,0 +1,120 @@
+{
+  "id": "taguette",
+  "name": "Taguette",
+  "kind": "application",
+  "ecosystem": "general",
+  "verify_manual": "Start Taguette. A browser page opens with Taguette (on Linux at the address shown in the terminal, usually localhost:7465). Create a test project to see that it works. Supervisor cannot check this for you: it stays marked as reported by you.",
+  "purpose": "Free, open-source software to code qualitative data: highlight passages of interviews or documents, tag them with codes, and export the codebook and highlights.",
+  "work_types": [
+    "qualitative"
+  ],
+  "level": "recommended",
+  "condition": null,
+  "publisher_domain": "taguette.org",
+  "official_download_url": "https://taguette.org/install.html",
+  "official_docs_url": "https://taguette.org/getting-started.html",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the latest release from the official page. Any qualitative coding tool your university supports also works; record which one you used.",
+  "prerequisites": [],
+  "install": {
+    "windows": [
+      {
+        "text": "On the Taguette install page, download the Windows installer (.exe) from the latest release and run it."
+      },
+      {
+        "text": "If Windows warns about an unknown publisher, choose More info, then Run anyway, only if you downloaded it from the official page."
+      },
+      {
+        "text": "Start Taguette from the Start menu."
+      }
+    ],
+    "macos": [
+      {
+        "text": "On the Taguette install page, download the .dmg file from the latest release."
+      },
+      {
+        "text": "Drag Taguette.app into Applications."
+      },
+      {
+        "text": "The first time, in Applications, right-click Taguette.app and choose Open."
+      }
+    ],
+    "linux": [
+      {
+        "text": "Install Python 3 and Calibre, which Taguette uses to convert documents.",
+        "command": "sudo apt install python3 python3-venv calibre"
+      },
+      {
+        "text": "Create a virtual environment for Taguette.",
+        "command": "python3 -m venv taguette.virtualenv"
+      },
+      {
+        "text": "Install Taguette in it.",
+        "command": "taguette.virtualenv/bin/pip install taguette"
+      },
+      {
+        "text": "Start Taguette and keep the terminal open while you use it.",
+        "command": "taguette.virtualenv/bin/taguette"
+      }
+    ]
+  },
+  "verify": {},
+  "common_problems": [
+    {
+      "problem": "A document will not import",
+      "solution": "Calibre converts documents for Taguette. On Linux, check that calibre is installed. Try saving the document as .docx or .pdf."
+    },
+    {
+      "problem": "Interview transcripts contain names or contact details",
+      "solution": "Anonymise transcripts before importing them, following your ethics approval."
+    }
+  ],
+  "manual_review": [
+    "Install steps follow the official Taguette install page (Windows .exe, macOS .dmg, Linux pip in a virtual environment with Calibre). python3-venv is added on Linux because Debian and Ubuntu ship venv separately.",
+    "There is no reliable version command, so the check is visual and stays reported by the student."
+  ],
+  "last_reviewed": "2026-11-10",
+  "sources": [
+    "https://taguette.org/install.html"
+  ],
+  "i18n": {
+    "fr": {
+      "purpose": "Logiciel libre et gratuit de codage qualitatif : surlignez des passages d’entretiens ou de documents, attribuez-leur des codes, puis exportez le livre de codes et les extraits.",
+      "version_guidance": "Installez la dernière version depuis la page officielle. Tout autre outil de codage qualitatif proposé par votre université convient aussi ; notez lequel vous avez utilisé.",
+      "install": {
+        "windows": [
+          "Sur la page d’installation de Taguette, téléchargez l’installateur Windows (.exe) de la dernière version et lancez-le.",
+          "Si Windows signale un éditeur inconnu, choisissez Informations complémentaires, puis Exécuter quand même, seulement si le fichier vient de la page officielle.",
+          "Lancez Taguette depuis le menu Démarrer."
+        ],
+        "macos": [
+          "Sur la page d’installation de Taguette, téléchargez le fichier .dmg de la dernière version.",
+          "Faites glisser Taguette.app dans Applications.",
+          "La première fois, dans Applications, faites un clic droit sur Taguette.app et choisissez Ouvrir."
+        ],
+        "linux": [
+          "Installez Python 3 et Calibre, que Taguette utilise pour convertir les documents.",
+          "Créez un environnement virtuel pour Taguette.",
+          "Installez Taguette dedans.",
+          "Lancez Taguette et gardez le terminal ouvert pendant que vous l’utilisez."
+        ]
+      },
+      "expected": {},
+      "verify_manual": "Lancez Taguette. Une page de navigateur s’ouvre avec Taguette (sous Linux à l’adresse affichée dans le terminal, en général localhost:7465). Créez un projet d’essai pour voir que tout fonctionne. Supervisor ne peut pas le vérifier : cela reste déclaré par vous.",
+      "common_problems": [
+        {
+          "problem": "Un document ne s’importe pas",
+          "solution": "Calibre convertit les documents pour Taguette. Sous Linux, vérifiez que calibre est installé. Essayez d’enregistrer le document en .docx ou .pdf."
+        },
+        {
+          "problem": "Les transcriptions contiennent des noms ou des coordonnées",
+          "solution": "Anonymisez les transcriptions avant de les importer, conformément à votre accord éthique."
+        }
+      ]
+    }
+  }
+}

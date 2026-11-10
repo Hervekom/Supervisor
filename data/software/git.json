@@ -2,6 +2,7 @@
   "id": "git",
   "name": "Git",
   "kind": "application",
+  "ecosystem": "general",
   "purpose": "Saves every version of your code and settings, so you can repeat an experiment and show exactly what you ran.",
   "work_types": [
     "any"

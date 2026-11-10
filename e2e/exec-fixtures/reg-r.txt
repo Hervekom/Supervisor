@@ -1,0 +1,24 @@
+
+Call:
+lm(formula = wage ~ education + experience, data = data)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-6.8560 -1.7902 -0.0149  2.1256  7.0310 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  5.99728    1.13108   5.302 5.67e-07 ***
+education    1.17293    0.07517  15.604  < 2e-16 ***
+experience   0.27295    0.03269   8.351 1.83e-13 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Residual standard error: 2.764 on 114 degrees of freedom
+  (3 observations deleted due to missingness)
+Multiple R-squared:  0.7434,	Adjusted R-squared:  0.7389 
+F-statistic: 165.2 on 2 and 114 DF,  p-value: < 2.2e-16
+
+ROWS=120
+NOBS=117
+R_VERSION=R version 4.3.3 (2024-02-29)

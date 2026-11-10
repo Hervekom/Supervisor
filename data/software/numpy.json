@@ -2,6 +2,7 @@
   "id": "numpy",
   "name": "NumPy",
   "kind": "python_package",
+  "ecosystem": "python",
   "purpose": "Fast arrays and maths. Most data and machine learning libraries are built on it.",
   "work_types": [
     "statistics",
@@ -9,7 +10,8 @@
     "machine_learning",
     "deep_learning",
     "computer_vision",
-    "nlp"
+    "nlp",
+    "simulation"
   ],
   "level": "required",
   "publisher_domain": "numpy.org",

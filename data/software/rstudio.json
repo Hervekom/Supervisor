@@ -1,0 +1,106 @@
+{
+  "id": "rstudio",
+  "name": "RStudio Desktop",
+  "kind": "application",
+  "ecosystem": "r",
+  "verify_manual": "Open RStudio. The Console pane shows R starting, with its version. Help, About RStudio shows the RStudio version. Supervisor cannot check this for you: it stays marked as reported by you.",
+  "purpose": "A free editor for R with a console, script editor, plots and help in one window. Optional: you can also use R alone.",
+  "work_types": [
+    "statistics_r"
+  ],
+  "level": "recommended",
+  "condition": null,
+  "publisher_domain": "posit.co",
+  "official_download_url": "https://posit.co/download/rstudio-desktop/",
+  "official_docs_url": "https://docs.posit.co/ide/user/",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install R first, then the current RStudio Desktop release for your system.",
+  "prerequisites": [
+    "r"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Install R first (see R above)."
+      },
+      {
+        "text": "On the RStudio Desktop page, download the installer for Windows and run it."
+      }
+    ],
+    "macos": [
+      {
+        "text": "Install R first (see R above)."
+      },
+      {
+        "text": "On the RStudio Desktop page, download the .dmg file for macOS, open it and drag RStudio into Applications."
+      }
+    ],
+    "linux": [
+      {
+        "text": "Install R first (see R above)."
+      },
+      {
+        "text": "On the RStudio Desktop page, download the .deb file for your Ubuntu or Debian version."
+      },
+      {
+        "text": "In a terminal, in the folder where the file was downloaded, install it.",
+        "command": "sudo apt install ./rstudio-*-amd64.deb"
+      }
+    ]
+  },
+  "verify": {},
+  "common_problems": [
+    {
+      "problem": "RStudio says it cannot find R",
+      "solution": "Install R from CRAN first, then restart RStudio."
+    },
+    {
+      "problem": "RStudio uses an older R than the one you installed",
+      "solution": "On Windows, Tools, Global Options, General lets you choose the R version. Restart RStudio afterwards."
+    }
+  ],
+  "manual_review": [
+    "Install steps follow the RStudio Desktop download page. There is no reliable terminal command for its version, so the check is visual and stays reported by the student."
+  ],
+  "last_reviewed": "2026-11-10",
+  "sources": [
+    "https://posit.co/download/rstudio-desktop/"
+  ],
+  "i18n": {
+    "fr": {
+      "purpose": "Un éditeur gratuit pour R avec console, éditeur de scripts, graphiques et aide dans une même fenêtre. Facultatif : vous pouvez aussi utiliser R seul.",
+      "version_guidance": "Installez d’abord R, puis la version actuelle de RStudio Desktop pour votre système.",
+      "install": {
+        "windows": [
+          "Installez d’abord R (voir R ci-dessus).",
+          "Sur la page RStudio Desktop, téléchargez l’installateur pour Windows et lancez-le."
+        ],
+        "macos": [
+          "Installez d’abord R (voir R ci-dessus).",
+          "Sur la page RStudio Desktop, téléchargez le fichier .dmg pour macOS, ouvrez-le et faites glisser RStudio dans Applications."
+        ],
+        "linux": [
+          "Installez d’abord R (voir R ci-dessus).",
+          "Sur la page RStudio Desktop, téléchargez le fichier .deb pour votre version d’Ubuntu ou de Debian.",
+          "Dans un terminal, dans le dossier du téléchargement, installez-le."
+        ]
+      },
+      "expected": {},
+      "verify_manual": "Ouvrez RStudio. Le panneau Console montre R qui démarre, avec sa version. Aide, À propos de RStudio montre la version de RStudio. Supervisor ne peut pas le vérifier : cela reste déclaré par vous.",
+      "common_problems": [
+        {
+          "problem": "RStudio dit qu’il ne trouve pas R",
+          "solution": "Installez d’abord R depuis le CRAN, puis redémarrez RStudio."
+        },
+        {
+          "problem": "RStudio utilise une version de R plus ancienne que celle installée",
+          "solution": "Sous Windows, Outils, Options globales, Général permet de choisir la version de R. Redémarrez RStudio ensuite."
+        }
+      ]
+    }
+  }
+}

@@ -2,6 +2,7 @@
   "id": "pandas",
   "name": "pandas",
   "kind": "python_package",
+  "ecosystem": "python",
   "purpose": "Loads, cleans and summarizes tables of data, such as CSV or Excel files.",
   "work_types": [
     "statistics",

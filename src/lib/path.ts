@@ -1,4 +1,5 @@
 import type { ChapterReport } from './chapterFeedback';
+import type { ExecutionState } from './execution';
 import type { Library } from './library';
 import type { Coverage } from './limits';
 import type { LabState } from './lab';
@@ -430,6 +431,8 @@ export type PathState = {
   chapterFeedback?: ChapterReport[];
   /** The reference library and citation style. Optional, so older saved copies stay valid. */
   library?: Library;
+  /** Practical execution tasks and the evidence returned for them (P9). Optional, so older saved copies stay valid. */
+  execution?: ExecutionState;
 };
 
 export type Verdict = 'not_ready' | 'almost' | 'ready';

@@ -2,13 +2,15 @@
   "id": "matplotlib",
   "name": "Matplotlib",
   "kind": "python_package",
+  "ecosystem": "python",
   "purpose": "Draws the figures and charts you will put in your thesis.",
   "work_types": [
     "statistics",
     "data_science",
     "machine_learning",
     "deep_learning",
-    "computer_vision"
+    "computer_vision",
+    "simulation"
   ],
   "level": "required",
   "publisher_domain": "matplotlib.org",

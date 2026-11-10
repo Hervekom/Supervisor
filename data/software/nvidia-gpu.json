@@ -2,6 +2,7 @@
   "id": "nvidia-gpu",
   "name": "NVIDIA driver and CUDA",
   "kind": "guidance",
+  "ecosystem": "general",
   "purpose": "Lets deep learning use an NVIDIA graphics card. Only needed if your computer has an NVIDIA GPU and you plan to train on it.",
   "work_types": [
     "deep_learning",

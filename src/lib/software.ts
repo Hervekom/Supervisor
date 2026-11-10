@@ -1,7 +1,8 @@
 // Shared by the server and the browser. Reading the files happens in softwareCatalog.ts.
 
 export type Os = 'windows' | 'macos' | 'linux';
-export type WorkType = 'statistics' | 'data_science' | 'machine_learning' | 'deep_learning' | 'computer_vision' | 'nlp';
+export type WorkType = 'statistics' | 'data_science' | 'machine_learning' | 'deep_learning' | 'computer_vision' | 'nlp' | 'simulation' | 'statistics_r' | 'qualitative';
+export type Ecosystem = 'python' | 'r' | 'general';
 export type GpuAnswer = 'yes' | 'no' | 'not_sure';
 export type Step = { text: string; command?: string };
 export type Check = { command: string; expected: string };
@@ -9,6 +10,7 @@ export type Software = {
   id: string;
   name: string;
   kind: 'application' | 'python_package' | 'guidance';
+  ecosystem: Ecosystem;
   purpose: string;
   work_types: ('any' | WorkType)[];
   level: 'required' | 'recommended' | 'conditional';
@@ -21,6 +23,10 @@ export type Software = {
   prerequisites: string[];
   install: Partial<Record<Os, Step[]>>;
   verify: Partial<Record<Os, Check>>;
+  /** Where the check command is typed. Absent means a terminal. */
+  verify_where?: 'terminal' | 'r_console';
+  /** A check the student does by looking, for tools without a reliable command. It stays reported by the student. */
+  verify_manual?: string;
   common_problems: { problem: string; solution: string }[];
   manual_review: string[];
   last_reviewed: string;
@@ -36,6 +42,7 @@ export type SoftwareText = {
   install: Partial<Record<Os, string[]>>;
   expected: Partial<Record<Os, string>>;
   common_problems: { problem: string; solution: string }[];
+  verify_manual?: string;
 };
 
 /** The entry's text in the chosen language. Falls back to English for anything missing. */
@@ -46,6 +53,7 @@ export function textOf(e: Software, lang: 'en' | 'fr'): SoftwareText {
     install: Object.fromEntries(Object.entries(e.install).map(([o, steps]) => [o, steps!.map((s) => s.text)])),
     expected: Object.fromEntries(Object.entries(e.verify).map(([o, v]) => [o, v!.expected])),
     common_problems: e.common_problems,
+    ...(e.verify_manual ? { verify_manual: e.verify_manual } : {}),
   };
   const fr = lang === 'fr' ? e.i18n?.fr : undefined;
   if (!fr) return en;
@@ -55,6 +63,7 @@ export function textOf(e: Software, lang: 'en' | 'fr'): SoftwareText {
     install: Object.fromEntries(Object.entries(en.install).map(([o, steps]) => [o, steps!.map((t, i) => fr.install[o as Os]?.[i] || t)])),
     expected: Object.fromEntries(Object.entries(en.expected).map(([o, t]) => [o, fr.expected[o as Os] || t])),
     common_problems: en.common_problems.map((p, i) => fr.common_problems[i] ?? p),
+    ...(en.verify_manual ? { verify_manual: fr.verify_manual || en.verify_manual } : {}),
   };
 }
 
@@ -69,7 +78,15 @@ export const WORK_TYPES: { id: WorkType | 'python'; label: string; hint: string 
   { id: 'deep_learning', label: 'Deep learning', hint: 'Neural networks trained with PyTorch' },
   { id: 'computer_vision', label: 'Computer vision', hint: 'Images or video' },
   { id: 'nlp', label: 'Natural language processing', hint: 'Text and language models' },
+  { id: 'simulation', label: 'Numerical simulation', hint: 'Models, differential equations, optimisation' },
+  { id: 'statistics_r', label: 'Statistics or econometrics in R', hint: 'Regression, tests and panel data with R' },
+  { id: 'qualitative', label: 'Qualitative research', hint: 'Interviews, coding, thematic analysis' },
 ];
+
+/** Work types that need no Python. A project with only these does not get the Python tools. */
+const NO_PYTHON = new Set<string>(['statistics_r', 'qualitative']);
+/** Work types that involve no programming at all. */
+const NO_CODE = new Set<string>(['qualitative']);
 
 /** Only these publisher hosts may appear in the catalogue. Exact host match, https only. */
 export const ALLOWED_HOSTS = [
@@ -89,6 +106,13 @@ export const ALLOWED_HOSTS = [
   'www.nvidia.com',
   'docs.nvidia.com',
   'developer.nvidia.com',
+  'scipy.org',
+  'docs.scipy.org',
+  'www.statsmodels.org',
+  'cran.r-project.org',
+  'posit.co',
+  'docs.posit.co',
+  'taguette.org',
 ] as const;
 
 export function isOfficialUrl(raw: string) {
@@ -101,17 +125,22 @@ export function isOfficialUrl(raw: string) {
 }
 
 /** Order in the checklist: base tools first, then libraries, then GPU guidance. */
-export const ORDER = ['python', 'pip', 'venv', 'git', 'vscode', 'jupyterlab', 'numpy', 'pandas', 'matplotlib', 'scikit-learn', 'pytorch', 'nvidia-gpu'];
+export const ORDER = ['python', 'pip', 'venv', 'git', 'vscode', 'jupyterlab', 'numpy', 'pandas', 'matplotlib', 'scikit-learn', 'scipy', 'statsmodels', 'pytorch', 'nvidia-gpu', 'r', 'rstudio', 'taguette'];
 
 export type Selection = { workTypes: (WorkType | 'python')[]; os: Os | null; gpu: GpuAnswer };
 
 /** Returns only the tools this project needs on this system. Nothing is chosen until the student picks a work type. */
 export function selectTools(catalogue: Software[], s: Selection): Software[] {
   if (!s.os || !s.workTypes.length) return [];
-  const chosen = new Set(s.workTypes);
+  const chosen = new Set<string>(s.workTypes);
+  const python = s.workTypes.some((w) => !NO_PYTHON.has(w));
+  const code = s.workTypes.some((w) => !NO_CODE.has(w));
   return catalogue
     .filter((e) => e.os.includes(s.os!))
-    .filter((e) => e.work_types.some((w) => w === 'any' || chosen.has(w)))
+    .filter((e) => e.work_types.some((w) => (w === 'any' ? code : chosen.has(w))))
+    .filter((e) => python || e.ecosystem !== 'python')
+    // Shared editors such as VS Code are for Python projects; R projects get RStudio.
+    .filter((e) => python || !(e.work_types.includes('any') && e.prerequisites.includes('python')))
     .filter((e) => e.condition !== 'nvidia_gpu' || s.gpu !== 'no')
     .sort((a, b) => rank(a.id) - rank(b.id));
 }
@@ -129,18 +158,21 @@ export function auditEntry(e: Software, known: Set<string>): string[] {
   if (!(ALLOWED_HOSTS as readonly string[]).includes(e.publisher_domain)) errors.push(`${e.id}: publisher ${e.publisher_domain} is not allowed`);
   for (const os of e.os) {
     if (!e.install[os]?.length) errors.push(`${e.id}: no installation instructions for ${os}`);
-    if (!e.verify[os]?.command) errors.push(`${e.id}: no verification command for ${os}`);
+    if (!e.verify[os]?.command && !e.verify_manual) errors.push(`${e.id}: no verification command for ${os}`);
   }
   for (const os of Object.keys({ ...e.install, ...e.verify }) as Os[]) if (!e.os.includes(os)) errors.push(`${e.id}: instructions for ${os}, which it does not support`);
   for (const p of e.prerequisites) if (!known.has(p)) errors.push(`${e.id}: unknown prerequisite ${p}`);
+  if (e.verify_manual && Object.keys(e.verify).length) errors.push(`${e.id}: a tool is checked either by a command or by looking, not both`);
+  if (e.verify_where === 'r_console' && e.ecosystem !== 'r') errors.push(`${e.id}: only R tools are checked in the R console`);
   if (e.condition === 'nvidia_gpu' && e.level !== 'conditional') errors.push(`${e.id}: a conditional entry must use level "conditional"`);
   const fr = e.i18n?.fr;
   if (fr) {
     for (const os of e.os) {
       if (fr.install[os]?.length !== e.install[os]?.length) errors.push(`${e.id}: French installation steps for ${os} do not match the English steps`);
-      if (!fr.expected[os]) errors.push(`${e.id}: no French expected output for ${os}`);
+      if (e.verify[os] && !fr.expected[os]) errors.push(`${e.id}: no French expected output for ${os}`);
     }
     for (const os of Object.keys({ ...fr.install, ...fr.expected }) as Os[]) if (!e.os.includes(os)) errors.push(`${e.id}: French text for ${os}, which it does not support`);
+    if (e.verify_manual && !fr.verify_manual) errors.push(`${e.id}: no French text for the visual check`);
     if (fr.common_problems.length !== e.common_problems.length) errors.push(`${e.id}: French common problems do not match the English list`);
   }
   return errors;

@@ -674,3 +674,23 @@ test('P3: chapter feedback history is saved to the account and survives sign-out
   await expect(page.getByText('Synthetic account feedback.')).toBeVisible();
   expect((await state()).row.data.chapterFeedback).toEqual([report]);
 });
+
+test('P9: execution tasks and their reviews are saved to the account and survive sign-out and sign-in', async ({ page }) => {
+  const task = {
+    id: 'task-synthetic-p9', template: 'dataset-check', stepId: 'research', stage: 7, inputs: { file: 'data/solar.csv' },
+    evidence: { output: 'ROWS=240\nCOLUMNS=4\nCHECK=done', output2: '', metrics: '', config: '', files: '', errors: '', screenshots: '', counts: {}, confirmed: [] },
+    review: { status: 'verified', reasons: ['dataset_ok'], found: [['rows', '240'], ['columns', '4']], metrics: [], at: '2026-11-10T08:00:00.000Z', rule: 1 },
+    createdAt: '2026-11-10T08:00:00.000Z', updatedAt: '2026-11-10T08:00:00.000Z',
+  };
+  const lab = { workTypes: ['data_science'], os: 'linux', gpu: 'no', osConfirmed: true, tools: {}, updatedAt: '2026-11-10T08:00:00.000Z' };
+  await seedLocal(page, started('Thesis work', { lab, execution: { tasks: [task] } }));
+  await signIn(page);
+  await expect(page.getByText('The work from this browser is saved to your account.')).toBeVisible();
+  expect((await state()).row.data.execution).toEqual({ tasks: [task] });
+  await page.getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByText('Signed out. Your work is saved to your account.')).toBeVisible();
+  await signIn(page);
+  await page.goto('/lab');
+  await expect(page.getByTestId('task-status-dataset-check')).toHaveText('Verified. Stage 8 of 9.');
+  expect((await state()).row.data.execution).toEqual({ tasks: [task] });
+});

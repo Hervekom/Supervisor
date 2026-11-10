@@ -2,6 +2,7 @@
   "id": "jupyterlab",
   "name": "JupyterLab",
   "kind": "python_package",
+  "ecosystem": "python",
   "purpose": "Notebooks let you run code step by step and keep results, charts and notes together, which helps when exploring data.",
   "work_types": [
     "statistics",

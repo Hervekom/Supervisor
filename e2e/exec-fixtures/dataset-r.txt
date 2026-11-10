@@ -1,0 +1,6 @@
+ROWS=240
+COLUMNS=4
+NAMES=timestamp,ghi,temperature,cloud_cover
+MISSING=0
+DUPLICATES=0
+CHECK=done

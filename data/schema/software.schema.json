@@ -23,7 +23,8 @@
     "common_problems",
     "manual_review",
     "last_reviewed",
-    "sources"
+    "sources",
+    "ecosystem"
   ],
   "$defs": {
     "os": {
@@ -92,11 +93,11 @@
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9-]{1,40}$"
+      "pattern": "^[a-z0-9][a-z0-9-]{0,40}$"
     },
     "name": {
       "type": "string",
-      "minLength": 2,
+      "minLength": 1,
       "maxLength": 80
     },
     "kind": {
@@ -121,7 +122,10 @@
           "machine_learning",
           "deep_learning",
           "computer_vision",
-          "nlp"
+          "nlp",
+          "simulation",
+          "statistics_r",
+          "qualitative"
         ]
       }
     },
@@ -310,10 +314,30 @@
                   }
                 }
               }
+            },
+            "verify_manual": {
+              "type": "string",
+              "minLength": 1
             }
           }
         }
       }
+    },
+    "ecosystem": {
+      "enum": [
+        "python",
+        "r",
+        "general"
+      ]
+    },
+    "verify_where": {
+      "enum": [
+        "terminal",
+        "r_console"
+      ]
+    },
+    "verify_manual": {
+      "$ref": "#/$defs/text"
     }
   }
 }

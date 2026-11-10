@@ -21,12 +21,16 @@ const GOOD: Record<string, string> = {
   matplotlib: 'matplotlib 3.9.2',
   'scikit-learn': 'scikit-learn 1.7.0',
   pytorch: 'torch 2.9.0+cu128 cuda True',
+  scipy: 'scipy 1.16.3',
+  statsmodels: 'statsmodels 0.14.5',
+  r: '[1] "R version 4.5.2 (2025-10-31)"',
   'nvidia-gpu': '+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 566.14                 Driver Version: 566.14         CUDA Version: 12.7     |\n|-----------------------------------------+------------------------+----------------------+\n| GPU  Name                  Driver-Model | Bus-Id          Disp.A | Volatile Uncorr. ECC |',
 };
 const UNIX_GOOD: Record<string, string> = { ...GOOD, venv: '/home/student/proj/.venv/bin/python', pip: 'pip 24.3.1 from /home/student/proj/.venv/lib/python3.12/site-packages/pip (python 3.12)', git: 'git version 2.39.5 (Apple Git-154)' };
 
 describe('rules cover the catalogue', () => {
-  const catalogue = loadCatalogue();
+  // Tools checked by looking (RStudio, Taguette) have no command and no rule.
+  const catalogue = loadCatalogue().filter((e) => !e.verify_manual);
 
   it('has one rule and one command for every tool and system in the catalogue', () => {
     for (const e of catalogue) {

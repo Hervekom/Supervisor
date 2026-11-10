@@ -2,6 +2,7 @@
   "id": "scikit-learn",
   "name": "scikit-learn",
   "kind": "python_package",
+  "ecosystem": "python",
   "purpose": "Classic machine learning methods, data splitting and evaluation metrics. Useful for baselines even in deep learning work.",
   "work_types": [
     "data_science",

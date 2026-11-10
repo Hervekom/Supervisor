@@ -1,0 +1,7 @@
+epoch 1 done
+epoch 2 done
+epoch 3 done
+SEED=7
+DEVICE=cpu
+METRIC rmse=314.35841662794485
+METRIC mae=284.8467640244237

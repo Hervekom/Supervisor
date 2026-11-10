@@ -2,6 +2,7 @@
   "id": "vscode",
   "name": "Visual Studio Code",
   "kind": "application",
+  "ecosystem": "general",
   "purpose": "A free code editor that runs Python, notebooks and Git in one place. You can use another editor if your lab prefers one.",
   "work_types": [
     "any"

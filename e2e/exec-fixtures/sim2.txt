@@ -1,0 +1,4 @@
+SEED=42
+STEPS=1000
+RESULT final_position=-28.891551
+RESULT max_position=5.480959

@@ -1,0 +1,123 @@
+{
+  "id": "statsmodels",
+  "name": "statsmodels",
+  "kind": "python_package",
+  "ecosystem": "python",
+  "purpose": "Statistical models and econometrics in Python: linear and generalised regression, time series, panel data and statistical tests, with full result tables.",
+  "work_types": [
+    "statistics"
+  ],
+  "level": "required",
+  "condition": null,
+  "publisher_domain": "www.statsmodels.org",
+  "official_download_url": "https://www.statsmodels.org/stable/install.html",
+  "official_docs_url": "https://www.statsmodels.org/stable/index.html",
+  "os": [
+    "windows",
+    "macos",
+    "linux"
+  ],
+  "version_guidance": "Install the latest release that supports your Python version. Record the version: model output and defaults can change between releases.",
+  "prerequisites": [
+    "python",
+    "pip",
+    "venv"
+  ],
+  "install": {
+    "windows": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install statsmodels.",
+        "command": "python -m pip install statsmodels"
+      }
+    ],
+    "macos": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install statsmodels.",
+        "command": "python -m pip install statsmodels"
+      }
+    ],
+    "linux": [
+      {
+        "text": "Open a terminal in your project folder and activate your virtual environment first."
+      },
+      {
+        "text": "Install statsmodels.",
+        "command": "python -m pip install statsmodels"
+      }
+    ]
+  },
+  "verify": {
+    "windows": {
+      "command": "python -c \"import statsmodels; print('statsmodels', statsmodels.__version__)\"",
+      "expected": "One line: statsmodels and its version, for example statsmodels 1.x.y."
+    },
+    "macos": {
+      "command": "python -c \"import statsmodels; print('statsmodels', statsmodels.__version__)\"",
+      "expected": "One line: statsmodels and its version, for example statsmodels 1.x.y."
+    },
+    "linux": {
+      "command": "python -c \"import statsmodels; print('statsmodels', statsmodels.__version__)\"",
+      "expected": "One line: statsmodels and its version, for example statsmodels 1.x.y."
+    }
+  },
+  "common_problems": [
+    {
+      "problem": "ModuleNotFoundError when importing it",
+      "solution": "Your virtual environment is probably not active, or the package went into another Python. Activate the environment, then install again with python -m pip install."
+    },
+    {
+      "problem": "pip says it cannot find a version that satisfies the requirement",
+      "solution": "Your Python may be too old or too new for the latest release. Check your Python version with python --version and the supported versions on the official installation page."
+    }
+  ],
+  "manual_review": [
+    "The install command is the official pip command, run as python -m pip.",
+    "The verification command prints a label before the version, so another library cannot pass the check."
+  ],
+  "last_reviewed": "2026-11-10",
+  "sources": [
+    "https://www.statsmodels.org/stable/install.html",
+    "https://www.statsmodels.org/stable/index.html"
+  ],
+  "i18n": {
+    "fr": {
+      "purpose": "Modèles statistiques et économétrie en Python : régression linéaire et généralisée, séries temporelles, données de panel et tests, avec tableaux de résultats complets.",
+      "version_guidance": "Installez la dernière version compatible avec votre Python. Notez la version : les sorties et les réglages par défaut peuvent changer d’une version à l’autre.",
+      "install": {
+        "windows": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez statsmodels."
+        ],
+        "macos": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez statsmodels."
+        ],
+        "linux": [
+          "Ouvrez un terminal dans le dossier de votre projet et activez d’abord votre environnement virtuel.",
+          "Installez statsmodels."
+        ]
+      },
+      "expected": {
+        "windows": "Une ligne : statsmodels et sa version, par exemple statsmodels 1.x.y.",
+        "macos": "Une ligne : statsmodels et sa version, par exemple statsmodels 1.x.y.",
+        "linux": "Une ligne : statsmodels et sa version, par exemple statsmodels 1.x.y."
+      },
+      "common_problems": [
+        {
+          "problem": "ModuleNotFoundError à l’import",
+          "solution": "Votre environnement virtuel n’est probablement pas actif, ou le paquet est allé dans un autre Python. Activez l’environnement, puis réinstallez avec python -m pip install."
+        },
+        {
+          "problem": "pip ne trouve aucune version compatible",
+          "solution": "Votre Python est peut-être trop ancien ou trop récent pour la dernière version. Vérifiez votre version avec python --version et les versions prises en charge sur la page officielle d’installation."
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,29 @@
+                            OLS Regression Results                            
+==============================================================================
+Dep. Variable:                   wage   R-squared:                       0.743
+Model:                            OLS   Adj. R-squared:                  0.739
+Method:                 Least Squares   F-statistic:                     165.2
+Date:                Tue, 10 Nov 2026   Prob (F-statistic):           2.11e-34
+Time:                        18:57:28   Log-Likelihood:                -283.45
+No. Observations:                 117   AIC:                             572.9
+Df Residuals:                     114   BIC:                             581.2
+Df Model:                           2                                         
+Covariance Type:            nonrobust                                         
+==============================================================================
+                 coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+Intercept      5.9973      1.131      5.302      0.000       3.757       8.238
+education      1.1729      0.075     15.604      0.000       1.024       1.322
+experience     0.2729      0.033      8.351      0.000       0.208       0.338
+==============================================================================
+Omnibus:                        0.091   Durbin-Watson:                   1.897
+Prob(Omnibus):                  0.955   Jarque-Bera (JB):                0.174
+Skew:                           0.064   Prob(JB):                        0.917
+Kurtosis:                       2.861   Cond. No.                         94.4
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
+ROWS=120
+NOBS=117
+STATSMODELS=0.15.0
