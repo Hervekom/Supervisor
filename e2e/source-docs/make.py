@@ -103,3 +103,17 @@ d.save(os.path.join(HERE, 'thesis-en-zh.docx'))
 
 with open(os.path.join(HERE, 'broken.pdf'), 'wb') as f: f.write(b'%PDF-1.4\nthis is not really a pdf')
 print('ok')
+
+# Phase P8: a second English paper on the same topic, with different words ("corpus", "prediction") and results that
+# conflict with paper-en.pdf (accuracy 0.78 against 0.91). Generated only when missing, so other files stay unchanged.
+if not os.path.exists(os.path.join(HERE, 'paper-b.pdf')):
+    B = [
+        [('title', 'Revisiting Glow Models for River Level Prediction'), ('p', 'Chen Example and Dana Fiction'), ('p', 'Institute of Invented Hydrology, Sample College'), ('p', '2025'),
+         ('h1', 'Abstract'), ('p', 'We revisit glow models for predicting fictional river levels from a small corpus of gauge records. On the GlowRiver corpus and on RiverLight, a gradient boosting model reaches an accuracy of 0.78 and an RMSE of 1.60.'),
+         ('h1', '1 Introduction'), ('p', 'Predicting river levels with few gauges is still difficult. The aim of this work is to test whether gradient boosting is enough when the corpus is small.')],
+        [('h1', '2 Method'), ('p', 'We train a gradient boosting model with 300 trees and a learning rate of 0.05 on the GlowRiver corpus of 2,400 gauge records, and evaluate on RiverLight.'),
+         ('h1', '3 Results'), ('p', 'The gradient boosting model reached an accuracy of 0.78 and an RMSE of 1.60 on RiverLight, lower than the values reported for lantern networks.'),
+         ('h1', '4 Limitations'), ('p', 'A limitation is that the GlowRiver corpus covers only one invented season. Future work should add winter records.')],
+    ]
+    pdf('paper-b.pdf', B, title='Revisiting Glow Models for River Level Prediction', author='Chen Example; Dana Fiction')
+    print('paper-b.pdf written')

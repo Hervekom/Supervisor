@@ -3,6 +3,7 @@
 // and nothing absent from the document is added.
 
 import type { Extracted, Line } from './docExtract';
+import { CONCEPTS, conceptsOf, WEAK_CONCEPTS } from './thesaurus';
 
 export type Category =
   | 'abstract' | 'introduction' | 'problem' | 'objectives' | 'questions' | 'hypotheses' | 'literature' | 'method' | 'data' | 'models'
@@ -246,31 +247,64 @@ export function terms(text: string): string[] {
 }
 
 export type DocLike = { id: string; fileName: string; meta: DocMeta; passages: Passage[] };
-export type Hit = { docId: string; fileName: string; title: string; passage: Passage; score: number; matched: string[] };
+export type Hit = { docId: string; fileName: string; title: string; passage: Passage; score: number; matched: string[]; concepts?: string[] };
 
-/** Ranks passages for a query (BM25). A passage is relevant only if it shares enough of the query's terms. */
-export function search(docs: DocLike[], query: string, opts: { limit?: number; boost?: Category[]; minShare?: number } = {}): Hit[] {
+/** Terms and concepts of each passage, computed once per passage object and reused by every search (P8). */
+const INDEX = new WeakMap<Passage, { t: string[]; c: Set<string> }>();
+function indexOf(p: Passage) {
+  let x = INDEX.get(p);
+  if (!x) {
+    x = { t: terms(`${p.section} ${p.text}`), c: conceptsOf(`${p.section} ${p.text}`) };
+    INDEX.set(p, x);
+  }
+  return x;
+}
+
+/**
+ * Ranks passages for a query (BM25), and, with `meaning`, also by shared scientific concepts (P8): "corpus" finds
+ * "dataset", "准确率" finds "accuracy". A passage is relevant only if it covers enough of the query, by word or by concept.
+ * `extra` are related terms (for example suggested by the AI from the query alone): they help ranking, never relevance.
+ */
+export function search(docs: DocLike[], query: string, opts: { limit?: number; boost?: Category[]; minShare?: number; meaning?: boolean; extra?: string[] } = {}): Hit[] {
   const q = [...new Set(terms(query))];
   if (!q.length) return [];
-  const all = docs.flatMap((d) => d.passages.filter((p) => p.category !== 'references' && !p.front).map((p) => ({ d, p, t: terms(`${p.section} ${p.text}`) })));
+  const meaning = opts.meaning ?? true;
+  const qc = meaning ? conceptsOf(query) : new Set<string>();
+  // Which query words each query concept covers, so a concept match counts for those words.
+  const coveredBy = new Map<string, string[]>();
+  for (const id of qc) {
+    const c = CONCEPTS.find((x) => x.id === id)!;
+    coveredBy.set(id, q.filter((w) => conceptsOf(w).has(id) || [...c.en, ...c.zh].some((s) => terms(s).includes(w))));
+  }
+  const extra = [...new Set((opts.extra ?? []).flatMap((e) => terms(e)))].filter((w) => !q.includes(w));
+  const all = docs.flatMap((d) => d.passages.filter((p) => p.category !== 'references' && !p.front).map((p) => ({ d, p, ...indexOf(p) })));
   if (!all.length) return [];
   const avg = all.reduce((n, x) => n + x.t.length, 0) / all.length || 1;
-  const df = new Map(q.map((w) => [w, all.filter((x) => x.t.includes(w)).length]));
+  const vocab = [...q, ...extra];
+  const df = new Map(vocab.map((w) => [w, all.filter((x) => x.t.includes(w)).length]));
+  const cdf = new Map([...qc].map((id) => [id, all.filter((x) => x.c.has(id)).length]));
   const hits: Hit[] = [];
-  for (const { d, p, t } of all) {
+  for (const { d, p, t, c } of all) {
     const tf = new Map<string, number>();
     for (const w of t) if (df.has(w)) tf.set(w, (tf.get(w) ?? 0) + 1);
-    if (!tf.size) continue;
+    const shared = [...qc].filter((id) => c.has(id));
+    if (!tf.size && !shared.length) continue;
     let score = 0;
     for (const [w, f] of tf) {
       const idf = Math.log(1 + (all.length - df.get(w)! + 0.5) / (df.get(w)! + 0.5));
-      score += (idf * f * 2.2) / (f + 1.2 * (0.25 + 0.75 * (t.length / avg)));
+      score += ((idf * f * 2.2) / (f + 1.2 * (0.25 + 0.75 * (t.length / avg)))) * (q.includes(w) ? 1 : 0.5);
     }
+    for (const id of shared) score += (WEAK_CONCEPTS.has(id) ? 0.3 : 1) * Math.log(1 + (all.length - cdf.get(id)! + 0.5) / (cdf.get(id)! + 0.5));
     if (opts.boost?.includes(p.category)) score *= 1.4;
-    const matched = [...tf.keys()];
-    const share = matched.length / q.length;
-    if (matched.length < Math.min(2, q.length) || share < (opts.minShare ?? 0.25)) continue;
-    hits.push({ docId: d.id, fileName: d.fileName, title: d.meta.title ?? d.fileName, passage: p, score, matched });
+    const matched = q.filter((w) => tf.has(w));
+    const covered = new Set(matched);
+    const strong = shared.filter((id) => !WEAK_CONCEPTS.has(id));
+    for (const id of strong) for (const w of coveredBy.get(id) ?? []) covered.add(w);
+    // A concept with no query word attached (a multi-word phrase) still counts as one covered unit.
+    const units = covered.size + strong.filter((id) => !(coveredBy.get(id) ?? []).length).length;
+    const share = units / q.length;
+    if (units < Math.min(2, q.length) || share < (opts.minShare ?? 0.25)) continue;
+    hits.push({ docId: d.id, fileName: d.fileName, title: d.meta.title ?? d.fileName, passage: p, score, matched, ...(shared.length ? { concepts: shared } : {}) });
   }
   return hits.sort((a, b) => b.score - a.score).slice(0, opts.limit ?? 20);
 }

@@ -6,7 +6,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount } from '@/components/useAccount';
 import { put } from '@/components/useProfiles';
 import { usePathSync } from '@/components/usePathSync';
+import { ComparePanel, DeepPanel } from '@/components/SourceTools';
 import { useSourceDocs } from '@/components/useSourceDocs';
+import { loadAi } from '@/lib/aiSettings';
+import { canRetry, errorText, requestAi } from '@/lib/request';
+import { authHeaders } from '@/lib/supabase';
+import { conceptLabel, WEAK_CONCEPTS } from '@/lib/thesaurus';
 import { analyse, CATEGORY_LABELS, closeness, excerpt, search, where, type Analysis, type Category, type Closeness, type DocMeta, type Hit } from '@/lib/docAnalysis';
 import { DocProblem, extractFile, MAX_DOC_BYTES } from '@/lib/docExtract';
 import { deleteDoc, effectiveMeta, MAX_DOCS, MAX_TOTAL_CHARS, saveDoc, storageEstimate, storeIsPersistent, StoreFullError, type SourceDoc } from '@/lib/docStore';
@@ -18,6 +23,8 @@ import { structureOf } from '@/lib/structures';
 
 type Progress = { name: string; stage: 'reading' | 'analysing' | 'saving' | 'done' | 'failed' | 'no_text'; note?: string };
 const STAGE: Record<Progress['stage'], string> = { reading: 'Reading the file…', analysing: 'Finding sections and details…', saving: 'Saving in this browser…', done: 'Ready', failed: 'Not imported', no_text: 'Kept, but no text could be read' };
+/** Phase P8: OCR is not done in Supervisor (see the P8 report); this is the supported route. */
+const SCANNED_NOTE = 'No text could be read: this looks like a scanned document (images of pages). Supervisor does not recognise text in images. On your computer, add a text layer with a free tool that runs locally, such as OCRmyPDF (English and Chinese language packs), or choose “searchable PDF” in your scanner software. Then import the new PDF and remove this one.';
 const EMPTY_ANALYSIS: Analysis = { meta: {}, metaSource: {}, headings: [], passages: [], findings: [], bibliography: 0, chars: 0, truncated: false };
 const META_LABELS: Record<keyof DocMeta, string> = { title: 'Title', authors: 'Authors', institution: 'Institution', year: 'Year', docType: 'Type' };
 const TYPE_LABELS = { thesis: 'Thesis or dissertation', paper: 'Paper', document: 'Other document' };
@@ -43,6 +50,12 @@ export default function SourcesPage() {
   const [confirmDelete, setConfirmDelete] = useState('');
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<Hit[] | null>(null);
+  // Phase P8: search by meaning, optional related terms from the AI (search words only), import cancellation.
+  const [meaning, setMeaning] = useState(true);
+  const [extra, setExtra] = useState<string[]>([]);
+  const [expanding, setExpanding] = useState(false);
+  const [expandError, setExpandError] = useState<{ text: string; retry: boolean } | null>(null);
+  const cancelImport = useRef(false);
   const [checkText, setCheckText] = useState('');
   const [checkPart, setCheckPart] = useState('');
   const [close, setClose] = useState<Closeness[] | null>(null);
@@ -89,7 +102,12 @@ export default function SourcesPage() {
     setProgress([...list]);
     let have = docs.length;
     let chars = totalChars;
+    cancelImport.current = false;
     for (const [i, file] of files.entries()) {
+      if (cancelImport.current) {
+        update(i, { stage: 'failed', note: 'Cancelled: not imported. Import it again when you are ready.' });
+        continue;
+      }
       const base = { id: newId(), owner, fileName: file.name, kind: /\.docx$/i.test(file.name) ? 'docx' : 'pdf', fileBytes: file.size, pages: 0, importedAt: new Date().toISOString(), permission: { confirmedAt: new Date().toISOString() } } as const;
       if (docs.some((d) => d.fileName === file.name && d.fileBytes === file.size)) {
         update(i, { stage: 'failed', note: 'This file is already in your documents. It was not imported twice.' });
@@ -113,7 +131,7 @@ export default function SourcesPage() {
         doc = {
           ...base, ...a, kind: x.kind, pages: x.pages,
           status: noText ? 'no_text' : 'ready',
-          ...(noText ? { statusNote: 'No text could be read: this looks like a scanned document (images of pages). Supervisor cannot read images. Use a PDF with selectable text, or run text recognition (OCR) first, then import it again.' }
+          ...(noText ? { statusNote: SCANNED_NOTE }
             : a.truncated ? { statusNote: `This document is very long: only its first ${count(a.chars)} characters were kept. The rest was not imported.` } : {}),
         };
       } catch (e) {
@@ -178,6 +196,24 @@ export default function SourcesPage() {
     setNote(`Added to your reference library as [@${next.library!.refs.at(-1)!.key}]. Check its details on the Document page: some may be missing.`);
   }
 
+  const searchable = ready_.map((d) => ({ ...d, meta: effectiveMeta(d) }));
+  function runSearch(more = extra) {
+    setHits(search(searchable, query, { limit: 15, meaning, extra: more }));
+  }
+  async function expand() {
+    setExpanding(true);
+    setExpandError(null);
+    try {
+      const j = await requestAi<{ terms: string[] }>('/api/sources/expand', { method: 'POST', headers: { 'content-type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ query, llm: loadAi() ?? undefined }) });
+      setExtra(j.terms);
+      runSearch(j.terms);
+    } catch (x) {
+      setExpandError({ text: errorText(x), retry: canRetry(x) });
+    } finally {
+      setExpanding(false);
+    }
+  }
+
   const parts = structureOf(path).parts.filter((x) => (path.parts?.[x.id] ?? '').trim());
   const runCheck = () => setClose(closeness(checkPart ? path.parts?.[checkPart] ?? '' : checkText, ready_.map((d) => ({ ...d, meta: effectiveMeta(d) }))));
 
@@ -201,6 +237,7 @@ export default function SourcesPage() {
           <input id="src-files" type="file" multiple accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" disabled={!permission || busy || !owner} onChange={(e) => { const f = [...(e.target.files ?? [])]; e.target.value = ''; importFiles(f); }} />
           <p className="hint">Files are read in this browser and never uploaded. Only their text, with page numbers, is kept, in this browser on this computer: it is not saved to your account. Up to {MAX_DOCS} documents, 100 MB each.</p>
         </div>
+        {busy ? <div className="ask"><button type="button" className="btn ghost" onClick={() => { cancelImport.current = true; }}>Stop after this file</button></div> : null}
         {progress.length ? (
           <ul className="todo" aria-label="Import progress">
             {progress.map((p, i) => <li key={i}><b>{p.name}</b>: {STAGE[p.stage]}{p.note ? `. ${p.note}` : ''}</li>)}
@@ -216,14 +253,21 @@ export default function SourcesPage() {
         <div className="sheet" style={{ marginTop: 16 }}>
           <h2>Search your documents</h2>
           <div className="ask">
-            <input aria-label="Search words" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') setHits(search(ready_.map((d) => ({ ...d, meta: effectiveMeta(d) })), query, { limit: 15 })); }} placeholder="dataset, RMSE, 数据集…" style={{ flex: 1, minWidth: 0 }} />
-            <button type="button" className="btn ghost" disabled={!query.trim()} onClick={() => setHits(search(ready_.map((d) => ({ ...d, meta: effectiveMeta(d) })), query, { limit: 15 }))}>Search</button>
+            <input aria-label="Search words" value={query} onChange={(e) => { setQuery(e.target.value); setExtra([]); }} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }} placeholder="dataset, RMSE, 数据集…" style={{ flex: 1, minWidth: 0 }} />
+            <button type="button" className="btn ghost" disabled={!query.trim()} onClick={() => runSearch()}>Search</button>
           </div>
+          <label style={{ display: 'flex', gap: 8, marginTop: 8 }}><input type="checkbox" checked={meaning} onChange={(e) => setMeaning(e.target.checked)} />Search by meaning: also find related scientific terms, in English and Chinese (“corpus” finds “dataset”, “准确率” finds “accuracy”). This runs in your browser.</label>
+          <div className="ask">
+            <button type="button" className="linklike" disabled={expanding || !query.trim()} onClick={expand}>{expanding ? 'Asking…' : 'Suggest related terms with AI'}</button>
+            <span className="hint">Sends only your search words to your AI service, never your documents.</span>
+          </div>
+          {expandError ? <p className="error" role="alert">{expandError.text}{expandError.retry ? <> <button type="button" className="linklike" onClick={expand}>Try again</button></> : null}</p> : null}
+          {extra.length ? <p className="hint">Also searching for: {extra.join(', ')}. <button type="button" className="linklike" onClick={() => { setExtra([]); runSearch([]); }}>Remove them</button></p> : null}
           {hits ? (
             hits.length ? (
               <ul className="todo" aria-label="Search results">
                 {hits.map((h, i) => (
-                  <li key={i}><b>{h.title}</b> · {where(h.passage)}{h.passage.section ? ` · ${h.passage.section}` : ''}<br /><span>“{excerpt(h.passage.text, 50)}”</span></li>
+                  <li key={i}><b>{h.title}</b> · {where(h.passage)}{h.passage.section ? ` · ${h.passage.section}` : ''}<br /><span>“{excerpt(h.passage.text, 50)}”</span><br /><span className="hint">{h.matched.length ? `Same words: ${h.matched.join(', ')}. ` : ''}{h.concepts?.some((c) => !WEAK_CONCEPTS.has(c)) ? `Related by meaning: ${h.concepts.filter((c) => !WEAK_CONCEPTS.has(c)).map(conceptLabel).join(', ')}.` : ''}</span></li>
                 ))}
               </ul>
             ) : <p className="hint">No passage matches these words closely enough.</p>
@@ -283,12 +327,15 @@ export default function SourcesPage() {
                     </details>
                   ))}
                   <p className="hint">These are sentences from the document, with their location. Nothing here is a summary or an addition.</p>
+                  <DeepPanel doc={d} onSaved={reload} />
                 </div>
               ) : null}
             </section>
           );
         })}
       </div>
+
+      <ComparePanel docs={searchable} />
 
       {ready_.length ? (
         <div className="sheet" style={{ marginTop: 16 }}>
