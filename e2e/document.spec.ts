@@ -62,7 +62,8 @@ for (const structure of ['classic', 'studies', 'system'] as const) {
     const xml = await readDocx((await d.path())!);
     const headings = [...xml.matchAll(/<w:pStyle w:val="Heading1"\/>(?:<w:pageBreakBefore\/>)?<\/w:pPr><w:r><w:t xml:space="preserve">([^<]*)</g)].map((m) => m[1]);
     const titles = await page.locator('.item h3 > span:first-child').allInnerTexts();
-    expect(headings).toEqual(titles.map((t) => t.replace(/^\d+\.\s*/, '')));
+    // Main chapters are numbered "Chapter N" (P5); the empty optional Appendices part is left out.
+    expect(headings.map((h) => h.replace(/^Chapter \d+ /, ''))).toEqual(titles.map((t) => t.replace(/^\d+\.\s*/, '')).filter((t) => t !== 'Appendices'));
     expect(xml).toContain('Premier paragraphe « écrit » par l’étudiant.');
     expect(xml).toContain('中文 😀');
     expect(xml).toContain('Étude des lanternes &amp; &lt;réseaux&gt;');
@@ -82,4 +83,28 @@ test('Download Word works on a phone', async ({ browser }) => {
   const [d] = await Promise.all([page.waitForEvent('download'), button.tap()]);
   expect(await readDocx((await d.path())!)).toContain('Short abstract.');
   await ctx.close();
+});
+
+test('P5: tables, figures, equations, references and appendices reach the Word file, and the page says what to finish in Word', async ({ page }) => {
+  const methodology = ['## Data', 'Table: Dataset sizes', '| Split | Images |', '|---|---|', '| Train | 800 |', '[Figure: Fictional pipeline]', '$$ a^2 + b^2 = c^2 $$', '中文段落。'].join('\n');
+  await seed(page, { 'path:v1': started({ title: 'Synthetic P5 thesis', parts: { methodology, references: '[1] Fiction A. A lantern method[J]. 2024.', appendices: '# Appendix A Raw data\nRaw counts.' } }) });
+  await page.goto('/document');
+  const before = await stored(page, 'path:v1');
+  const box = page.getByLabel('What the Word file holds');
+  await expect(box).toContainText('1 table, 1 figure caption, 1 equation, 1 reference entry, appendices');
+  await box.getByText('What you still do in Word').click();
+  await expect(box).toContainText('Supervisor does not store images');
+  const [d] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download Word' }).click()]);
+  const xml = await readDocx((await d.path())!);
+  expect(xml).toContain('Chapter 3 Methodology');
+  expect(xml).toContain('>3.1 Data<');
+  expect(xml).toContain('>Table 3.1 Dataset sizes<');
+  expect(xml).toContain('<w:tbl>');
+  expect(xml).toContain('>Figure 3.1 Fictional pipeline<');
+  expect(xml).toContain('<m:t xml:space="preserve">a^2 + b^2 = c^2</m:t>');
+  expect(xml).toContain('[1] Fiction A. A lantern method[J]. 2024.');
+  expect(xml).toContain('>Appendix A Raw data<');
+  expect(xml).toContain('中文段落。');
+  await expect(box).toContainText('Your Word file holds');
+  expect(await stored(page, 'path:v1')).toEqual(before);
 });

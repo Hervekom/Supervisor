@@ -21,6 +21,8 @@ const REVIEW: Part = {
 };
 const BACK: Part[] = [
   { id: 'references', title: 'References', share: [0, 0], ingredients: [i('Your verified sources', 'references')] },
+  // Phase P5: optional. Left out of the Word file while empty.
+  { id: 'appendices', title: 'Appendices', share: [0, 0], ingredients: [] },
 ];
 
 export const STRUCTURES: Structure[] = [

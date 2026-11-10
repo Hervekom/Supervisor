@@ -10,7 +10,7 @@ import { reportsOf } from '@/lib/chapterFeedback';
 import { count } from '@/lib/limits';
 import { emptyPath, isPathState, type PathState, type StructureId } from '@/lib/path';
 import { PATH_KEY, readLocalPath } from '@/lib/pathSync';
-import { buildThesisDocx, exportFileName } from '@/lib/wordExport';
+import { buildThesisDocx, exportFileName, exportSummary } from '@/lib/wordExport';
 import { ingredientStatus, partViews, REQUIRED_EXTRAS, stepTitle, STRUCTURES, structureOf, wordCount, type IngredientStatus } from '@/lib/structures';
 
 const LABEL: Record<IngredientStatus, string> = { missing: 'Missing', started: 'In progress', ready: 'Ready', set_aside: 'Set aside' };
@@ -26,6 +26,7 @@ export default function DocumentPage() {
   const [open, setOpen] = useState('');
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState('');
+  const [exported, setExported] = useState(false);
 
   /** Builds the Word file in this browser from what this page shows: nothing is sent anywhere. */
   async function downloadWord() {
@@ -41,6 +42,7 @@ export default function DocumentPage() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+      setExported(true);
     } catch {
       setExportError('The Word file could not be prepared in this browser. Nothing was changed. Try again, or save a backup from My thesis.');
     } finally {
@@ -119,8 +121,20 @@ export default function DocumentPage() {
         <div className="ask" style={{ marginTop: 12 }}>
           <button type="button" className="btn" disabled={exporting} onClick={downloadWord}>{exporting ? 'Preparing your Word file…' : 'Download Word'}</button>
         </div>
-        <p className="hint">Your text, part by part, as an editable Word file (.docx), with your step notes in an appendix. Parts you have not written are marked, never filled in. Add your university’s template, figures, tables and equations in Word or LibreOffice.</p>
+        <p className="hint">Your text, part by part, as an editable Word file (.docx): numbered chapters and sections, tables, figure captions, equations, references and appendices, with your step notes in a separate appendix. Parts you have not written are marked, never filled in. The file is made in this browser: nothing is sent anywhere.</p>
         {exportError ? <p className="error" role="alert">{exportError}</p> : null}
+        <ExportContents path={path} exported={exported} />
+        <details style={{ marginTop: 10 }}>
+          <summary>How to write tables, figures and equations for the Word file</summary>
+          <ul className="todo">
+            <li><code>## Heading</code> and <code>### Subheading</code>: sections, numbered 1.1 and 1.1.1 unless you number them yourself.</li>
+            <li><code>Table: caption</code>, then rows like <code>| Model | Accuracy |</code>. A line <code>|---|---|</code> under the first row makes it the header.</li>
+            <li><code>[Figure: caption]</code>: a numbered caption and a marked place where you insert the image in Word.</li>
+            <li><code>$$ E = mc^2 $$</code>: a numbered equation, kept exactly as you type it.</li>
+            <li><code>- item</code> or <code>1. item</code>: list items. <code>**bold**</code> and <code>*italic*</code>: emphasis.</li>
+            <li>In References, each line is one entry, exported exactly as you typed it.</li>
+          </ul>
+        </details>
       </div>
 
       <div className="sheet" style={{ marginTop: 16 }}>
@@ -131,6 +145,7 @@ export default function DocumentPage() {
               <span className="tag">{STATE[v.state]}</span>
             </h3>
             <p className="hint">{count(v.words)} words{v.target ? `, usually ${count(v.target[0])}–${count(v.target[1])}` : ''}</p>
+            {!v.ingredients.length ? <p className="hint">Optional. Left out of the Word file while empty.</p> : null}
             <ul className="todo">
               {v.ingredients.map((g) => (
                 <li key={`${g.step}-${g.label}`}>
@@ -183,6 +198,30 @@ function ChapterFeedbackSummary({ path }: { path: PathState }) {
         );
       })}
       <p style={{ marginTop: 10 }}><Link href="/feedback#history">See and compare all reports</Link></p>
+    </div>
+  );
+}
+
+/** Phase P5: what the Word file will hold, and what it cannot hold faithfully. */
+function ExportContents({ path, exported }: { path: PathState; exported: boolean }) {
+  const s = exportSummary(path);
+  const items = [
+    `${s.chapters} numbered chapters`,
+    `${s.sections} sections`,
+    `${s.paragraphs} paragraphs`,
+    s.tables ? `${s.tables} ${s.tables === 1 ? 'table' : 'tables'}` : '',
+    s.figures ? `${s.figures} figure ${s.figures === 1 ? 'caption' : 'captions'}` : '',
+    s.equations ? `${s.equations} ${s.equations === 1 ? 'equation' : 'equations'}` : '',
+    s.references ? `${s.references} reference ${s.references === 1 ? 'entry' : 'entries'}` : '',
+    s.appendices ? 'appendices' : '',
+  ].filter(Boolean);
+  return (
+    <div style={{ marginTop: 10 }} aria-label="What the Word file holds" role={exported ? 'status' : undefined}>
+      <p className="hint">{exported ? 'Your Word file holds' : 'The Word file will hold'}: {items.join(', ')}.{s.emptyParts.length ? ` Not written yet, and marked as such: ${s.emptyParts.join(', ')}.` : ''}</p>
+      <details>
+        <summary>What you still do in Word</summary>
+        <ul className="todo">{s.limitations.map((l) => <li key={l}>{l}</li>)}</ul>
+      </details>
     </div>
   );
 }
