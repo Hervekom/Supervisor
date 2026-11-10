@@ -120,6 +120,29 @@ describe('comparing documents', () => {
     expect(row.cells[0][0]).toMatchObject({ text: 'It has 12,000 samples.', kind: 'stated', source: 'ai', where: 'page 2' });
     expect(row.cells[1][0].source).toBe('document');
   });
+  it('the title block is never taken for data, even in records saved before this fix', async () => {
+    const b = await load('paper-b.pdf');
+    const front = b.passages.find((p) => p.front)!;
+    expect(front.text).toContain('Sample College');
+    expect(b.findings.some((f) => f.passageId === front.id)).toBe(false);
+    const old = { ...b, findings: [{ category: 'data' as const, passageId: front.id, page: 1, section: front.section, text: front.text }, ...b.findings] };
+    const row = compareDocs([await load('paper-en.pdf'), old]).rows.find((r) => r.key === 'data')!;
+    expect(row.cells[1].some((x) => x.text.includes('Sample College'))).toBe(false);
+    expect(row.cells[1].some((x) => x.text.includes('GlowRiver'))).toBe(true);
+  });
+  it('a Chinese summary that shares a short phrase with its passage is kept; a copied sentence is not', async () => {
+    const sent = toSent(selectPassages(await load('thesis-zh.pdf')));
+    // Every Chinese section is examined, short as its passages are.
+    expect(sent.map((p) => p.id)).toEqual(['p2', 'p3', 'p4', 'p5', 'p6', 'p7']);
+    const p = sent.find((x) => x.text.includes('仍然存在传感器稀疏的问题'))!;
+    const r = normalizeDeep({ aspects: {
+      problem: [{ text: '研究指出虚构洪水预测仍然存在传感器稀疏的问题，需要新方法。', kind: 'interpretation', passage: p.id }],
+      objectives: [{ text: '虚构洪水预测仍然存在传感器稀疏的问题。本文旨在研究灯笼网络能否利用稀疏传感器。', kind: 'interpretation', passage: p.id }],
+    } }, sent);
+    expect(r.aspects.problem.items).toHaveLength(1);
+    expect(r.aspects.objectives.items).toHaveLength(0);
+    expect(r.dropped).toBe(1);
+  });
   it('names and metric values', async () => {
     expect([...namesIn('We use ResNet-50, LSTM and the RiverLight set; RQ1 asks.')].sort()).toEqual(['LSTM', 'ResNet-50', 'RiverLight']);
     expect(metricValues(await load('thesis-zh.pdf'))).toEqual([]); // Chinese numbers written in words are not invented as values

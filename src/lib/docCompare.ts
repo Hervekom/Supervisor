@@ -25,6 +25,11 @@ export type Comparison = {
 };
 
 const passageOf = (d: CompareDoc, id: string): Passage | undefined => d.passages.find((p) => p.id === id);
+/** Findings outside the title block (authors, institution): "Sample College" is not a sample. Older records included them. */
+export const usableFindings = (d: CompareDoc) => {
+  const front = new Set(d.passages.filter((p) => p.front).map((p) => p.id));
+  return d.findings.filter((f) => !front.has(f.passageId));
+};
 
 /** What a document says about one aspect: the AI analysis when it exists, otherwise its own sentences (P7). */
 export function cellOf(d: CompareDoc, key: CompareKey): Cell {
@@ -36,7 +41,7 @@ export function cellOf(d: CompareDoc, key: CompareKey): Cell {
     }
     if (out.length) return out.slice(0, 6);
   }
-  return d.findings.filter((f) => FROM_FINDINGS[key].includes(f.category)).slice(0, 4).map((f) => ({ text: f.text, kind: 'stated', where: where(f), section: f.section, source: 'document' }));
+  return usableFindings(d).filter((f) => FROM_FINDINGS[key].includes(f.category)).slice(0, 4).map((f) => ({ text: f.text, kind: 'stated', where: where(f), section: f.section, source: 'document' }));
 }
 
 /** Proper names a document uses: RiverLight, ResNet-50, LSTM, GB/T… (capitals or digits inside a word). */
@@ -101,7 +106,7 @@ export function compareDocs(docs: CompareDoc[]): Comparison {
 
 /** Aspects this step needs that none of the documents covers: where the student must look further. */
 export function gapsFor(stepCats: Category[], docs: CompareDoc[]): string[] {
-  return stepCats.filter((c) => !docs.some((d) => d.findings.some((f) => f.category === c) || (d.deep && ASPECTS.some((a) => a.cats.includes(c) && d.deep!.aspects[a.key]?.status === 'found')))).map((c) => CATEGORY_LABELS[c]);
+  return stepCats.filter((c) => !docs.some((d) => usableFindings(d).some((f) => f.category === c) || (d.deep && ASPECTS.some((a) => a.cats.includes(c) && d.deep!.aspects[a.key]?.status === 'found')))).map((c) => CATEGORY_LABELS[c]);
 }
 
 const CITED = /\[@[^\]]+\]|\[\d+(?:[,–-]\s*\d+)*\]|\([^()]*\d{4}[a-z]?[^()]*\)|（[^（）]*\d{4}[^（）]*）/;

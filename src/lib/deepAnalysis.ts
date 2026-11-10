@@ -54,7 +54,8 @@ export const MAX_SENT_CHARS = 32_000;
 
 /** The passages most likely to inform each aspect: two per aspect, the abstract first, no title block or bibliography. */
 export function selectPassages(doc: DocLike, depth: Depth = 'standard'): Passage[] {
-  const usable = doc.passages.filter((p) => !p.front && p.category !== 'references' && p.text.length >= 40);
+  // 40 Latin characters, or 15 Chinese characters (already a full sentence).
+  const usable = doc.passages.filter((p) => !p.front && p.category !== 'references' && p.text.length >= (/\p{Script=Han}/u.test(p.text) ? 15 : 40));
   const chosen: Passage[] = [];
   const add = (p?: Passage) => {
     if (p && !chosen.includes(p) && chosen.length < DEPTH[depth].passages) chosen.push(p);
@@ -135,7 +136,8 @@ export function normalizeDeep(raw: unknown, sent: SentPassage[]): { aspects: Rec
         dropped++;
         continue;
       }
-      if (!numbersIn(text, p.text) || copiesSource(text, p.text, 12)) {
+      // In Chinese a word is often two characters, so a copy is 24 characters in a row rather than 12 words.
+      if (!numbersIn(text, p.text) || copiesSource(text, p.text, /\p{Script=Han}/u.test(text) ? 24 : 12)) {
         dropped++;
         continue;
       }

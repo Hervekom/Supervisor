@@ -8,6 +8,7 @@ const v1 = `${intro}\nWe use dataset A.\n${end}`;
 const v2 = `${intro}\nWe use dataset A and dataset B, because B is public.\n${end}`;
 
 async function analyse(page: Page, text: string, chapter = 'Chapter 3 Method') {
+  await expect(page.getByLabel('Degree')).toHaveValue(/.+/); // the degree list comes from the university profile
   await page.getByLabel('Chapter name').fill(chapter);
   await page.getByLabel('Chapter text').fill(text);
   await page.getByRole('button', { name: 'Get feedback' }).click();

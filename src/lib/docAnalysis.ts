@@ -176,7 +176,7 @@ export function analyse(x: Extracted): Analysis {
   const SECTION_FINDING: Partial<Record<Category, Category>> = { abstract: 'abstract', literature: 'literature', method: 'method', data: 'data', experiments: 'experiments', results: 'results', discussion: 'results', conclusions: 'conclusions', limitations: 'limitations', future: 'future' };
   const firstOf = new Set<string>();
   for (const p of passages) {
-    if (p.category === 'references') continue;
+    if (p.category === 'references' || p.front) continue;
     const sc = SECTION_FINDING[p.category];
     // The opening passage of each section, so the student sees where it starts.
     if (sc && !firstOf.has(`${p.section}|${sc}`)) {
