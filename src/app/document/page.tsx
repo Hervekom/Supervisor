@@ -6,6 +6,7 @@ import { useAccount } from '@/components/useAccount';
 import { put, useProfiles } from '@/components/useProfiles';
 import { ResearchEvidence } from '@/components/ResearchEvidence';
 import { usePathSync } from '@/components/usePathSync';
+import { reportsOf } from '@/lib/chapterFeedback';
 import { count } from '@/lib/limits';
 import { emptyPath, isPathState, type PathState, type StructureId } from '@/lib/path';
 import { PATH_KEY, readLocalPath } from '@/lib/pathSync';
@@ -103,6 +104,7 @@ export default function DocumentPage() {
 
       {sync.conflict ? <p className="notice" role="alert" style={{ marginTop: 12 }}>Two versions of your thesis exist. <Link href="/">Open My thesis</Link> to choose one.</p> : null}
       <ResearchEvidence path={path} />
+      <ChapterFeedbackSummary path={path} />
 
       <div className="sheet" style={{ marginTop: 20 }}>
         <div className="field">
@@ -157,5 +159,30 @@ export default function DocumentPage() {
         <p className="hint">Confirm the exact order and format with your school’s rules.</p>
       </details>
     </>
+  );
+}
+
+/** Phase P3: where each chapter stands in its feedback history. The reports themselves open in Feedback. */
+function ChapterFeedbackSummary({ path }: { path: PathState }) {
+  const reports = reportsOf(path);
+  if (!reports.length) return null;
+  const chapters = [...new Set(reports.map((r) => r.chapter))];
+  return (
+    <div className="sheet" style={{ marginTop: 16 }} aria-label="Chapter feedback history">
+      <h2>Chapter feedback</h2>
+      <p className="hint">Every AI feedback report on your chapters is kept. A new analysis never replaces an earlier one.</p>
+      {chapters.map((name) => {
+        const mine = reports.filter((r) => r.chapter === name);
+        const latest = mine[0];
+        return (
+          <div className="history-row" key={name}>
+            <span className="when">{name}</span>
+            <span className="hint">{mine.length} {mine.length === 1 ? 'report' : 'reports'}, latest {new Date(latest.analyzedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
+            <span className="acts"><Link href={`/feedback#report-${encodeURIComponent(latest.id)}`} aria-label={`Open the latest feedback on ${name}`}>Open the latest report</Link></span>
+          </div>
+        );
+      })}
+      <p style={{ marginTop: 10 }}><Link href="/feedback#history">See and compare all reports</Link></p>
+    </div>
   );
 }
